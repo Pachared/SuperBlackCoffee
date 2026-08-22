@@ -1,0 +1,27 @@
+{
+  "name": "superblackcoffee",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "format": "prettier --write .",
+    "clean": "rimraf apps/*/dist apps/*/.next",
+    "dev:customer": "pnpm --filter @stackbuild/customer dev",
+    "build:customer": "pnpm --filter @stackbuild/customer build",
+    "lint:customer": "pnpm --filter @stackbuild/customer lint",
+    "dev:api": "cd apps/api && go run ./cmd/api",
+    "build:api": "cd apps/api && go build ./cmd/api",
+    "dev:admin": "pnpm --filter @stackbuild/admin dev",
+    "build:admin": "pnpm --filter @stackbuild/admin build",
+    "lint:admin": "pnpm --filter @stackbuild/admin lint",
+    "dev": "concurrently \"pnpm run dev:customer\" \"cd apps/api && go run ./cmd/api\" \"pnpm run dev:admin\"",
+    "build": "pnpm run build:customer && cd apps/api && go build ./cmd/api && pnpm run build:admin",
+    "lint": "pnpm run lint:customer && pnpm run lint:admin"
+  },
+  "devDependencies": {
+    "concurrently": "latest",
+    "prettier": "latest",
+    "rimraf": "latest",
+    "typescript": "6.0.3"
+  }
+}
