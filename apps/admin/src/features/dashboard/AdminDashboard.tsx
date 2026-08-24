@@ -8,12 +8,14 @@ import { AdminIngredientsPage } from '../../pages/dashboard/AdminIngredientsPage
 import { AdminOrdersPage } from '../../pages/dashboard/AdminOrdersPage';
 import { AdminOverviewPage } from '../../pages/dashboard/AdminOverviewPage';
 import { AdminProductsPage } from '../../pages/dashboard/AdminProductsPage';
+import { AdminStockPage } from '../../pages/dashboard/AdminStockPage';
 
 const pages = {
   ภาพรวม: AdminOverviewPage,
   คำสั่งซื้อ: AdminOrdersPage,
   เมนูและสินค้า: AdminProductsPage,
   วัตถุดิบ: AdminIngredientsPage,
+  สต๊อก: AdminStockPage,
   'สาขา SBC': AdminBranchesPage,
 };
 
@@ -22,6 +24,7 @@ type AdminPage = keyof typeof pages;
 function pageFromHistory(): AdminPage {
   const page = window.history.state?.sbcAdminPage;
   if (page === 'สาขา') return 'สาขา SBC';
+  if (page === 'วัตถุดิบและสต๊อก') return 'วัตถุดิบ';
   return typeof page === 'string' && page in pages
     ? (page as AdminPage)
     : 'ภาพรวม';
@@ -58,13 +61,16 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     setActivePage(nextPage);
   };
   const isIngredientPage = activePage === 'วัตถุดิบ';
-  const hasBranchSidebar = isIngredientPage || activePage === 'เมนูและสินค้า' || activePage === 'คำสั่งซื้อ';
+  const isStockPage = activePage === 'สต๊อก';
+  const hasBranchSidebar = isIngredientPage || isStockPage || activePage === 'เมนูและสินค้า' || activePage === 'คำสั่งซื้อ';
   const pageContent = isIngredientPage
     ? <AdminIngredientsPage activeBranch={activeIngredientBranch} />
     : activePage === 'ภาพรวม'
       ? <AdminOverviewPage />
       : activePage === 'คำสั่งซื้อ'
         ? <AdminOrdersPage activeBranch={activeIngredientBranch} />
+        : isStockPage
+          ? <AdminStockPage activeBranch={activeIngredientBranch} />
         : activePage === 'เมนูและสินค้า'
           ? <AdminProductsPage activeBranch={activeIngredientBranch} />
           : <AdminBranchesPage />;
@@ -72,6 +78,8 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     ? activeIngredientBranch === 'ทุกสาขา'
       ? 'วัตถุดิบ ทุกสาขา'
       : `วัตถุดิบ สาขา${activeIngredientBranch}`
+    : isStockPage
+      ? activeIngredientBranch === 'ทุกสาขา' ? 'สต๊อก ทุกสาขา' : `สต๊อก สาขา${activeIngredientBranch}`
     : activePage === 'เมนูและสินค้า'
       ? activeIngredientBranch === 'ทุกสาขา' ? 'เมนูและสินค้า ทุกสาขา' : `เมนูและสินค้า สาขา${activeIngredientBranch}`
       : activePage === 'คำสั่งซื้อ'

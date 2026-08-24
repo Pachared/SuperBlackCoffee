@@ -7,16 +7,19 @@
     "format": "prettier --write .",
     "clean": "rimraf apps/*/dist apps/*/.next",
     "dev:customer": "pnpm --filter @stackbuild/customer dev",
+    "dev:website": "pnpm --filter @stackbuild/website dev",
     "build:customer": "pnpm --filter @stackbuild/customer build",
+    "build:website": "pnpm --filter @stackbuild/website build",
     "lint:customer": "pnpm --filter @stackbuild/customer lint",
+    "lint:website": "pnpm --filter @stackbuild/website lint",
     "dev:api": "cd apps/api && go run ./cmd/api",
     "build:api": "cd apps/api && go build ./cmd/api",
     "dev:admin": "pnpm --filter @stackbuild/admin dev",
     "build:admin": "pnpm --filter @stackbuild/admin build",
     "lint:admin": "pnpm --filter @stackbuild/admin lint",
-    "dev": "concurrently \"pnpm run dev:customer\" \"cd apps/api && go run ./cmd/api\" \"pnpm run dev:admin\"",
-    "build": "pnpm run build:customer && cd apps/api && go build ./cmd/api && pnpm run build:admin",
-    "lint": "pnpm run lint:customer && pnpm run lint:admin"
+    "dev": "concurrently \"pnpm run dev:website\" \"pnpm run dev:customer\" \"cd apps/api && go run ./cmd/api\" \"pnpm run dev:admin\"",
+    "build": "pnpm run build:website && pnpm run build:customer && cd apps/api && go build ./cmd/api && pnpm run build:admin",
+    "lint": "pnpm run lint:website && pnpm run lint:customer && pnpm run lint:admin"
   },
   "devDependencies": {
     "concurrently": "latest",

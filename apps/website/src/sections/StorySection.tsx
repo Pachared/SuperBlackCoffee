@@ -1,0 +1,1 @@
+export function StorySection() { return <section id="story" className="story"><div><p className="eyebrow">OUR COFFEE, OUR WAY</p><h2>เรียบง่าย<br />แต่ไม่ธรรมดา</h2></div><p>เราทำกาแฟที่ดื่มง่ายในทุกวัน ด้วยเมล็ดที่คัดเลือกอย่างพิถีพิถันและมาตรฐานเดียวกันในทุกสาขา เพื่อให้ทุกแก้วเป็นช่วงเวลาที่ดีของคุณ</p></section>; }

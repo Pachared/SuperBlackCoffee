@@ -1,4 +1,12 @@
 services:
+  website:
+    build:
+      context: .
+      dockerfile: apps/website/Dockerfile
+    ports: ["5175:5175"]
+    environment:
+      VITE_API_URL: http://localhost:8080
+    restart: unless-stopped
   customer:
     build: ./apps/customer
     ports: ["5173:5173"]
