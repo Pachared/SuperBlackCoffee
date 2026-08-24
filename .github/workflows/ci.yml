@@ -1,13 +1,46 @@
 name: CI
+
 on: [push, pull_request]
+
 jobs:
-  quality:
+  customer:
+    name: Customer
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with:
+          node-version: 22
+          cache: pnpm
       - run: corepack enable
-      - run: pnpm install
-      - run: pnpm run lint
-      - run: pnpm run build
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint:customer
+      - run: pnpm run build:customer
+
+  admin:
+    name: Admin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint:admin
+      - run: pnpm run build:admin
+
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+      - run: go test ./...
+        working-directory: apps/api
+      - run: go build ./cmd/api
+        working-directory: apps/api

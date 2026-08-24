@@ -14,6 +14,7 @@ export function AdminDashboardLayout({
   pageTitle,
   forceSidebarCollapsed = false,
   secondarySidebar,
+  secondarySidebarVisible = false,
 }: {
   activePage: string;
   navigation: NavigationItem[];
@@ -23,6 +24,7 @@ export function AdminDashboardLayout({
   pageTitle?: string;
   forceSidebarCollapsed?: boolean;
   secondarySidebar?: ReactNode;
+  secondarySidebarVisible?: boolean;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const primarySidebarCollapsed = forceSidebarCollapsed || sidebarCollapsed;
@@ -39,8 +41,14 @@ export function AdminDashboardLayout({
         collapsed={primarySidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
         hideToggle={forceSidebarCollapsed}
+        attachedPanel={secondarySidebar}
       />
-      {secondarySidebar}
+      <Box
+        sx={{
+          width: secondarySidebarVisible ? 160 : 0,
+          flexShrink: 0,
+        }}
+      />
       <DashboardTopbar
         title={pageTitle ?? activePage}
         initials="AP"

@@ -1,27 +1,26 @@
 import { useEffect, useState } from 'react';
 import { customerSidebarNavigation } from '../../components/sidebar/customerSidebarNavigation';
 import { CustomerDashboardLayout } from '../../layouts/CustomerDashboardLayout';
-import { CustomerFavoritesPage } from '../../pages/dashboard/CustomerFavoritesPage';
 import { CustomerIngredientsPage } from '../../pages/dashboard/CustomerIngredientsPage';
 import { CustomerOrdersPage } from '../../pages/dashboard/CustomerOrdersPage';
 import { CustomerOverviewPage } from '../../pages/dashboard/CustomerOverviewPage';
-import { CustomerRewardsPage } from '../../pages/dashboard/CustomerRewardsPage';
+import { CustomerReportsPage } from '../../pages/dashboard/CustomerReportsPage';
 
 const pages = {
-  ภาพรวม: CustomerOverviewPage,
+  'รับออเดอร์': CustomerOverviewPage,
+  รายงาน: CustomerReportsPage,
   คำสั่งซื้อของฉัน: CustomerOrdersPage,
   วัตถุดิบ: CustomerIngredientsPage,
-  รายการโปรด: CustomerFavoritesPage,
-  'สมาชิก & รางวัล': CustomerRewardsPage,
 };
 
 type CustomerPage = keyof typeof pages;
 
 function pageFromHistory(): CustomerPage {
   const page = window.history.state?.sbcCustomerPage;
+  if (page === 'ภาพรวม' || page === 'POS') return 'รับออเดอร์';
   return typeof page === 'string' && page in pages
     ? (page as CustomerPage)
-    : 'ภาพรวม';
+    : 'รับออเดอร์';
 }
 
 export function CustomerDashboard({ logout }: { logout: () => void }) {
@@ -55,6 +54,7 @@ export function CustomerDashboard({ logout }: { logout: () => void }) {
       navigation={customerSidebarNavigation}
       onNavigate={navigate}
       onLogout={logout}
+      forceSidebarCollapsed={activePage === 'รับออเดอร์'}
     >
       <Page />
     </CustomerDashboardLayout>

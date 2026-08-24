@@ -11,14 +11,17 @@ export function CustomerDashboardLayout({
   onNavigate,
   onLogout,
   children,
+  forceSidebarCollapsed = false,
 }: {
   activePage: string;
   navigation: NavigationItem[];
   onNavigate: (page: string) => void;
   onLogout: () => void;
   children: ReactNode;
+  forceSidebarCollapsed?: boolean;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isCollapsed = forceSidebarCollapsed || sidebarCollapsed;
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <DashboardSidebar
@@ -29,15 +32,16 @@ export function CustomerDashboardLayout({
         selectedColor="#392b22"
         activeBackground="#faf8f5"
         accentColor="#bd936e"
-        collapsed={sidebarCollapsed}
+        collapsed={isCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
+        hideToggle={forceSidebarCollapsed}
       />
       <DashboardTopbar
         title={activePage}
         initials="NS"
         name="Narin S."
         role="Customer"
-        sidebarWidth={sidebarCollapsed ? 96 : 230}
+        sidebarWidth={isCollapsed ? 96 : 230}
       />
       {children}
     </Box>

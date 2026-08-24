@@ -1,43 +1,37 @@
-// @ts-nocheck
-import { Box, Button, Card, Chip, Divider, LinearProgress, Stack, Typography } from '@mui/material';
-import { DashboardMain } from '@stackbuild/ui';
+import { useMemo, useState } from 'react';
+import { Box, Button, Card, Chip, Divider, TextField, Typography } from '@mui/material';
+import { DashboardMain, coffeeIngredientsImage, formatCurrency } from '@stackbuild/ui';
 
-const orders = [
-  { id: '#SC-24018', item: 'Iced Americano', note: 'วันนี้ · 10:24', status: 'กำลังเตรียม', tone: '#9b6138' },
-  { id: '#SC-24002', item: 'Cold Brew', note: '18 ส.ค. 2026', status: 'รับแล้ว', tone: '#4f7555' },
-  { id: '#SC-23976', item: 'Cappuccino', note: '13 ส.ค. 2026', status: 'รับแล้ว', tone: '#4f7555' },
+type MenuItem = { id: string; name: string; category: string; price: number; position: string };
+const menu: MenuItem[] = [
+  { id: 'americano', name: 'อเมริกาโน่เย็น', category: 'เมนูกาแฟเย็น', price: 85, position: '12% 50%' }, { id: 'latte', name: 'ลาเต้เย็น', category: 'เมนูกาแฟเย็น', price: 95, position: '34% 50%' }, { id: 'matcha', name: 'มัทฉะลาเต้', category: 'เมนูชา', price: 110, position: '55% 50%' }, { id: 'chocolate', name: 'ช็อกโกแลตเย็น', category: 'เมนูปั่น', price: 100, position: '76% 50%' },
+  { id: 'croissant', name: 'ครัวซองต์เนยสด', category: 'เมนูร้อน', price: 75, position: '38% 24%' }, { id: 'peach-tea', name: 'ชาพีช', category: 'เมนูชา', price: 95, position: '68% 76%' }, { id: 'flat-white', name: 'แฟลตไวท์ร้อน', category: 'เมนูร้อน', price: 100, position: '20% 72%' }, { id: 'mocha', name: 'มอคค่าเย็น', category: 'เมนูกาแฟเย็น', price: 105, position: '62% 34%' },
+  { id: 'thai-tea', name: 'ชาไทยเย็น', category: 'เมนูชา', price: 85, position: '82% 54%' }, { id: 'lemon-tea', name: 'ชามะนาวโซดา', category: 'เมนูโซดา', price: 80, position: '44% 82%' }, { id: 'banana-bread', name: 'อโวคาโดปั่น', category: 'เมนูอโวคาโด', price: 120, position: '32% 35%' }, { id: 'brownie', name: 'ชาเอิร์ลเกรย์ร้อน', category: 'เมนูชาร้อน', price: 85, position: '70% 68%' },
 ];
+const categories = ['ทั้งหมด', 'เมนูร้อน', 'เมนูกาแฟเย็น', 'เมนูชา', 'เมนูโซดา', 'เมนูปั่น', 'เมนูอโวคาโด', 'เมนูชาร้อน'];
 
 export function CustomerOverviewPage() {
-  return (
-    <DashboardMain>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.65fr) minmax(290px, .85fr)' }, gap: '16px' }}>
-        <Card elevation={0} sx={{ bgcolor: '#181411', color: '#fff', borderRadius: '15px', minHeight: 258 }}>
-          <Box sx={{ p: { xs: 3, md: 4 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <Box><Typography sx={{ color: '#c99a75', fontFamily: '"SBC Sans", sans-serif', fontSize: 11, letterSpacing: 1.5, fontWeight: 700 }}>SUPER BLACK COFFEE</Typography><Typography sx={{ mt: 1.5, fontFamily: 'Kanit, sans-serif', fontSize: { xs: 27, md: 33 }, fontWeight: 600, lineHeight: 1.25 }}>พร้อมรับกาแฟแก้วโปรด<br />ของคุณแล้ว</Typography><Typography sx={{ mt: 1, color: 'rgba(255,255,255,.62)', fontSize: 14 }}>สั่งซ้ำเมนูเดิม หรือเลือกเมนูใหม่ได้ทันที</Typography></Box>
-            <Button variant="contained" sx={{ width: 'fit-content', mt: 3, borderRadius: '15px', px: 2.25, bgcolor: '#bd936e', color: '#171411', fontFamily: 'Kanit, sans-serif', fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#cfaa89', boxShadow: 'none' } }}>สั่งกาแฟ</Button>
-          </Box>
-        </Card>
-        <Card variant="outlined" sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}>
-          <Box sx={{ p: { xs: 2.5, md: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Typography sx={{ color: '#805637', fontFamily: '"SBC Sans", sans-serif', fontSize: 11, letterSpacing: 1.2, fontWeight: 800 }}>BLACK REWARDS</Typography>
-            <Stack direction="row" alignItems="baseline" spacing={1} mt={1.3}><Typography sx={{ fontSize: 38, lineHeight: 1, fontWeight: 800 }}>420</Typography><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 14 }}>คะแนน</Typography></Stack>
-            <Typography sx={{ mt: 1, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>อีก 80 คะแนน รับเครื่องดื่มฟรี</Typography>
-            <LinearProgress variant="determinate" value={84} sx={{ mt: 2.5, height: 6, borderRadius: '15px', bgcolor: '#eee2d8', '& .MuiLinearProgress-bar': { bgcolor: '#a16d4b' } }} />
-            <Button variant="text" sx={{ mt: 'auto', pt: 2.5, px: 0, alignSelf: 'start', color: '#805637', fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>ดูสิทธิประโยชน์</Button>
-          </Box>
-        </Card>
+  const [category, setCategory] = useState('ทั้งหมด');
+  const [salesChannel, setSalesChannel] = useState<'หน้าร้าน' | 'LINE MAN'>('หน้าร้าน');
+  const [query, setQuery] = useState('');
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const visibleMenu = useMemo(() => menu.filter((item) => (category === 'ทั้งหมด' || item.category === category) && item.name.includes(query)), [category, query]);
+  const cartItems = menu.filter((item) => cart[item.id]);
+  const priceFor = (item: MenuItem) => item.price + (salesChannel === 'LINE MAN' ? 10 : 0);
+  const total = cartItems.reduce((sum, item) => sum + priceFor(item) * cart[item.id], 0);
+  const updateQuantity = (id: string, amount: number) => setCart((current) => { const next = Math.max(0, (current[id] ?? 0) + amount); const copy = { ...current }; if (next) copy[id] = next; else delete copy[id]; return copy; });
+
+  return <DashboardMain><Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 340px' }, gap: '16px', alignItems: 'start' }}>
+    <Box>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, justifyContent: 'space-between', gap: 1.5, mb: 1.5, px: 1.5, py: 1.25, border: '1px solid #e2d2c7', borderRadius: '15px', bgcolor: '#fffaf7' }}>
+        <Box><Typography sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: 15, fontWeight: 600 }}>ช่องทางการขาย</Typography><Typography sx={{ mt: .1, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 11 }}>เลือกราคาให้ตรงกับช่องทางก่อนรับออเดอร์</Typography></Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: .75, width: { xs: '100%', sm: 248 } }}>{(['หน้าร้าน', 'LINE MAN'] as const).map((channel) => { const selected = salesChannel === channel; const lineMan = channel === 'LINE MAN'; return <Button key={channel} onClick={() => setSalesChannel(channel)} variant={selected ? 'contained' : 'outlined'} sx={{ minHeight: 42, borderRadius: '11px', borderColor: selected ? (lineMan ? '#06C755' : '#201914') : '#d8c8bd', bgcolor: selected ? (lineMan ? '#06C755' : '#201914') : '#fff', color: selected ? '#fff' : '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontSize: 13, fontWeight: 600, boxShadow: 'none', '&:hover': { borderColor: lineMan ? '#06C755' : '#201914', bgcolor: selected ? (lineMan ? '#05B64F' : '#3c2d24') : '#f5eee9', boxShadow: 'none' } }}>{channel}</Button>; })}</Box>
       </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.5fr) minmax(300px, .75fr)' }, gap: '16px', mt: '16px' }}>
-        <Card variant="outlined" sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}><Box sx={{ p: { xs: 2.25, md: 3 } }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 19, fontWeight: 600 }}>คำสั่งซื้อล่าสุด</Typography><Typography sx={{ mt: .25, color: 'text.secondary', fontSize: 13 }}>ติดตามสถานะแก้วของคุณได้ที่นี่</Typography></Box><Button size="small" sx={{ color: '#805637', fontFamily: 'Kanit, sans-serif' }}>ดูทั้งหมด</Button></Stack>
-          <Stack divider={<Divider flexItem sx={{ borderColor: '#eee6e0' }} />}>{orders.map((order) => <Box key={order.id} sx={{ py: 1.5, display: 'grid', gridTemplateColumns: '40px minmax(0,1fr) auto', alignItems: 'center', gap: 1.5 }}><Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', bgcolor: '#f3ebe5', color: '#805637', borderRadius: '15px', fontSize: 17 }}>☕</Box><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontWeight: 600, fontSize: 15 }}>{order.item}</Typography><Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{order.id} · {order.note}</Typography></Box><Chip label={order.status} size="small" sx={{ height: 25, bgcolor: '#f7f1ec', color: order.tone, borderRadius: '15px', fontFamily: 'Kanit, sans-serif', fontSize: 12, fontWeight: 600 }} /></Box>)}</Stack>
-        </Box></Card>
-        <Card elevation={0} sx={{ borderRadius: '15px', bgcolor: '#f4eee9' }}><Box sx={{ p: { xs: 2.5, md: 3 }, display: 'flex', height: '100%', flexDirection: 'column' }}>
-          <Typography sx={{ color: '#805637', fontFamily: '"SBC Sans", sans-serif', fontSize: 11, letterSpacing: 1.2, fontWeight: 800 }}>QUICK ACCESS</Typography>
-          <Stack spacing={0} mt={1.5} divider={<Divider flexItem sx={{ borderColor: '#dfcfc3' }} />}>{[['เมนูโปรด', 'สั่งเมนูที่คุณชอบอีกครั้ง'], ['คะแนนสะสม', 'ตรวจสอบรางวัลของคุณ'], ['ประวัติการสั่ง', 'ดูรายการทั้งหมด']].map(([title, detail]) => <Box key={title} sx={{ py: 1.35 }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 15, fontWeight: 600 }}>{title}</Typography><Typography sx={{ mt: .2, color: 'text.secondary', fontSize: 12 }}>{detail}</Typography></Box>)}</Stack>
-        </Box></Card>
-      </Box>
-    </DashboardMain>
-  );
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, justifyContent: 'space-between', alignItems: { lg: 'center' }, gap: 1.5, mb: 2 }}><Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>{categories.map((item) => <Button key={item} onClick={() => setCategory(item)} size="small" variant={category === item ? 'contained' : 'outlined'} sx={{ minHeight: 34, borderRadius: '12px', borderColor: '#d8c8bd', bgcolor: category === item ? '#201914' : '#fff', color: category === item ? '#fff' : '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none' }}>{item}</Button>)}</Box><TextField value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาเมนู" size="small" sx={{ width: { xs: '100%', lg: 250 }, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} /></Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }, gap: '16px' }}>{visibleMenu.map((item) => <Card key={item.id} variant="outlined" onClick={() => updateQuantity(item.id, 1)} sx={{ overflow: 'hidden', borderRadius: '15px', borderColor: '#e8ddd5', cursor: 'pointer', transition: 'border-color .18s ease', '&:hover': { borderColor: '#805637' } }}><Box component="img" src={coffeeIngredientsImage} alt={item.name} sx={{ display: 'block', width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', objectPosition: item.position }} /><Box sx={{ p: 1.75 }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 16, fontWeight: 600 }}>{item.name}</Typography><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: .5 }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{item.category}</Typography><Typography sx={{ color: '#805637', fontFamily: 'Kanit, sans-serif', fontSize: 14, fontWeight: 600 }}>{formatCurrency(priceFor(item))}</Typography></Box></Box></Card>)}</Box>
+    </Box>
+    <Card variant="outlined" sx={{ position: { xs: 'static', lg: 'fixed' }, top: { lg: 88 }, right: { lg: 40 }, width: { lg: 340 }, height: { lg: 'calc(100vh - 128px)' }, display: 'flex', flexDirection: 'column', alignSelf: 'start', zIndex: { lg: 1 }, borderRadius: '15px', borderColor: '#e8ddd5', overflow: 'hidden' }}><Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, p: 2.5, bgcolor: '#201914', color: '#fff' }}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 19, fontWeight: 600 }}>ตะกร้าคำสั่งซื้อ</Typography><Typography sx={{ mt: .1, color: 'rgba(255,255,255,.7)', fontFamily: 'Kanit, sans-serif', fontSize: 11 }}>{salesChannel === 'หน้าร้าน' ? 'ขายหน้าร้าน' : 'ขายผ่าน LINE MAN'}</Typography></Box><Chip label={`${cartItems.length} รายการ`} size="small" sx={{ height: 25, borderRadius: '10px', bgcolor: 'rgba(255,255,255,.14)', color: '#fff', fontFamily: 'Kanit, sans-serif' }} /></Box><Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, p: 2.5 }}>
+      {cartItems.length === 0 ? <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ยังไม่มีรายการในตะกร้า</Typography><Typography sx={{ mt: .5, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>เลือกเมนูจากด้านซ้ายเพื่อเริ่มออเดอร์</Typography></Box> : <Box>{cartItems.map((item) => <Box key={item.id} sx={{ py: 1.25, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: 1, borderBottom: '1px solid #eee6e0' }}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 14, fontWeight: 600 }}>{item.name}</Typography><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{formatCurrency(priceFor(item))}</Typography></Box><Box sx={{ display: 'flex', alignItems: 'center', gap: .5 }}><Button onClick={() => updateQuantity(item.id, -1)} sx={{ minWidth: 28, width: 28, height: 28, p: 0, borderRadius: '8px', bgcolor: '#f3ebe5', color: '#5f4b3d' }}>−</Button><Typography sx={{ minWidth: 18, textAlign: 'center', fontFamily: 'Kanit, sans-serif' }}>{cart[item.id]}</Typography><Button onClick={() => updateQuantity(item.id, 1)} sx={{ minWidth: 28, width: 28, height: 28, p: 0, borderRadius: '8px', bgcolor: '#201914', color: '#fff' }}>+</Button></Box></Box>)}</Box>}<Box sx={{ mt: 'auto' }}><Divider sx={{ my: 2 }} /><Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 17, fontWeight: 600 }}>รวมทั้งหมด</Typography><Typography sx={{ color: '#805637', fontFamily: 'Kanit, sans-serif', fontSize: 19, fontWeight: 700 }}>{formatCurrency(total)}</Typography></Box><Button disabled={!cartItems.length} fullWidth variant="contained" sx={{ mt: 2.5, minHeight: 44, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>ดำเนินการชำระเงิน</Button></Box></Box>
+    </Card>
+  </Box></DashboardMain>;
 }

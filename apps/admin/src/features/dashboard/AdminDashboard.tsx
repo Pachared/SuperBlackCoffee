@@ -58,19 +58,24 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     setActivePage(nextPage);
   };
   const isIngredientPage = activePage === 'วัตถุดิบ';
+  const hasBranchSidebar = isIngredientPage || activePage === 'เมนูและสินค้า' || activePage === 'คำสั่งซื้อ';
   const pageContent = isIngredientPage
     ? <AdminIngredientsPage activeBranch={activeIngredientBranch} />
     : activePage === 'ภาพรวม'
       ? <AdminOverviewPage />
       : activePage === 'คำสั่งซื้อ'
-        ? <AdminOrdersPage />
+        ? <AdminOrdersPage activeBranch={activeIngredientBranch} />
         : activePage === 'เมนูและสินค้า'
-          ? <AdminProductsPage />
+          ? <AdminProductsPage activeBranch={activeIngredientBranch} />
           : <AdminBranchesPage />;
   const pageTitle = isIngredientPage
     ? activeIngredientBranch === 'ทุกสาขา'
       ? 'วัตถุดิบ ทุกสาขา'
       : `วัตถุดิบ สาขา${activeIngredientBranch}`
-    : activePage;
-  return <AdminDashboardLayout activePage={activePage} pageTitle={pageTitle} navigation={adminSidebarNavigation} onNavigate={navigate} onLogout={logout} forceSidebarCollapsed={isIngredientPage} secondarySidebar={isIngredientPage ? <IngredientBranchesSidebar activeBranch={activeIngredientBranch} onBranchChange={setActiveIngredientBranch} /> : undefined}>{pageContent}</AdminDashboardLayout>;
+    : activePage === 'เมนูและสินค้า'
+      ? activeIngredientBranch === 'ทุกสาขา' ? 'เมนูและสินค้า ทุกสาขา' : `เมนูและสินค้า สาขา${activeIngredientBranch}`
+      : activePage === 'คำสั่งซื้อ'
+        ? activeIngredientBranch === 'ทุกสาขา' ? 'คำสั่งซื้อ ทุกสาขา' : `คำสั่งซื้อ สาขา${activeIngredientBranch}`
+      : activePage;
+  return <AdminDashboardLayout activePage={activePage} pageTitle={pageTitle} navigation={adminSidebarNavigation} onNavigate={navigate} onLogout={logout} forceSidebarCollapsed={hasBranchSidebar} secondarySidebarVisible={hasBranchSidebar} secondarySidebar={<IngredientBranchesSidebar activeBranch={activeIngredientBranch} onBranchChange={setActiveIngredientBranch} visible={hasBranchSidebar} />}>{pageContent}</AdminDashboardLayout>;
 }

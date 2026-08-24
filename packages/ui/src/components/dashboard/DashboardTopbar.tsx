@@ -6,12 +6,14 @@ export function DashboardTopbar({
   name,
   role,
   sidebarWidth = 230,
+  disableSidebarTransition = false,
 }: {
   title: string;
   initials: string;
   name: string;
   role: string;
   sidebarWidth?: number;
+  disableSidebarTransition?: boolean;
 }) {
   const titleFont = /[\u0E00-\u0E7F]/.test(title)
     ? 'Kanit, sans-serif'
@@ -23,7 +25,7 @@ export function DashboardTopbar({
         position: 'fixed',
         top: 0,
         left: sidebarWidth,
-        transition: 'left .28s cubic-bezier(.2,.8,.2,1)',
+        transition: disableSidebarTransition ? 'none' : 'left .28s cubic-bezier(.2,.8,.2,1)',
         right: 0,
         zIndex: 1100,
         height: 72,

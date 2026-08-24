@@ -34,33 +34,36 @@ export type IngredientBranch = (typeof ingredientBranches)[number];
 export function IngredientBranchesSidebar({
   activeBranch,
   onBranchChange,
+  visible = true,
 }: {
   activeBranch: IngredientBranch;
   onBranchChange: (branch: IngredientBranch) => void;
+  visible?: boolean;
 }) {
   return (
     <Box
       component="aside"
       sx={{
-        position: 'sticky',
+        position: 'absolute',
+        left: '100%',
         top: '72px',
         zIndex: 1201,
-        alignSelf: 'flex-start',
         width: 160,
-        flexShrink: 0,
-        mt: '72px',
         height: 'calc(100vh - 72px)',
         overflowY: 'auto',
-        overscrollBehaviorY: 'contain',
+        overscrollBehaviorY: 'none',
         '&::-webkit-scrollbar': { width: 8 },
         '&::-webkit-scrollbar-thumb': { bgcolor: '#805637', borderRadius: 8 },
         '&::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
         '&::-webkit-scrollbar-button:single-button:vertical:decrement, &::-webkit-scrollbar-button:single-button:vertical:increment':
           { display: 'none', height: 0 },
         bgcolor: '#fbfaf8',
+        color: '#201914',
         borderRight: '1px solid #e8ddd5',
         px: 1.25,
         pt: '10px',
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
       }}
     >
       <List disablePadding>

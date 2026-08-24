@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
+import { cloneElement, isValidElement, useLayoutEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -35,6 +35,9 @@ export function DashboardSidebar({
   onToggle,
   hideToggle = false,
   disableActiveConnection = false,
+  collapseContentImmediately = false,
+  disableWidthTransition = false,
+  attachedPanel,
 }: {
   activePage: string;
   navigation: NavigationItem[];
@@ -47,6 +50,9 @@ export function DashboardSidebar({
   onToggle: () => void;
   hideToggle?: boolean;
   disableActiveConnection?: boolean;
+  collapseContentImmediately?: boolean;
+  disableWidthTransition?: boolean;
+  attachedPanel?: ReactNode;
 }) {
   const logoutIconRef = useRef<LogoutIconHandle>(null);
   const closeIconRef = useRef<PanelLeftCloseIconHandle>(null);
@@ -59,13 +65,14 @@ export function DashboardSidebar({
   const [clickedMenu, setClickedMenu] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (collapsed) {
       setExpandedContentVisible(false);
-      const timer = window.setTimeout(
-        () => setShowExpandedContent(false),
-        180,
-      );
+      if (collapseContentImmediately) {
+        setShowExpandedContent(false);
+        return undefined;
+      }
+      const timer = window.setTimeout(() => setShowExpandedContent(false), 280);
       return () => window.clearTimeout(timer);
     }
     setShowExpandedContent(true);
@@ -73,8 +80,9 @@ export function DashboardSidebar({
       setExpandedContentVisible(true),
     );
     return () => window.cancelAnimationFrame(frame);
-  }, [collapsed]);
+  }, [collapsed, collapseContentImmediately]);
   const width = collapsed ? 96 : 230;
+  const renderExpandedContent = showExpandedContent && (!collapseContentImmediately || !collapsed);
   return (
     <Drawer
       variant="permanent"
@@ -84,7 +92,7 @@ export function DashboardSidebar({
       }}
       sx={{
         width,
-        transition: 'width .28s cubic-bezier(.2,.8,.2,1)',
+        transition: disableWidthTransition ? 'none' : 'width .28s cubic-bezier(.2,.8,.2,1)',
         '& .MuiDrawer-paper': {
           width,
           boxSizing: 'border-box',
@@ -94,7 +102,7 @@ export function DashboardSidebar({
           borderRadius: '0 12px 0 0',
           overflow: 'visible',
           p: 2,
-          transition: 'width .28s cubic-bezier(.2,.8,.2,1), padding .28s cubic-bezier(.2,.8,.2,1)',
+          transition: disableWidthTransition ? 'none' : 'width .28s cubic-bezier(.2,.8,.2,1), padding .28s cubic-bezier(.2,.8,.2,1)',
         },
       }}
     >
@@ -152,12 +160,12 @@ export function DashboardSidebar({
           alt="Super Black Coffee"
           sx={{ width: 52, height: 52, objectFit: 'contain' }}
         />
-        <Typography sx={{ fontSize: 12, letterSpacing: 0.5, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap', maxHeight: 24, opacity: collapsed ? 0 : 1, overflow: 'hidden', transition: 'opacity .15s ease' }}>
-            SUPER{' '}
-            <Box component="span" color={accentColor}>
-              BLACK
-            </Box>{' '}
-            COFFEE
+        <Typography sx={{ fontSize: 12, letterSpacing: 0.5, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap', maxHeight: 24, minHeight: 24, opacity: collapsed ? 0 : 1, visibility: collapseContentImmediately && collapsed ? 'hidden' : 'visible', overflow: 'hidden', transition: collapseContentImmediately ? 'none' : 'opacity .14s ease' }}>
+          SUPER{' '}
+          <Box component="span" color={accentColor}>
+            BLACK
+          </Box>{' '}
+          COFFEE
         </Typography>
       </Box>
       <List>
@@ -188,13 +196,13 @@ export function DashboardSidebar({
               mb: 0.5,
               '&.Mui-selected': disableActiveConnection
                 ? {
-                    bgcolor: activeBackground,
-                    color: '#171411',
-                    borderRadius: '12px 0 0 12px',
-                    mr: 0,
-                  }
+                  bgcolor: activeBackground,
+                  color: '#171411',
+                  borderRadius: '12px 0 0 12px',
+                  mr: 0,
+                }
                 : collapsed
-                ? {
+                  ? {
                     bgcolor: activeBackground,
                     color: '#171411',
                     borderRadius: '12px 0 0 12px',
@@ -221,7 +229,7 @@ export function DashboardSidebar({
                       boxShadow: '7px -7px 0 7px ' + activeBackground,
                     },
                   }
-                : {
+                  : {
                     bgcolor: activeBackground,
                     color: '#171411',
                     borderRadius: '12px 0 0 12px',
@@ -272,7 +280,7 @@ export function DashboardSidebar({
             >
               {isValidElement(icon) ? cloneElement(icon as ReactElement<{ animate?: boolean }>, { animate: hoveredMenu === label || clickedMenu === label }) : icon}
             </ListItemIcon>
-            {showExpandedContent && <ListItemText sx={{ m: 0, ml: '44px', whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translateX(0)' : 'translateX(-10px)', transition: 'opacity .18s ease, transform .18s ease' }} primary={<Typography sx={{ fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' }}>{label}</Typography>} />}
+            {renderExpandedContent && <ListItemText sx={{ m: 0, ml: '44px', whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translateX(0)' : 'translateX(-10px)', transition: 'opacity .14s ease, transform .14s ease' }} primary={<Typography sx={{ fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' }}>{label}</Typography>} />}
           </ListItemButton>
         ))}
       </List>
@@ -311,10 +319,11 @@ export function DashboardSidebar({
             <Box sx={{ position: 'absolute', left: 22, top: '50%', display: 'flex', transform: 'translateY(-50%)', transition: 'color .2s ease' }}>
               <LogoutIcon ref={logoutIconRef} size={19} style={{ display: 'flex', alignItems: 'center', lineHeight: 0 }} />
             </Box>
-            {showExpandedContent && <Box component="span" sx={{ position: 'absolute', left: 50, top: '50%', display: 'inline-flex', alignItems: 'center', lineHeight: 1, whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translate(0, -50%)' : 'translate(-10px, -50%)', transition: 'opacity .18s ease, transform .18s ease' }}>ออกจากระบบ</Box>}
+            {renderExpandedContent && <Box component="span" sx={{ position: 'absolute', left: 50, top: '50%', display: 'inline-flex', alignItems: 'center', lineHeight: 1, whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translate(0, -50%)' : 'translate(-10px, -50%)', transition: 'opacity .14s ease, transform .14s ease' }}>ออกจากระบบ</Box>}
           </Box>
         </Button>
       </Box>
+      {attachedPanel}
     </Drawer>
   );
 }
