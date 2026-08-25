@@ -15,22 +15,23 @@ export function LoginScreen({
   headline: ReactNode;
   description: string;
   submitLabel: string;
-  onSubmit: (email: string, password: string) => void;
+  onSubmit: (email: string, password: string) => void | Promise<void>;
 }) {
   const iconRef = useRef<LogInIconHandle>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setIsSubmitting(true);
-    window.setTimeout(
-      () =>
-        onSubmit(
-          String(data.get('email') ?? ''),
-          String(data.get('password') ?? ''),
-        ),
-      550,
-    );
+    await new Promise((resolve) => window.setTimeout(resolve, 550));
+    try {
+      await onSubmit(
+        String(data.get('email') ?? ''),
+        String(data.get('password') ?? ''),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   return (
     <Box

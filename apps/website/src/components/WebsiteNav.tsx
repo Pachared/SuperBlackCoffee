@@ -1,6 +1,8 @@
+'use client';
+
 import { useState, type MouseEvent } from 'react';
 import { Box, Button, Typography } from '@mui/material';
-import { superBlackLogo } from '@stackbuild/ui';
+import Image from 'next/image';
 
 export function WebsiteNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -64,19 +66,17 @@ export function WebsiteNav() {
             color: '#201914',
           }}
         >
-          <Box
-            component="img"
-            src={superBlackLogo}
+          <Image
+            src="/superblack-logo.png"
             alt="Super Black Coffee"
-            sx={{
-              width: { xs: 36, md: 42 },
-              height: { xs: 36, md: 42 },
-              objectFit: 'contain',
-            }}
+            width={42}
+            height={42}
+            priority
+            style={{ width: 'auto', height: 'auto' }}
           />
           <Typography
             sx={{
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'var(--font-inter), sans-serif',
               fontSize: { xs: 9, md: 10 },
               fontWeight: 800,
               letterSpacing: 1.1,

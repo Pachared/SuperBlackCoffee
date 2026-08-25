@@ -24,7 +24,7 @@ export function VisitSection() {
           sx={{
             mb: 1.75,
             color: '#f3e9e3',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-inter), sans-serif',
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: 2,
@@ -75,7 +75,7 @@ export function VisitSection() {
         sx={{
           display: { xs: 'none', md: 'block' },
           color: 'rgba(255,255,255,.14)',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'var(--font-inter), sans-serif',
           fontSize: 'clamp(80px, 15vw, 190px)',
           fontWeight: 800,
           letterSpacing: '-12px',

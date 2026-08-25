@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Card, Chip, InputAdornment, TextField, Typography } from '@mui/material';
 import { DashboardMain, SearchIcon, type SearchIconHandle } from '@stackbuild/ui';
 import type { IngredientBranch } from '../../components/sidebar/IngredientBranchesSidebar';
+import { listStockRequests, updateStockRequestStatus } from '../../lib/api';
 
 type RequestStatus = 'รออนุมัติ' | 'กำลังจัดเตรียม' | 'จัดเสร็จแล้ว';
 type SupplyType = 'วัตถุดิบ' | 'สต๊อก';
@@ -26,13 +27,37 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: IngredientBran
   const [filter, setFilter] = useState<(typeof statuses)[number]>('ทั้งหมด');
   const [supplyType, setSupplyType] = useState<'ทั้งหมด' | SupplyType>('ทั้งหมด');
   const [requestStates, setRequestStates] = useState(requests);
+  useEffect(() => {
+    let cancelled = false;
+    void listStockRequests().then((apiRequests) => {
+      if (cancelled) return;
+      const statusMap: Record<string, RequestStatus> = { pending: 'รออนุมัติ', approved: 'รออนุมัติ', preparing: 'กำลังจัดเตรียม', completed: 'จัดเสร็จแล้ว' };
+      setRequestStates(apiRequests.map((request) => ({
+        id: `REQ-${request.id}`, branch: request.branch.name as Exclude<IngredientBranch, 'ทุกสาขา'>, type: 'วัตถุดิบ',
+        items: request.items.map((item) => ({ name: item.name, quantity: `${item.quantity} ${item.unit}` })),
+        requestedAt: new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt)),
+        status: statusMap[request.status] ?? 'รออนุมัติ',
+      })));
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
   const filteredRequests = useMemo(() => requestStates.filter((request) => {
     const matchesBranch = activeBranch === 'ทุกสาขา' || request.branch === activeBranch;
     const matchesStatus = filter === 'ทั้งหมด' || request.status === filter;
     const matchesType = supplyType === 'ทั้งหมด' || request.type === supplyType;
     return matchesBranch && matchesStatus && matchesType && `${request.id}${request.branch}${request.items.map((item) => item.name).join(' ')}`.toLowerCase().includes(query.toLowerCase());
   }), [activeBranch, filter, query, requestStates, supplyType]);
-  const advanceRequest = (id: string) => setRequestStates((current) => current.map((request) => request.id === id && request.status !== 'จัดเสร็จแล้ว' ? { ...request, status: nextStatus[request.status] } : request));
+  const advanceRequest = async (id: string) => {
+    const current = requestStates.find((request) => request.id === id);
+    if (!current || current.status === 'จัดเสร็จแล้ว') return;
+    const next = nextStatus[current.status];
+    const apiStatus = next === 'กำลังจัดเตรียม' ? 'preparing' : 'completed';
+    try {
+      const requestId = Number(id.replace('REQ-', ''));
+      if (!Number.isNaN(requestId)) await updateStockRequestStatus(requestId, apiStatus);
+      setRequestStates((items) => items.map((request) => request.id === id ? { ...request, status: next } : request));
+    } catch (error) { window.alert(error instanceof Error ? error.message : 'อัปเดตคำขอไม่สำเร็จ'); }
+  };
   const pendingCount = requestStates.filter((request) => request.status === 'รออนุมัติ' && (activeBranch === 'ทุกสาขา' || request.branch === activeBranch)).length;
 
   return <DashboardMain>

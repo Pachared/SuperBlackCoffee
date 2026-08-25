@@ -1,4 +1,5 @@
 import { LoginScreen } from '@stackbuild/ui';
+import { login } from '../../lib/api';
 
 export function CustomerLoginPage({ onLogin }: { onLogin: () => void }) {
   return (
@@ -13,10 +14,17 @@ export function CustomerLoginPage({ onLogin }: { onLogin: () => void }) {
       }
       description="รสชาติที่คุณรัก พร้อมอยู่ในทุกวันของคุณ"
       submitLabel="เข้าสู่แดชบอร์ด"
-      onSubmit={(email, password) => {
-        if (email && password) {
+      onSubmit={async (email, password) => {
+        try {
+          const session = await login(email, password);
+          if (!['branch_manager', 'franchise_owner', 'cashier'].includes(session.user.role)) {
+            throw new Error('บัญชีนี้ไม่มีสิทธิ์เข้าระบบสาขา');
+          }
+          sessionStorage.setItem('sbc-access-token', session.accessToken);
           sessionStorage.setItem('sbc-customer-session', 'true');
           onLogin();
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ');
         }
       }}
     />

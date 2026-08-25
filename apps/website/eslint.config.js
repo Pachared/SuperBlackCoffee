@@ -1,1 +1,1 @@
-export default [{ ignores: ['dist'] }];
+export default [{ ignores: ['dist', '.next'] }];

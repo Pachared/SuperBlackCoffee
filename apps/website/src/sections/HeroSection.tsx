@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from '@mui/material';
-import { coffeeIngredientsImage } from '@stackbuild/ui';
+import Image from 'next/image';
 
 export function HeroSection() {
   return (
@@ -31,7 +31,7 @@ export function HeroSection() {
           sx={{
             mb: 1.75,
             color: '#d8ac74',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-inter), sans-serif',
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: 2,
@@ -114,20 +114,17 @@ export function HeroSection() {
           opacity: { xs: 0.25, md: 1 },
         }}
       >
-        <Box
-          component="img"
-          src={coffeeIngredientsImage}
+        <Image
+          src="/coffee-ingredients.png"
           alt="เมล็ดกาแฟและวัตถุดิบ Super Black Coffee"
-          sx={{
-            display: 'block',
-            width: '100%',
-            height: '100%',
+          fill
+          priority
+          sizes="(max-width: 900px) 100vw, 45vw"
+          style={{
             objectFit: 'cover',
-            borderRadius: { md: '28px 0 0 28px' },
+            borderRadius: '28px 0 0 28px',
             filter: 'saturate(.72) contrast(1.08)',
-            maskImage: {
-              md: 'linear-gradient(to right, transparent, black 22%)',
-            },
+            maskImage: 'linear-gradient(to right, transparent, black 22%)',
           }}
         />
         <Box
@@ -140,7 +137,7 @@ export function HeroSection() {
             bgcolor: 'rgba(23,20,17,.86)',
             backdropFilter: 'blur(12px)',
             color: '#fffaf7',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-inter), sans-serif',
             fontSize: 13,
             fontWeight: 700,
             letterSpacing: 1.6,

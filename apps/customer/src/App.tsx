@@ -8,6 +8,7 @@ export default function App() {
     () => sessionStorage.getItem('sbc-customer-session') === 'true',
   );
   const logout = () => {
+    sessionStorage.removeItem('sbc-access-token');
     sessionStorage.removeItem('sbc-customer-session');
     setLoggedIn(false);
   };

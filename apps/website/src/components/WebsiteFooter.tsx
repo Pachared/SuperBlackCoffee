@@ -15,12 +15,20 @@ export function WebsiteFooter() {
       }}
     >
       <Typography
-        sx={{ fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 1 }}
+        sx={{
+          fontFamily: 'var(--font-inter), sans-serif',
+          fontSize: 10,
+          letterSpacing: 1,
+        }}
       >
         © 2026 SUPER BLACK COFFEE
       </Typography>
       <Typography
-        sx={{ fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 1 }}
+        sx={{
+          fontFamily: 'var(--font-inter), sans-serif',
+          fontSize: 10,
+          letterSpacing: 1,
+        }}
       >
         MADE FOR EVERY MOMENT
       </Typography>

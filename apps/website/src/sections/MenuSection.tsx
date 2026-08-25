@@ -27,7 +27,7 @@ export function MenuSection() {
             sx={{
               mb: 1.75,
               color: '#805637',
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'var(--font-inter), sans-serif',
               fontSize: 11,
               fontWeight: 700,
               letterSpacing: 2,
@@ -101,7 +101,7 @@ export function MenuSection() {
                 sx={{
                   mb: 'auto',
                   color: light ? '#5f4b3d' : 'rgba(255,255,255,.55)',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: 'var(--font-inter), sans-serif',
                   fontSize: 12,
                 }}
               >
@@ -109,7 +109,13 @@ export function MenuSection() {
               </Typography>
               <Typography
                 component="h3"
-                sx={{ m: 0, fontSize: 29, lineHeight: 1.15 }}
+                sx={{
+                  m: 0,
+                  fontFamily: 'var(--font-inter), sans-serif',
+                  fontSize: 29,
+                  fontWeight: 700,
+                  lineHeight: 1.15,
+                }}
               >
                 {name}
               </Typography>

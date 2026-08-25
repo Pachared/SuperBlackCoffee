@@ -33,7 +33,7 @@ export function StatsSection() {
         >
           <Typography
             sx={{
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: 'var(--font-inter), sans-serif',
               fontSize: { xs: 23, md: 34 },
               fontWeight: 700,
               letterSpacing: '-1.5px',

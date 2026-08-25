@@ -23,12 +23,24 @@ import {
   type XIconHandle,
 } from '@stackbuild/ui';
 import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
+import {
+  createInventory,
+  createStockRequest,
+  deleteInventory,
+  listInventory,
+  updateInventory,
+} from '../../lib/api';
 
 type Ingredient = {
+  id?: number;
   name: string;
   amount: string;
   status: IngredientStatus;
   imagePosition: string;
+  category?: string;
+  quantity?: number;
+  unit?: string;
+  reorderLevel?: number;
 };
 type OrderItem = Ingredient & { quantity: number };
 
@@ -94,9 +106,10 @@ export function CustomerIngredientsPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [deleteTargetName, setDeleteTargetName] = useState<string | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [inventory, setInventory] = useState<Ingredient[]>(ingredients);
   const filteredIngredients = useMemo(
     () =>
-      ingredients.filter((ingredient) => {
+      inventory.filter((ingredient) => {
         const matchesQuery = ingredient.name
           .toLowerCase()
           .includes(query.trim().toLowerCase());
@@ -104,11 +117,26 @@ export function CustomerIngredientsPage() {
           filter === 'ทั้งหมด' || ingredient.status === filter;
         return matchesQuery && matchesFilter;
       }),
-    [filter, query],
+    [filter, inventory, query],
   );
   useEffect(() => {
-    const timer = window.setTimeout(() => setIsIngredientsLoaded(true), 220);
-    return () => window.clearTimeout(timer);
+    let cancelled = false;
+    void listInventory()
+      .then((items) => {
+        if (cancelled) return;
+        const statusByApiStatus: Record<string, IngredientStatus> = {
+          ready: 'พร้อมใช้', low: 'วัตถุดิบใกล้หมด', out: 'วัตถุดิบหมด',
+        };
+        setInventory(items.map((item, index) => ({
+          ...item,
+          amount: `คงเหลือ ${item.quantity} ${item.unit}`,
+          status: statusByApiStatus[item.status] ?? 'พร้อมใช้',
+          imagePosition: ingredients[index % ingredients.length]?.imagePosition ?? '50% 50%',
+        })));
+      })
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setIsIngredientsLoaded(true); });
+    return () => { cancelled = true; };
   }, []);
   useEffect(
     () => () => {
@@ -135,6 +163,42 @@ export function CustomerIngredientsPage() {
     (total, item) => total + item.quantity,
     0,
   );
+  const saveIngredient = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      name: String(form.get('name') ?? ''),
+      category: String(form.get('category') ?? 'other'),
+      quantity: Number(form.get('quantity') ?? 0),
+      unit: String(form.get('unit') ?? 'kg'),
+      reorderLevel: Number(form.get('reorderLevel') ?? 0),
+    };
+    try {
+      if (editingIngredient?.id) await updateInventory(editingIngredient.id, payload);
+      else await createInventory(payload);
+      const items = await listInventory();
+      const statusByApiStatus: Record<string, IngredientStatus> = { ready: 'พร้อมใช้', low: 'วัตถุดิบใกล้หมด', out: 'วัตถุดิบหมด' };
+      setInventory(items.map((item, index) => ({ ...item, amount: `คงเหลือ ${item.quantity} ${item.unit}`, status: statusByApiStatus[item.status] ?? 'พร้อมใช้', imagePosition: ingredients[index % ingredients.length]?.imagePosition ?? '50% 50%' })));
+      setIsAddDrawerOpen(false);
+    } catch (error) { window.alert(error instanceof Error ? error.message : 'บันทึกวัตถุดิบไม่สำเร็จ'); }
+  };
+  const confirmDelete = async () => {
+    const item = inventory.find((candidate) => candidate.name === deleteTargetName);
+    try {
+      if (item?.id) await deleteInventory(item.id);
+      setInventory((items) => items.filter((candidate) => candidate.name !== deleteTargetName));
+      setDeleteTargetName(null);
+    } catch (error) { window.alert(error instanceof Error ? error.message : 'ลบวัตถุดิบไม่สำเร็จ'); }
+  };
+  const submitOrder = async () => {
+    if (!orderItems.length) return;
+    try {
+      await createStockRequest(orderItems.map((item) => ({ inventoryItemId: item.id, name: item.name, quantity: item.quantity, unit: item.unit ?? 'ชิ้น' })));
+      setOrderItems([]);
+      setIsOrderDrawerOpen(false);
+      window.alert('ส่งคำขอสั่งวัตถุดิบไปยังสำนักงานกลางแล้ว');
+    } catch (error) { window.alert(error instanceof Error ? error.message : 'ส่งคำขอไม่สำเร็จ'); }
+  };
 
   return (
     <DashboardMain>
@@ -257,7 +321,7 @@ export function CustomerIngredientsPage() {
         ))}
       </Box>
       {!isIngredientsLoaded ? (
-        <IngredientCardsSkeleton count={Math.min(ingredients.length, 4)} />
+        <IngredientCardsSkeleton count={Math.min(inventory.length, 4)} />
       ) : (
         <Box
           sx={{
@@ -448,7 +512,7 @@ export function CustomerIngredientsPage() {
                     <Box sx={{ display: 'flex', width: '100%', gap: 1 }}>
                       <Button
                         fullWidth
-                        onClick={() => setDeleteTargetName(null)}
+                        onClick={confirmDelete}
                         sx={{
                           minHeight: 38,
                           borderRadius: '10px',
@@ -586,10 +650,7 @@ export function CustomerIngredientsPage() {
           </Typography>
           <Box
             component="form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setIsAddDrawerOpen(false);
-            }}
+            onSubmit={saveIngredient}
             sx={{
               display: 'grid',
               gridTemplateColumns: {
@@ -700,6 +761,7 @@ export function CustomerIngredientsPage() {
             >
               <TextField
                 required
+                name="name"
                 fullWidth
                 label="ชื่อวัตถุดิบ"
                 placeholder="เช่น เมล็ดกาแฟคั่วกลาง"
@@ -709,6 +771,7 @@ export function CustomerIngredientsPage() {
               <TextField
                 required
                 select
+                name="category"
                 fullWidth
                 label="หมวดหมู่"
                 defaultValue=""
@@ -725,12 +788,14 @@ export function CustomerIngredientsPage() {
                 fullWidth
                 label="จำนวนคงเหลือ"
                 type="number"
+                name="quantity"
                 defaultValue={editingIngredient?.amount.match(/\d+/)?.[0]}
                 slotProps={{ htmlInput: { min: 0 } }}
               />
               <TextField
                 required
                 select
+                name="unit"
                 fullWidth
                 label="หน่วย"
                 defaultValue="kg"
@@ -744,6 +809,7 @@ export function CustomerIngredientsPage() {
                 fullWidth
                 label="แจ้งเตือนเมื่อคงเหลือ"
                 type="number"
+                name="reorderLevel"
                 slotProps={{ htmlInput: { min: 0 } }}
               />
               <TextField
@@ -942,6 +1008,11 @@ export function CustomerIngredientsPage() {
               ))
             )}
           </Box>
+          {orderItems.length > 0 && (
+            <Button variant="contained" onClick={submitOrder} sx={{ mt: 3, minHeight: 44, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>
+              ส่งคำขอสั่งวัตถุดิบ
+            </Button>
+          )}
         </Box>
       </Drawer>
     </DashboardMain>

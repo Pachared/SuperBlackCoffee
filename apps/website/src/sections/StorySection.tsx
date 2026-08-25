@@ -22,7 +22,7 @@ export function StorySection() {
           right: -20,
           bottom: -74,
           color: 'rgba(128,86,55,.08)',
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'var(--font-inter), sans-serif',
           fontSize: 'clamp(160px, 25vw, 360px)',
           fontWeight: 800,
           letterSpacing: '-20px',
@@ -35,7 +35,7 @@ export function StorySection() {
           sx={{
             mb: 1.75,
             color: '#805637',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-inter), sans-serif',
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: 2,
