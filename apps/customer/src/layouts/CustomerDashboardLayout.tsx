@@ -37,7 +37,7 @@ export function CustomerDashboardLayout({
         hideToggle={forceSidebarCollapsed}
       />
       <DashboardTopbar
-        title={activePage}
+        title={activePage === 'คำสั่งซื้อ' ? 'ประวัติการสั่งซื้อ' : activePage}
         initials="NS"
         name="Narin S."
         role="Customer"

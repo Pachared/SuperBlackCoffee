@@ -20,18 +20,48 @@ export { CoffeeIcon } from './components/icons/CoffeeIcon';
 export { HeartIcon } from './components/icons/HeartIcon';
 export { BadgeIcon } from './components/icons/BadgeIcon';
 export { ReceiptIcon } from './components/icons/ReceiptIcon';
-export { ReceiptTextIcon, type ReceiptTextIconHandle } from './components/icons/ReceiptTextIcon';
-export { ChartLineIcon, type ChartLineIconHandle } from './components/icons/ChartLineIcon';
+export {
+  ReceiptTextIcon,
+  type ReceiptTextIconHandle,
+} from './components/icons/ReceiptTextIcon';
+export { SendIcon, type SendIconHandle } from './components/icons/SendIcon';
+export {
+  MessageSquareIcon,
+  type MessageSquareIconHandle,
+} from './components/icons/MessageSquareIcon';
+export {
+  ChartLineIcon,
+  type ChartLineIconHandle,
+} from './components/icons/ChartLineIcon';
 export { BoxIcon } from './components/icons/BoxIcon';
 export { UsersIcon } from './components/icons/UsersIcon';
 export { MapPinHouseIcon } from './components/icons/MapPinHouseIcon';
+export {
+  MapPinPlusIcon,
+  type MapPinPlusIconHandle,
+} from './components/icons/MapPinPlusIcon';
 export { PlusIcon, type PlusIconHandle } from './components/icons/PlusIcon';
-export { AmbulanceIcon, type AmbulanceIconHandle } from './components/icons/AmbulanceIcon';
-export { SearchIcon, type SearchIconHandle } from './components/icons/SearchIcon';
+export {
+  AmbulanceIcon,
+  type AmbulanceIconHandle,
+} from './components/icons/AmbulanceIcon';
+export {
+  SearchIcon,
+  type SearchIconHandle,
+} from './components/icons/SearchIcon';
 export { XIcon, type XIconHandle } from './components/icons/XIcon';
 export { BoxesIcon } from './components/icons/BoxesIcon';
-export { MapPinPlusInsideIcon, type MapPinPlusInsideIconHandle } from './components/icons/MapPinPlusInsideIcon';
+export {
+  MapPinPlusInsideIcon,
+  type MapPinPlusInsideIconHandle,
+} from './components/icons/MapPinPlusInsideIcon';
 export { SbcThemeProvider } from './theme/SbcThemeProvider';
 export { DEFAULT_CURRENCY, formatCurrency } from './constants/currency';
-export { BRANCH_STATUS_BADGES, type BranchStatus } from './constants/branchStatus';
-export { INGREDIENT_STATUS_BADGES, type IngredientStatus } from './constants/ingredientStatus';
+export {
+  BRANCH_STATUS_BADGES,
+  type BranchStatus,
+} from './constants/branchStatus';
+export {
+  INGREDIENT_STATUS_BADGES,
+  type IngredientStatus,
+} from './constants/ingredientStatus';

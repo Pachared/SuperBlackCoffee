@@ -21,7 +21,7 @@ import {
 } from '../icons/PanelLeftOpenIcon';
 import superBlackLogo from '../../assets/superblack-logo.png';
 
-type NavigationItem = { label: string; icon: ReactNode };
+type NavigationItem = { label: string; icon: ReactNode; badge?: number };
 
 export function DashboardSidebar({
   activePage,
@@ -169,7 +169,7 @@ export function DashboardSidebar({
         </Typography>
       </Box>
       <List>
-        {navigation.map(({ label, icon }) => (
+        {navigation.map(({ label, icon, badge }) => (
           <ListItemButton
             key={label}
             selected={label === activePage}
@@ -281,6 +281,7 @@ export function DashboardSidebar({
               {isValidElement(icon) ? cloneElement(icon as ReactElement<{ animate?: boolean }>, { animate: hoveredMenu === label || clickedMenu === label }) : icon}
             </ListItemIcon>
             {renderExpandedContent && <ListItemText sx={{ m: 0, ml: '44px', whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translateX(0)' : 'translateX(-10px)', transition: 'opacity .14s ease, transform .14s ease' }} primary={<Typography sx={{ fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' }}>{label}</Typography>} />}
+            {!!badge && <Box className="sbc-nav-badge" sx={{ position: 'absolute', top: '50%', left: collapsed ? 48 : 172, zIndex: 3, display: 'grid', placeItems: 'center', minWidth: 22, height: 22, px: .5, borderRadius: 99, bgcolor: '#e5291d', color: '#fff', transform: 'translateY(-50%)', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 800, lineHeight: 1 }}>{badge > 99 ? '99+' : badge}</Box>}
           </ListItemButton>
         ))}
       </List>

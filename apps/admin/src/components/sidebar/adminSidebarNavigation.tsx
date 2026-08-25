@@ -1,4 +1,13 @@
-import { BoxIcon, BoxesIcon, LayoutGridIcon, MapPinHouseIcon, ReceiptIcon, ReceiptTextIcon } from '@stackbuild/ui';
+import {
+  BoxIcon,
+  BoxesIcon,
+  LayoutGridIcon,
+  MapPinHouseIcon,
+  MapPinPlusIcon,
+  MessageSquareIcon,
+  ReceiptIcon,
+  ReceiptTextIcon,
+} from '@stackbuild/ui';
 
 export const adminSidebarNavigation = [
   { label: 'ภาพรวม', icon: <LayoutGridIcon /> },
@@ -7,4 +16,6 @@ export const adminSidebarNavigation = [
   { label: 'วัตถุดิบ', icon: <BoxesIcon /> },
   { label: 'สต๊อก', icon: <BoxIcon /> },
   { label: 'สาขา SBC', icon: <MapPinHouseIcon /> },
+  { label: 'สาขาแฟรนไชส์', icon: <MapPinPlusIcon /> },
+  { label: 'แชทลูกค้า', icon: <MessageSquareIcon />, badge: 2 },
 ];

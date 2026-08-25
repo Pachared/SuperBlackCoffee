@@ -5,6 +5,7 @@ import {
   ListItemText,
   Typography,
 } from '@mui/material';
+import { useEffect, useRef, useState } from 'react';
 
 export const ingredientBranches = [
   'ทุกสาขา',
@@ -40,9 +41,18 @@ export function IngredientBranchesSidebar({
   onBranchChange: (branch: IngredientBranch) => void;
   visible?: boolean;
 }) {
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(scrollTimeoutRef.current), []);
+  const revealScrollbar = () => {
+    setIsScrolling(true);
+    window.clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = window.setTimeout(() => setIsScrolling(false), 700);
+  };
   return (
     <Box
       component="aside"
+      onScroll={revealScrollbar}
       sx={{
         position: 'absolute',
         left: '100%',
@@ -53,7 +63,8 @@ export function IngredientBranchesSidebar({
         overflowY: 'auto',
         overscrollBehaviorY: 'none',
         '&::-webkit-scrollbar': { width: 8 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: '#805637', borderRadius: 8 },
+        scrollbarColor: isScrolling ? '#805637 transparent' : 'transparent transparent',
+        '&::-webkit-scrollbar-thumb': { bgcolor: isScrolling ? '#805637' : 'transparent', borderRadius: 8, transition: 'background-color .2s ease' },
         '&::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
         '&::-webkit-scrollbar-button:single-button:vertical:decrement, &::-webkit-scrollbar-button:single-button:vertical:increment':
           { display: 'none', height: 0 },

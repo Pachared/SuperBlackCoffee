@@ -7,9 +7,9 @@ import { CustomerOverviewPage } from '../../pages/dashboard/CustomerOverviewPage
 import { CustomerReportsPage } from '../../pages/dashboard/CustomerReportsPage';
 
 const pages = {
-  'รับออเดอร์': CustomerOverviewPage,
+  รับออเดอร์: CustomerOverviewPage,
   รายงาน: CustomerReportsPage,
-  คำสั่งซื้อของฉัน: CustomerOrdersPage,
+  คำสั่งซื้อ: CustomerOrdersPage,
   วัตถุดิบ: CustomerIngredientsPage,
 };
 
@@ -18,6 +18,7 @@ type CustomerPage = keyof typeof pages;
 function pageFromHistory(): CustomerPage {
   const page = window.history.state?.sbcCustomerPage;
   if (page === 'ภาพรวม' || page === 'POS') return 'รับออเดอร์';
+  if (page === 'คำสั่งซื้อของฉัน') return 'คำสั่งซื้อ';
   return typeof page === 'string' && page in pages
     ? (page as CustomerPage)
     : 'รับออเดอร์';

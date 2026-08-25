@@ -70,12 +70,17 @@ export function AdminBranchesPage() {
   const searchIconRef = useRef<SearchIconHandle>(null);
   const closeIconRef = useRef<XIconHandle>(null);
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
   const [salesPeriod, setSalesPeriod] = useState<SalesPeriod>('รายวัน');
   const sales = salesData[salesPeriod];
   const salesForBranch = (branch: Branch, index: number) => branch.status === 'เปิดให้บริการ'
     ? Math.round((11_800 + ((index * 1_470) % 8_900)) * salesMultipliers[salesPeriod])
     : 0;
   const totalSales = branches.reduce((sum, branch, index) => sum + salesForBranch(branch, index), 0);
+  const drawerTitle = editingBranch ? 'แก้ไขสาขา' : 'เพิ่มสาขา';
+  const openAddBranch = () => { setEditingBranch(null); setIsAddBranchOpen(true); };
+  const openEditBranch = (branch: Branch) => { setEditingBranch(branch); setIsAddBranchOpen(true); };
 
   return (
     <DashboardMain>
@@ -93,7 +98,7 @@ export function AdminBranchesPage() {
         <Button
           variant="contained"
           startIcon={<MapPinPlusInsideIcon ref={plusIconRef} />}
-          onClick={() => setIsAddBranchOpen(true)}
+          onClick={openAddBranch}
           onMouseEnter={() => plusIconRef.current?.startAnimation()}
           onMouseLeave={() => plusIconRef.current?.stopAnimation()}
           sx={{ alignSelf: { xs: 'stretch', sm: 'auto' }, minHeight: 40, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}
@@ -109,12 +114,12 @@ export function AdminBranchesPage() {
         </Box>
       </Card>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' }, gap: '16px' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }, gap: '16px' }}>
         {branches.map((branch, index) => {
           const statusBadge = BRANCH_STATUS_BADGES[branch.status];
           const branchSales = salesForBranch(branch, index);
           return (
-            <Card key={branch.code} variant="outlined" sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}>
+            <Card key={branch.code} variant="outlined" sx={{ position: 'relative', overflow: 'hidden', borderRadius: '15px', borderColor: '#e8ddd5' }}>
               <Box sx={{ p: { xs: 2.25, md: 2.5 } }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
                   <Box>
@@ -133,8 +138,10 @@ export function AdminBranchesPage() {
                     <Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{salesPeriodLabels[salesPeriod]}</Typography>
                     <Typography sx={{ color: branchSales ? '#805637' : 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 17, fontWeight: 700 }}>{branchSales.toLocaleString('th-TH')} บาท</Typography>
                   </Box>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}><Button size="small" variant="contained" onClick={() => openEditBranch(branch)} sx={{ flex: 1, minHeight: 34, borderRadius: '10px', bgcolor: '#5f4030', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>แก้ไขสาขา</Button><Button size="small" variant="contained" color="error" onClick={() => setDeleteTargetCode(branch.code)} sx={{ flex: 1, minHeight: 34, borderRadius: '10px', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}>ลบสาขา</Button></Box>
                 </Box>
               </Box>
+              {deleteTargetCode === branch.code && <Box sx={{ position: 'absolute', inset: 0, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 2.5, bgcolor: 'rgba(32, 25, 20, .94)', color: '#fff', textAlign: 'center' }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 18, fontWeight: 600 }}>ยืนยันการลบสาขา?</Typography><Typography sx={{ color: 'rgba(255,255,255,.75)', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>ข้อมูลสาขานี้จะถูกลบออกจากระบบ</Typography><Box sx={{ display: 'flex', width: '100%', gap: 1 }}><Button fullWidth onClick={() => setDeleteTargetCode(null)} sx={{ minHeight: 38, borderRadius: '10px', color: '#fff', border: '1px solid rgba(255,255,255,.45)', fontFamily: 'Kanit, sans-serif' }}>ยกเลิก</Button><Button fullWidth variant="contained" color="error" onClick={() => setDeleteTargetCode(null)} sx={{ minHeight: 38, borderRadius: '10px', fontFamily: 'Kanit, sans-serif', boxShadow: 'none' }}>ยืนยันลบ</Button></Box></Box>}
             </Card>
           );
         })}
@@ -142,16 +149,16 @@ export function AdminBranchesPage() {
       <Drawer anchor="bottom" open={isAddBranchOpen} onClose={() => setIsAddBranchOpen(false)} transitionDuration={{ enter: 360, exit: 280 }} sx={{ zIndex: 1300 }} slotProps={{ paper: { sx: { left: { md: '254px' }, width: { md: 'calc(100% - 278px)' }, minHeight: { sm: 480 }, maxHeight: '82vh', overflowY: 'auto', borderRadius: '24px 24px 0 0', bgcolor: '#fffaf7', boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)' } } }}>
         <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
           <Box sx={{ width: 44, height: 5, mx: 'auto', mb: 2.5, borderRadius: 99, bgcolor: '#d8c8bd' }} />
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}><Typography sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: 22, fontWeight: 600 }}>เพิ่มสาขา</Typography><Button aria-label="ปิด" onClick={() => setIsAddBranchOpen(false)} onMouseEnter={() => closeIconRef.current?.startAnimation()} onMouseLeave={() => closeIconRef.current?.stopAnimation()} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 40, width: 40, height: 40, p: 0, borderRadius: '12px', bgcolor: '#f7eee8', color: '#5f4b3d', '&:hover': { bgcolor: '#f1e4da' } }}><XIcon ref={closeIconRef} size={20} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }} /></Button></Box>
-          <Typography sx={{ mt: .5, color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>กรอกข้อมูลเพื่อเพิ่มสาขาใหม่</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}><Typography sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: 22, fontWeight: 600 }}>{drawerTitle}</Typography><Button aria-label="ปิด" onClick={() => setIsAddBranchOpen(false)} onMouseEnter={() => closeIconRef.current?.startAnimation()} onMouseLeave={() => closeIconRef.current?.stopAnimation()} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 40, width: 40, height: 40, p: 0, borderRadius: '12px', bgcolor: '#f7eee8', color: '#5f4b3d', '&:hover': { bgcolor: '#f1e4da' } }}><XIcon ref={closeIconRef} size={20} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }} /></Button></Box>
+          <Typography sx={{ mt: .5, color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>{editingBranch ? 'แก้ไขข้อมูลสาขาในระบบ' : 'กรอกข้อมูลเพื่อเพิ่มสาขาใหม่'}</Typography>
           <Box component="form" onSubmit={(event) => { event.preventDefault(); setIsAddBranchOpen(false); }} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, mt: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
-            <TextField required fullWidth label="ชื่อสาขา" placeholder="เช่น สยามสแควร์" />
-            <TextField required fullWidth label="รหัสสาขา" placeholder="เช่น BKK-21" />
-            <TextField required fullWidth label="ที่อยู่สาขา" placeholder="กรอกรายละเอียดที่อยู่" sx={{ gridColumn: { sm: '1 / -1' } }} />
-            <TextField required fullWidth label="ชื่อผู้จัดการ" placeholder="เช่น Narin S." />
-            <TextField required fullWidth label="เบอร์โทรศัพท์" type="tel" placeholder="เช่น 02 123 4567" />
-            <TextField required select fullWidth label="สถานะ" defaultValue="open"><MenuItem value="open">เปิดให้บริการ</MenuItem><MenuItem value="renovation">ปิดปรับปรุง</MenuItem><MenuItem value="closed">ปิดทำการ</MenuItem></TextField>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.25, mt: 1, gridColumn: { sm: '1 / -1' } }}><Button onClick={() => setIsAddBranchOpen(false)} sx={{ minHeight: 40, borderRadius: '12px', color: '#5f4b3d', fontFamily: 'Kanit, sans-serif' }}>ยกเลิกเพิ่ม</Button><Button type="submit" variant="contained" sx={{ minHeight: 40, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>บันทึกสาขา</Button></Box>
+            <TextField required fullWidth label="ชื่อสาขา" placeholder="เช่น สยามสแควร์" defaultValue={editingBranch?.name} />
+            <TextField required fullWidth label="รหัสสาขา" placeholder="เช่น BKK-21" defaultValue={editingBranch?.code} />
+            <TextField required fullWidth label="ที่อยู่สาขา" placeholder="กรอกรายละเอียดที่อยู่" defaultValue={editingBranch?.address} sx={{ gridColumn: { sm: '1 / -1' } }} />
+            <TextField required fullWidth label="ชื่อผู้จัดการ" placeholder="เช่น Narin S." defaultValue={editingBranch?.manager} />
+            <TextField required fullWidth label="เบอร์โทรศัพท์" type="tel" placeholder="เช่น 02 123 4567" defaultValue={editingBranch?.phone} />
+            <TextField required select fullWidth label="สถานะ" defaultValue={editingBranch?.status ?? 'เปิดให้บริการ'}><MenuItem value="เปิดให้บริการ">เปิดให้บริการ</MenuItem><MenuItem value="ปิดปรับปรุง">ปิดปรับปรุง</MenuItem><MenuItem value="ปิดทำการ">ปิดทำการ</MenuItem></TextField>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.25, mt: 1, gridColumn: { sm: '1 / -1' } }}><Button onClick={() => setIsAddBranchOpen(false)} sx={{ minHeight: 40, borderRadius: '12px', color: '#5f4b3d', fontFamily: 'Kanit, sans-serif' }}>{editingBranch ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}</Button><Button type="submit" variant="contained" sx={{ minHeight: 40, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>{editingBranch ? 'บันทึกการแก้ไข' : 'บันทึกสาขา'}</Button></Box>
           </Box>
         </Box>
       </Drawer>

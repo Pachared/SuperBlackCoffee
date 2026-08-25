@@ -1,0 +1,33 @@
+@font-face {
+  font-family: Kanit;
+  src: url('../../admin/src/assets/fonts/Kanit-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Kanit;
+  src: url('../../admin/src/assets/fonts/Kanit-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: Inter;
+  src: url('../../admin/src/assets/fonts/Inter-VariableFont_opsz,wght.ttf')
+    format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  min-height: 100%;
+}
+body {
+  margin: 0;
+  background: #fbfaf8;
+  color: #201914;
+  font-family: Kanit, sans-serif;
+}

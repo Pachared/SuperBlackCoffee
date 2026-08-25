@@ -3,25 +3,33 @@ services:
     build:
       context: .
       dockerfile: apps/website/Dockerfile
-    ports: ["5175:5175"]
+    ports: ['5175:5175']
     environment:
       VITE_API_URL: http://localhost:8080
     restart: unless-stopped
   customer:
     build: ./apps/customer
-    ports: ["5173:5173"]
+    ports: ['5173:5173']
     environment:
       VITE_API_URL: http://localhost:8080
     restart: unless-stopped
   admin:
     build: ./apps/admin
-    ports: ["5174:5174"]
+    ports: ['5174:5174']
+    environment:
+      VITE_API_URL: http://localhost:8080
+    restart: unless-stopped
+  franchise:
+    build:
+      context: .
+      dockerfile: apps/franchise/Dockerfile
+    ports: ['5176:5176']
     environment:
       VITE_API_URL: http://localhost:8080
     restart: unless-stopped
   api:
     build: ./apps/api
-    ports: ["8080:8080"]
+    ports: ['8080:8080']
     env_file: .env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@database:5432/app
@@ -29,18 +37,18 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/health']
       interval: 10s
       timeout: 3s
       retries: 5
     restart: unless-stopped
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    ports: ['6379:6379']
     command: redis-server --appendonly yes
-    volumes: ["redis_data:/data"]
+    volumes: ['redis_data:/data']
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -51,7 +59,7 @@ services:
       POSTGRES_DB: app
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    volumes: ["database_data:/var/lib/postgresql/data"]
+    volumes: ['database_data:/var/lib/postgresql/data']
     restart: unless-stopped
 
 volumes:

@@ -7,6 +7,37 @@
   unicode-range: U+0000-0DFF, U+0E80-10FFFF;
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.sbc-is-scrolling * {
+  scrollbar-color: #805637 transparent;
+}
+
+.sbc-is-scrolling *::-webkit-scrollbar-thumb {
+  background: #805637;
+}
+
+.MuiDrawer-paper .MuiOutlinedInput-root {
+  background: #fff;
+}
+
 @font-face {
   font-family: 'Kanit';
   src: url('../assets/fonts/Kanit-Regular.ttf') format('truetype');

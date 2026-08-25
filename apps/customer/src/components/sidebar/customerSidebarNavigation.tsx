@@ -1,8 +1,13 @@
-import { BoxesIcon, ChartLineIcon, CoffeeIcon, LayoutGridIcon } from '@stackbuild/ui';
+import {
+  BoxesIcon,
+  ChartLineIcon,
+  CoffeeIcon,
+  LayoutGridIcon,
+} from '@stackbuild/ui';
 
 export const customerSidebarNavigation = [
   { label: 'รับออเดอร์', icon: <LayoutGridIcon /> },
   { label: 'รายงาน', icon: <ChartLineIcon /> },
-  { label: 'คำสั่งซื้อของฉัน', icon: <CoffeeIcon /> },
+  { label: 'คำสั่งซื้อ', icon: <CoffeeIcon /> },
   { label: 'วัตถุดิบ', icon: <BoxesIcon /> },
 ];

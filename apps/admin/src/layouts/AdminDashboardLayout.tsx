@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Box } from '@mui/material';
 import { DashboardSidebar, DashboardTopbar } from '@stackbuild/ui';
 
-type NavigationItem = { label: string; icon: ReactNode };
+type NavigationItem = { label: string; icon: ReactNode; badge?: number };
 
 export function AdminDashboardLayout({
   activePage,
