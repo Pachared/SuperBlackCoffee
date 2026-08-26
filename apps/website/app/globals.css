@@ -12,12 +12,19 @@ html {
     scroll-behavior: smooth;
 }
 
+html,
+body {
+    min-height: 100%;
+}
+
 body {
     margin: 0;
     padding: 0;
     min-width: 320px;
     background: #f8f4ef;
     font-family: var(--font-kanit), sans-serif;
+    color: #171411;
+    text-rendering: optimizeLegibility;
 }
 
 main {
@@ -35,4 +42,9 @@ input,
 textarea,
 select {
     font: inherit;
+}
+
+::selection {
+    background: #d09a3f;
+    color: #171411;
 }

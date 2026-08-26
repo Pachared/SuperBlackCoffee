@@ -1,38 +1,30 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
 
+const groups = [
+  ['สำรวจ', [['เกี่ยวกับเรา', '/about'], ['เมนู', '/menu'], ['สาขา', '/branches']]],
+  ['ธุรกิจ', [['แฟรนไชส์', '/franchise'], ['บริการของเรา', '/services'], ['ติดต่อทีมงาน', '/contact']]],
+];
+
 export function WebsiteFooter() {
-  return <Box component="footer" sx={{ bgcolor: '#171411', color: '#fff', px: { xs: 3, md: '8vw' }, pt: 8, pb: 3 }}>
-    <Box sx={{ maxWidth: 1240, mx: 'auto', display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr repeat(3,1fr)' }, gap: 5 }}>
-      <Box sx={{ display: 'grid', alignContent: 'start', gap: 1 }}>
-        <strong style={{ font: '700 23px/1.05 var(--font-inter)', letterSpacing: 2, color: '#c69454' }}>SUPER BLACK<br />COFFEE</strong>
-        <Typography component="p" sx={{ color: '#c8bbb0', fontSize: 14 }}>กาแฟที่ตั้งใจในทุกจังหวะของคุณ</Typography>
+  return <Box component="footer" sx={{ bgcolor: '#171411', color: '#fff', pt: { xs: 7, md: 9 }, pb: 3 }}>
+    <Box sx={{ maxWidth: 1240, mx: 'auto', px: { xs: 2.5, md: 5 }, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.7fr repeat(3, 1fr)' }, gap: { xs: 5, md: 4 } }}>
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, whiteSpace: 'nowrap' }}><Image src="/superblack-logo.png" alt="Super Black Coffee" width={48} height={48} /><Box sx={{ font: '800 13px/1 var(--font-inter)', letterSpacing: -.1 }}>SUPER BLACK COFFEE</Box></Box>
+        <Typography sx={{ color: 'rgba(255,255,255,.62)', mt: 2.5, maxWidth: 280, lineHeight: 1.75 }}>กาแฟที่ตั้งใจในทุกจังหวะ พร้อมพื้นที่และระบบที่ทำให้ธุรกิจเติบโตได้จริง</Typography>
       </Box>
-      <Box sx={{ display: 'grid', alignContent: 'start', gap: 1 }}>
-        <b style={{ color: '#c69454' }}>สำรวจ</b>
-        <Link href="/about">เกี่ยวกับเรา</Link>
-        <Link href="/menu">เมนู</Link>
-        <Link href="/branches">สาขา</Link>
-      </Box>
-      <Box sx={{ display: 'grid', alignContent: 'start', gap: 1 }}>
-        <b style={{ color: '#c69454' }}>แฟรนไชส์</b>
-        <Link href="/franchise">ภาพรวมธุรกิจ</Link>
-        <Link href="/services">บริการของเรา</Link>
-        <Link href="/contact">ติดต่อทีมงาน</Link>
-      </Box>
-      <Box sx={{ display: 'grid', alignContent: 'start', gap: 1 }}>
-        <b style={{ color: '#c69454' }}>ติดต่อเรา</b>
-        <a href="tel:021234567">02-123-4567</a>
-        <a href="mailto:hello@superblackcoffee.co.th">hello@superblackcoffee.co.th</a>
-        <span style={{ color: '#c8bbb0', fontSize: 14 }}>จันทร์–ศุกร์ 09:00–18:00 น.</span>
+      {groups.map(([title, links]) => <Box key={title as string} sx={{ display: 'grid', alignContent: 'start', gap: 1.1 }}><Typography sx={{ color: '#d09a3f', fontWeight: 700 }}>{title as string}</Typography>{(links as string[][]).map(([label, href]) => <Link key={href} href={href} style={{ color: 'rgba(255,255,255,.68)', fontSize: 15 }}>{label}</Link>)}</Box>)}
+      <Box sx={{ display: 'grid', alignContent: 'start', gap: 1.1 }}>
+        <Typography sx={{ color: '#d09a3f', fontWeight: 700 }}>ติดต่อเรา</Typography>
+        <a href="tel:021234567" style={{ color: 'rgba(255,255,255,.68)' }}>02-123-4567</a>
+        <a href="mailto:hello@superblackcoffee.co.th" style={{ color: 'rgba(255,255,255,.68)' }}>hello@superblackcoffee.co.th</a>
+        <Typography sx={{ color: 'rgba(255,255,255,.42)', fontSize: 13, mt: .5 }}>จันทร์–ศุกร์ 09:00–18:00 น.</Typography>
       </Box>
     </Box>
-    <Box sx={{ maxWidth: 1240, mx: 'auto', mt: 7, pt: 2, borderTop: '1px solid rgba(198,148,84,.35)', display: 'flex', justifyContent: 'space-between', gap: 2, color: '#a99d94', fontSize: 12 }}>
+    <Box sx={{ maxWidth: 1240, mx: 'auto', px: { xs: 2.5, md: 5 }, mt: { xs: 6, md: 8 }, pt: 2.5, borderTop: '1px solid rgba(255,255,255,.14)', display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', gap: 1.5, color: 'rgba(255,255,255,.42)', fontSize: 12 }}>
       <span>© {new Date().getFullYear()} SUPER BLACK COFFEE</span>
-      <Box sx={{ display: 'flex', gap: 3 }}>
-        <Link href="/privacy">นโยบายความเป็นส่วนตัว</Link>
-        <Link href="/terms">ข้อกำหนดการใช้งาน</Link>
-      </Box>
+      <Box sx={{ display: 'flex', gap: 2.5 }}><Link href="/privacy">นโยบายความเป็นส่วนตัว</Link><Link href="/terms">ข้อกำหนดการใช้งาน</Link></Box>
     </Box>
   </Box>;
 }
