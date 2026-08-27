@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Card, Chip, InputAdornment, TextField, Typography } from '@mui/material';
-import { DashboardMain, SearchIcon, type SearchIconHandle } from '@stackbuild/ui';
+import { DashboardMain, SearchIcon, formatDate, type SearchIconHandle } from '@stackbuild/ui';
 import type { IngredientBranch } from '../../components/sidebar/IngredientBranchesSidebar';
 import { listStockRequests, updateStockRequestStatus } from '../../lib/api';
 
@@ -8,14 +8,6 @@ type RequestStatus = 'รออนุมัติ' | 'กำลังจัด�
 type SupplyType = 'วัตถุดิบ' | 'สต๊อก';
 type SupplyItem = { name: string; quantity: string };
 type SupplyRequest = { id: string; branch: Exclude<IngredientBranch, 'ทุกสาขา'>; type: SupplyType; items: SupplyItem[]; requestedAt: string; status: RequestStatus };
-const requests: SupplyRequest[] = [
-  { id: 'REQ-2048', branch: 'สยามสแควร์', type: 'วัตถุดิบ', items: [{ name: 'เมล็ดกาแฟ House Blend', quantity: '18 กก.' }, { name: 'นมสด', quantity: '30 ลิตร' }, { name: 'ไซรัปวานิลลา', quantity: '10 ขวด' }], requestedAt: 'วันนี้ 10:24', status: 'รออนุมัติ' },
-  { id: 'REQ-2047', branch: 'อโศก', type: 'สต๊อก', items: [{ name: 'แก้วกระดาษ 16 oz', quantity: '400 ใบ' }, { name: 'ฝาแก้วร้อน', quantity: '200 ชิ้น' }, { name: 'หลอดกระดาษ', quantity: '180 ชิ้น' }], requestedAt: 'วันนี้ 09:40', status: 'กำลังจัดเตรียม' },
-  { id: 'REQ-2046', branch: 'อารีย์', type: 'วัตถุดิบ', items: [{ name: 'ผงมัทฉะ', quantity: '5 กก.' }, { name: 'ผงโกโก้', quantity: '7 กก.' }], requestedAt: 'วันนี้ 08:15', status: 'จัดเสร็จแล้ว' },
-  { id: 'REQ-2045', branch: 'ทองหล่อ', type: 'สต๊อก', items: [{ name: 'กล่องพัสดุ M', quantity: '80 กล่อง' }, { name: 'ถุงกระดาษหูหิ้ว', quantity: '100 ใบ' }], requestedAt: 'เมื่อวาน 17:32', status: 'จัดเสร็จแล้ว' },
-  { id: 'REQ-2044', branch: 'เซ็นทรัลลาดพร้าว', type: 'วัตถุดิบ', items: [{ name: 'นมโอ๊ต', quantity: '16 ลิตร' }, { name: 'ซอสคาราเมล', quantity: '10 ขวด' }], requestedAt: 'เมื่อวาน 15:10', status: 'รออนุมัติ' },
-  { id: 'REQ-2043', branch: 'สามย่าน', type: 'สต๊อก', items: [{ name: 'สติกเกอร์โลโก้', quantity: '240 แผ่น' }, { name: 'ทิชชู', quantity: '120 ห่อ' }], requestedAt: 'เมื่อวาน 11:05', status: 'กำลังจัดเตรียม' },
-];
 const statuses = ['ทั้งหมด', 'รออนุมัติ', 'กำลังจัดเตรียม', 'จัดเสร็จแล้ว'] as const;
 const statusColors: Record<RequestStatus, { main: string; text: string }> = { 'รออนุมัติ': { main: '#805637', text: '#fff' }, 'กำลังจัดเตรียม': { main: '#ca7a16', text: '#fff' }, 'จัดเสร็จแล้ว': { main: '#e8eee9', text: '#3c5b47' } };
 const nextStatus: Record<Exclude<RequestStatus, 'จัดเสร็จแล้ว'>, RequestStatus> = { 'รออนุมัติ': 'กำลังจัดเตรียม', 'กำลังจัดเตรียม': 'จัดเสร็จแล้ว' };
@@ -26,7 +18,7 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: IngredientBran
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<(typeof statuses)[number]>('ทั้งหมด');
   const [supplyType, setSupplyType] = useState<'ทั้งหมด' | SupplyType>('ทั้งหมด');
-  const [requestStates, setRequestStates] = useState(requests);
+  const [requestStates, setRequestStates] = useState<SupplyRequest[]>([]);
   useEffect(() => {
     let cancelled = false;
     void listStockRequests().then((apiRequests) => {
@@ -35,7 +27,7 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: IngredientBran
       setRequestStates(apiRequests.map((request) => ({
         id: `REQ-${request.id}`, branch: request.branch.name as Exclude<IngredientBranch, 'ทุกสาขา'>, type: 'วัตถุดิบ',
         items: request.items.map((item) => ({ name: item.name, quantity: `${item.quantity} ${item.unit}` })),
-        requestedAt: new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(request.createdAt)),
+        requestedAt: formatDate(request.createdAt),
         status: statusMap[request.status] ?? 'รออนุมัติ',
       })));
     }).catch(() => undefined);

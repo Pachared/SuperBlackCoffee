@@ -57,6 +57,7 @@ export {
 } from './components/icons/MapPinPlusInsideIcon';
 export { SbcThemeProvider } from './theme/SbcThemeProvider';
 export { DEFAULT_CURRENCY, formatCurrency } from './constants/currency';
+export { DEFAULT_DATE_FORMAT, formatDate } from './constants/date';
 export {
   BRANCH_STATUS_BADGES,
   type BranchStatus,

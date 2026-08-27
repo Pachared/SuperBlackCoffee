@@ -9,28 +9,14 @@ import { useEffect, useRef, useState } from 'react';
 
 export const ingredientBranches = [
   'ทุกสาขา',
-  'สยามสแควร์',
-  'อโศก',
-  'อารีย์',
-  'ทองหล่อ',
-  'เซ็นทรัลลาดพร้าว',
-  'สามย่าน',
-  'เยาวราช',
-  'ไอคอนสยาม',
-  'เอ็มควอเทียร์',
-  'พระราม 9',
-  'รัชดา',
-  'บางนา',
-  'ศาลาแดง',
-  'จตุจักร',
-  'ลาดกระบัง',
-  'ปิ่นเกล้า',
-  'บางแค',
-  'รามอินทรา',
-  'วงเวียนใหญ่',
-  'อนุสาวรีย์ชัยฯ',
+  'อยุธยา',
+  'พิษณุโลก',
 ] as const;
 export type IngredientBranch = (typeof ingredientBranches)[number];
+export const ingredientBranchCodes: Record<Exclude<IngredientBranch, 'ทุกสาขา'>, string> = {
+  อยุธยา: 'SBC-AYA-001',
+  พิษณุโลก: 'SBC-PLK-001',
+};
 
 export function IngredientBranchesSidebar({
   activeBranch,

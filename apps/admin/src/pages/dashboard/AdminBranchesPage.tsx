@@ -1,167 +1,66 @@
-import { useRef, useState } from 'react';
-import {
-  Box,
-  Button,
-  Card,
-  Chip,
-  Drawer,
-  InputAdornment,
-  MenuItem,
-  TextField,
-  Typography,
-} from '@mui/material';
-import {
-  BRANCH_STATUS_BADGES,
-  DashboardMain,
-  MapPinPlusInsideIcon,
-  SearchIcon,
-  XIcon,
-  type BranchStatus,
-  type MapPinPlusInsideIconHandle,
-  type SearchIconHandle,
-  type XIconHandle,
-} from '@stackbuild/ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Button, Card, Chip, InputAdornment, TextField, Typography } from '@mui/material';
+import { BRANCH_STATUS_BADGES, DashboardMain, SearchIcon, type BranchStatus, type SearchIconHandle } from '@stackbuild/ui';
+import { listBranchSales } from '../../lib/api';
 
-type Branch = {
-  code: string;
-  name: string;
-  address: string;
-  manager: string;
-  phone: string;
-  status: BranchStatus;
-};
+const periods = ['วันนี้', 'เดือนนี้', 'ปีนี้'] as const;
+type Period = (typeof periods)[number];
+type Branch = { id: number; name: string; code: string; status: BranchStatus; sales: number; orders: number };
 
-const branches: Branch[] = [
-  { code: 'BKK-01', name: 'สยามสแควร์', address: 'สยามสแควร์ ซอย 7, ปทุมวัน', manager: 'Narin S.', phone: '02 658 2410', status: 'เปิดให้บริการ' },
-  { code: 'BKK-02', name: 'อโศก', address: 'สุขุมวิท อโศก, วัฒนา', manager: 'May W.', phone: '02 261 4582', status: 'เปิดให้บริการ' },
-  { code: 'BKK-03', name: 'อารีย์', address: 'พหลโยธิน 7, พญาไท', manager: 'Krit P.', phone: '02 279 1168', status: 'เปิดให้บริการ' },
-  { code: 'BKK-04', name: 'ทองหล่อ', address: 'สุขุมวิท 55, วัฒนา', manager: 'Pim C.', phone: '02 381 9064', status: 'ปิดปรับปรุง' },
-  { code: 'BKK-05', name: 'เซ็นทรัลลาดพร้าว', address: 'ชั้น 2 เซ็นทรัลลาดพร้าว, จตุจักร', manager: 'Artit P.', phone: '02 541 1027', status: 'เปิดให้บริการ' },
-  { code: 'BKK-06', name: 'สามย่าน', address: 'สามย่านมิตรทาวน์, ปทุมวัน', manager: 'Jane K.', phone: '02 033 7811', status: 'เปิดให้บริการ' },
-  { code: 'BKK-07', name: 'เยาวราช', address: 'ถนนเยาวราช, สัมพันธวงศ์', manager: 'Beam T.', phone: '02 222 4193', status: 'เปิดให้บริการ' },
-  { code: 'BKK-08', name: 'ไอคอนสยาม', address: 'ชั้น G ไอคอนสยาม, คลองสาน', manager: 'นนท์ ว.', phone: '02 495 7008', status: 'เปิดให้บริการ' },
-  { code: 'BKK-09', name: 'เอ็มควอเทียร์', address: 'ชั้น 1 เอ็มควอเทียร์, วัฒนา', manager: 'Mew L.', phone: '02 269 8341', status: 'ปิดปรับปรุง' },
-  { code: 'BKK-10', name: 'พระราม 9', address: 'อาคาร G Tower, ห้วยขวาง', manager: 'Tee P.', phone: '02 168 5096', status: 'เปิดให้บริการ' },
-  { code: 'BKK-11', name: 'รัชดา', address: 'เดอะสตรีทรัชดา, ดินแดง', manager: 'Fah N.', phone: '02 692 1745', status: 'เปิดให้บริการ' },
-  { code: 'BKK-12', name: 'บางนา', address: 'เมกาบางนา, บางพลี', manager: 'Oak J.', phone: '02 105 6492', status: 'เปิดให้บริการ' },
-  { code: 'BKK-13', name: 'ศาลาแดง', address: 'สีลมคอมเพล็กซ์, บางรัก', manager: 'Palm R.', phone: '02 231 9805', status: 'ปิดทำการ' },
-  { code: 'BKK-14', name: 'จตุจักร', address: 'ตลาดนัดจตุจักร, จตุจักร', manager: 'Game S.', phone: '02 618 3470', status: 'เปิดให้บริการ' },
-  { code: 'BKK-15', name: 'ลาดกระบัง', address: 'โรบินสันไลฟ์สไตล์, ลาดกระบัง', manager: 'Aom V.', phone: '02 737 8114', status: 'เปิดให้บริการ' },
-  { code: 'BKK-16', name: 'ปิ่นเกล้า', address: 'เซ็นทรัลปิ่นเกล้า, บางกอกน้อย', manager: 'Nina C.', phone: '02 884 2749', status: 'เปิดให้บริการ' },
-  { code: 'BKK-17', name: 'บางแค', address: 'เดอะมอลล์ไลฟ์สโตร์ บางแค, ภาษีเจริญ', manager: 'Mark D.', phone: '02 454 6238', status: 'ปิดทำการ' },
-  { code: 'BKK-18', name: 'รามอินทรา', address: 'แฟชั่นไอส์แลนด์, คันนายาว', manager: 'พลอย อ.', phone: '02 947 1602', status: 'เปิดให้บริการ' },
-  { code: 'BKK-19', name: 'วงเวียนใหญ่', address: 'ถนนสมเด็จพระเจ้าตากสิน, ธนบุรี', manager: 'Boss K.', phone: '02 466 9037', status: 'เปิดให้บริการ' },
-  { code: 'BKK-20', name: 'อนุสาวรีย์ชัยฯ', address: 'พหลโยธิน, ราชเทวี', manager: 'Mild P.', phone: '02 245 7891', status: 'เปิดให้บริการ' },
-];
-
-const salesPeriods = ['รายชั่วโมง', 'รายวัน', 'รายเดือน'] as const;
-type SalesPeriod = (typeof salesPeriods)[number];
-const salesData: Record<SalesPeriod, { total: string; change: string; label: string; points: { label: string; value: number }[] }> = {
-  รายชั่วโมง: { total: '48,620 บาท', change: '+12.4%', label: 'ยอดขายวันนี้', points: [{ label: '08:00', value: 36 }, { label: '10:00', value: 56 }, { label: '12:00', value: 94 }, { label: '14:00', value: 68 }, { label: '16:00', value: 77 }, { label: '18:00', value: 52 }] },
-  รายวัน: { total: '312,840 บาท', change: '+8.6%', label: 'ยอดขายสัปดาห์นี้', points: [{ label: 'จ.', value: 58 }, { label: 'อ.', value: 72 }, { label: 'พ.', value: 64 }, { label: 'พฤ.', value: 88 }, { label: 'ศ.', value: 95 }, { label: 'ส.', value: 77 }, { label: 'อา.', value: 61 }] },
-  รายเดือน: { total: '1,284,560 บาท', change: '+15.2%', label: 'ยอดขายปีนี้', points: [{ label: 'มี.ค.', value: 54 }, { label: 'เม.ย.', value: 68 }, { label: 'พ.ค.', value: 62 }, { label: 'มิ.ย.', value: 78 }, { label: 'ก.ค.', value: 85 }, { label: 'ส.ค.', value: 96 }] },
-};
-
-const salesMultipliers: Record<SalesPeriod, number> = { รายชั่วโมง: 0.1, รายวัน: 1, รายเดือน: 30 };
-const salesPeriodLabels: Record<SalesPeriod, string> = { รายชั่วโมง: 'ยอดขายวันนี้รายชั่วโมง', รายวัน: 'ยอดขายวันนี้', รายเดือน: 'ยอดขายเดือนนี้' };
+const apiPeriod: Record<Period, 'today' | 'month' | 'year'> = { วันนี้: 'today', เดือนนี้: 'month', ปีนี้: 'year' };
+const periodLabel: Record<Period, string> = { วันนี้: 'ยอดขายวันนี้', เดือนนี้: 'ยอดขายเดือนนี้', ปีนี้: 'ยอดขายปีนี้' };
+const statusLabel: Record<string, BranchStatus> = { active: 'เปิดให้บริการ', maintenance: 'ปิดปรับปรุง', inactive: 'ปิดทำการ' };
 
 export function AdminBranchesPage() {
-  const plusIconRef = useRef<MapPinPlusInsideIconHandle>(null);
   const searchIconRef = useRef<SearchIconHandle>(null);
-  const closeIconRef = useRef<XIconHandle>(null);
-  const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
-  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
-  const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
-  const [salesPeriod, setSalesPeriod] = useState<SalesPeriod>('รายวัน');
-  const sales = salesData[salesPeriod];
-  const salesForBranch = (branch: Branch, index: number) => branch.status === 'เปิดให้บริการ'
-    ? Math.round((11_800 + ((index * 1_470) % 8_900)) * salesMultipliers[salesPeriod])
-    : 0;
-  const totalSales = branches.reduce((sum, branch, index) => sum + salesForBranch(branch, index), 0);
-  const drawerTitle = editingBranch ? 'แก้ไขสาขา' : 'เพิ่มสาขา';
-  const openAddBranch = () => { setEditingBranch(null); setIsAddBranchOpen(true); };
-  const openEditBranch = (branch: Branch) => { setEditingBranch(branch); setIsAddBranchOpen(true); };
+  const [period, setPeriod] = useState<Period>('วันนี้');
+  const [query, setQuery] = useState('');
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    void listBranchSales(apiPeriod[period])
+      .then((items) => {
+        if (!cancelled) setBranches(items.map((item) => ({ ...item, status: statusLabel[item.status] ?? 'ปิดทำการ' })));
+      })
+      .catch(() => { if (!cancelled) setBranches([]); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [period]);
+
+  const visibleBranches = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('th-TH');
+    if (!normalizedQuery) return branches;
+    return branches.filter((branch) => `${branch.name} ${branch.code}`.toLocaleLowerCase('th-TH').includes(normalizedQuery));
+  }, [branches, query]);
+  const totalSales = branches.reduce((total, branch) => total + branch.sales, 0);
+  const totalOrders = branches.reduce((total, branch) => total + branch.orders, 0);
 
   return (
     <DashboardMain>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 1.5, mb: 2 }}>
-        <TextField
-          onFocus={() => searchIconRef.current?.startAnimation()}
-          onBlur={() => searchIconRef.current?.stopAnimation()}
-          placeholder="ค้นหาสาขา"
-          size="small"
-          name="branch-search"
-          autoComplete="off"
-          sx={{ width: { xs: '100%', sm: 310 }, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-          slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'center', display: 'flex', alignItems: 'center', height: 18 }}><SearchIcon ref={searchIconRef} size={18} /></InputAdornment> } }}
-        />
-        <Button
-          variant="contained"
-          startIcon={<MapPinPlusInsideIcon ref={plusIconRef} />}
-          onClick={openAddBranch}
-          onMouseEnter={() => plusIconRef.current?.startAnimation()}
-          onMouseLeave={() => plusIconRef.current?.stopAnimation()}
-          sx={{ alignSelf: { xs: 'stretch', sm: 'auto' }, minHeight: 40, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', fontWeight: 600, boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}
-        >
-          เพิ่มสาขา
-        </Button>
+        <TextField value={query} onChange={(event) => setQuery(event.target.value)} onFocus={() => searchIconRef.current?.startAnimation()} onBlur={() => searchIconRef.current?.stopAnimation()} placeholder="ค้นหาสาขา" size="small" name="branch-search" autoComplete="off" sx={{ width: { xs: '100%', sm: 310 }, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'center', display: 'flex', alignItems: 'center', height: 18 }}><SearchIcon ref={searchIconRef} size={18} /></InputAdornment> } }} />
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>{periods.map((item) => <Button key={item} size="small" variant={period === item ? 'contained' : 'outlined'} onClick={() => setPeriod(item)} sx={{ minHeight: 34, borderRadius: '12px', borderColor: '#d8c8bd', bgcolor: period === item ? '#201914' : '#fff', color: period === item ? '#fff' : '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { borderColor: '#201914', bgcolor: period === item ? '#3c2d24' : '#f5eee9', boxShadow: 'none' } }}>{item}</Button>)}</Box>
       </Box>
 
       <Card variant="outlined" sx={{ mb: 3, p: { xs: 2.25, md: 2.5 }, borderRadius: '15px', borderColor: '#e8ddd5' }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { md: 'flex-start' }, gap: 2.5 }}>
-          <Box><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 14 }}>{sales.label}</Typography><Typography sx={{ mt: .25, color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: { xs: 28, md: 32 }, fontWeight: 700 }}>{totalSales.toLocaleString('th-TH')} บาท</Typography><Typography sx={{ mt: .25, color: '#177245', fontFamily: 'Kanit, sans-serif', fontSize: 13, fontWeight: 600 }}>{sales.change} จากช่วงก่อนหน้า</Typography></Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>{salesPeriods.map((period) => <Button key={period} size="small" variant={salesPeriod === period ? 'contained' : 'outlined'} onClick={() => setSalesPeriod(period)} sx={{ minHeight: 34, borderRadius: '12px', borderColor: '#d8c8bd', bgcolor: salesPeriod === period ? '#201914' : '#fff', color: salesPeriod === period ? '#fff' : '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { borderColor: '#201914', bgcolor: salesPeriod === period ? '#3c2d24' : '#f5eee9', boxShadow: 'none' } }}>{period}</Button>)}</Box>
-        </Box>
+        <Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 14 }}>{periodLabel[period]}</Typography>
+        <Typography sx={{ mt: .25, color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: { xs: 28, md: 32 }, fontWeight: 700 }}>{totalSales.toLocaleString('th-TH')} บาท</Typography>
+        <Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>จาก {totalOrders.toLocaleString('th-TH')} ออเดอร์ที่ชำระเงินแล้วของทุกสาขา</Typography>
       </Card>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }, gap: '16px' }}>
-        {branches.map((branch, index) => {
-          const statusBadge = BRANCH_STATUS_BADGES[branch.status];
-          const branchSales = salesForBranch(branch, index);
-          return (
-            <Card key={branch.code} variant="outlined" sx={{ position: 'relative', overflow: 'hidden', borderRadius: '15px', borderColor: '#e8ddd5' }}>
-              <Box sx={{ p: { xs: 2.25, md: 2.5 } }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
-                  <Box>
-                    <Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 19, fontWeight: 600 }}>{branch.name}</Typography>
-                    <Typography sx={{ mt: .35, color: '#805637', fontFamily: '"SBC Sans", sans-serif', fontSize: 12, fontWeight: 700, letterSpacing: .5 }}>{branch.code}</Typography>
-                  </Box>
-                  <Chip label={branch.status} size="small" sx={{ height: 25, borderRadius: '12px', bgcolor: statusBadge.main, color: statusBadge.contrastText, fontFamily: 'Kanit, sans-serif', fontSize: 11, fontWeight: 500 }} />
-                </Box>
-                <Box sx={{ mt: 2, pt: 1.75, borderTop: '1px solid #eee6e0' }}>
-                  <Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>{branch.address}</Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mt: 1.5 }}>
-                    <Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>ผู้จัดการ <Box component="span" sx={{ color: 'text.primary', fontFamily: '"SBC Sans", sans-serif', fontWeight: 600 }}>{branch.manager}</Box></Typography>
-                    <Typography sx={{ color: 'text.secondary', fontFamily: '"SBC Sans", sans-serif', fontSize: 12 }}>{branch.phone}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 1, mt: 1.75, pt: 1.5, borderTop: '1px solid #eee6e0' }}>
-                    <Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{salesPeriodLabels[salesPeriod]}</Typography>
-                    <Typography sx={{ color: branchSales ? '#805637' : 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 17, fontWeight: 700 }}>{branchSales.toLocaleString('th-TH')} บาท</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}><Button size="small" variant="contained" onClick={() => openEditBranch(branch)} sx={{ flex: 1, minHeight: 34, borderRadius: '10px', bgcolor: '#5f4030', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>แก้ไขสาขา</Button><Button size="small" variant="contained" color="error" onClick={() => setDeleteTargetCode(branch.code)} sx={{ flex: 1, minHeight: 34, borderRadius: '10px', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}>ลบสาขา</Button></Box>
-                </Box>
-              </Box>
-              {deleteTargetCode === branch.code && <Box sx={{ position: 'absolute', inset: 0, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 2.5, bgcolor: 'rgba(32, 25, 20, .94)', color: '#fff', textAlign: 'center' }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 18, fontWeight: 600 }}>ยืนยันการลบสาขา?</Typography><Typography sx={{ color: 'rgba(255,255,255,.75)', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>ข้อมูลสาขานี้จะถูกลบออกจากระบบ</Typography><Box sx={{ display: 'flex', width: '100%', gap: 1 }}><Button fullWidth onClick={() => setDeleteTargetCode(null)} sx={{ minHeight: 38, borderRadius: '10px', color: '#fff', border: '1px solid rgba(255,255,255,.45)', fontFamily: 'Kanit, sans-serif' }}>ยกเลิก</Button><Button fullWidth variant="contained" color="error" onClick={() => setDeleteTargetCode(null)} sx={{ minHeight: 38, borderRadius: '10px', fontFamily: 'Kanit, sans-serif', boxShadow: 'none' }}>ยืนยันลบ</Button></Box></Box>}
-            </Card>
-          );
+        {visibleBranches.map((branch) => {
+          const badge = BRANCH_STATUS_BADGES[branch.status];
+          return <Card key={branch.id} variant="outlined" sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}><Box sx={{ p: { xs: 2.25, md: 2.5 } }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 19, fontWeight: 600 }}>{branch.name}</Typography><Typography sx={{ mt: .35, color: '#805637', fontFamily: '"SBC Sans", sans-serif', fontSize: 12, fontWeight: 700, letterSpacing: .5 }}>{branch.code}</Typography></Box><Chip label={branch.status} size="small" sx={{ height: 25, borderRadius: '12px', bgcolor: badge.main, color: badge.contrastText, fontFamily: 'Kanit, sans-serif', fontSize: 11, fontWeight: 500 }} /></Box>
+            <Box sx={{ mt: 2, pt: 1.75, borderTop: '1px solid #eee6e0' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{periodLabel[period]}</Typography><Typography sx={{ mt: .2, color: branch.sales > 0 ? '#805637' : 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 22, fontWeight: 700 }}>{branch.sales.toLocaleString('th-TH')} บาท</Typography><Typography sx={{ mt: .35, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{branch.orders.toLocaleString('th-TH')} ออเดอร์ที่ชำระเงินแล้ว</Typography></Box>
+          </Box></Card>;
         })}
       </Box>
-      <Drawer anchor="bottom" open={isAddBranchOpen} onClose={() => setIsAddBranchOpen(false)} transitionDuration={{ enter: 360, exit: 280 }} sx={{ zIndex: 1300 }} slotProps={{ paper: { sx: { left: { md: '254px' }, width: { md: 'calc(100% - 278px)' }, minHeight: { sm: 480 }, maxHeight: '82vh', overflowY: 'auto', borderRadius: '24px 24px 0 0', bgcolor: '#fffaf7', boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)' } } }}>
-        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
-          <Box sx={{ width: 44, height: 5, mx: 'auto', mb: 2.5, borderRadius: 99, bgcolor: '#d8c8bd' }} />
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}><Typography sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: 22, fontWeight: 600 }}>{drawerTitle}</Typography><Button aria-label="ปิด" onClick={() => setIsAddBranchOpen(false)} onMouseEnter={() => closeIconRef.current?.startAnimation()} onMouseLeave={() => closeIconRef.current?.stopAnimation()} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 40, width: 40, height: 40, p: 0, borderRadius: '12px', bgcolor: '#f7eee8', color: '#5f4b3d', '&:hover': { bgcolor: '#f1e4da' } }}><XIcon ref={closeIconRef} size={20} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }} /></Button></Box>
-          <Typography sx={{ mt: .5, color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>{editingBranch ? 'แก้ไขข้อมูลสาขาในระบบ' : 'กรอกข้อมูลเพื่อเพิ่มสาขาใหม่'}</Typography>
-          <Box component="form" onSubmit={(event) => { event.preventDefault(); setIsAddBranchOpen(false); }} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2, mt: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
-            <TextField required fullWidth label="ชื่อสาขา" placeholder="เช่น สยามสแควร์" defaultValue={editingBranch?.name} />
-            <TextField required fullWidth label="รหัสสาขา" placeholder="เช่น BKK-21" defaultValue={editingBranch?.code} />
-            <TextField required fullWidth label="ที่อยู่สาขา" placeholder="กรอกรายละเอียดที่อยู่" defaultValue={editingBranch?.address} sx={{ gridColumn: { sm: '1 / -1' } }} />
-            <TextField required fullWidth label="ชื่อผู้จัดการ" placeholder="เช่น Narin S." defaultValue={editingBranch?.manager} />
-            <TextField required fullWidth label="เบอร์โทรศัพท์" type="tel" placeholder="เช่น 02 123 4567" defaultValue={editingBranch?.phone} />
-            <TextField required select fullWidth label="สถานะ" defaultValue={editingBranch?.status ?? 'เปิดให้บริการ'}><MenuItem value="เปิดให้บริการ">เปิดให้บริการ</MenuItem><MenuItem value="ปิดปรับปรุง">ปิดปรับปรุง</MenuItem><MenuItem value="ปิดทำการ">ปิดทำการ</MenuItem></TextField>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.25, mt: 1, gridColumn: { sm: '1 / -1' } }}><Button onClick={() => setIsAddBranchOpen(false)} sx={{ minHeight: 40, borderRadius: '12px', color: '#5f4b3d', fontFamily: 'Kanit, sans-serif' }}>{editingBranch ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}</Button><Button type="submit" variant="contained" sx={{ minHeight: 40, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>{editingBranch ? 'บันทึกการแก้ไข' : 'บันทึกสาขา'}</Button></Box>
-          </Box>
-        </Box>
-      </Drawer>
+      {!isLoading && visibleBranches.length === 0 && <Typography sx={{ pt: 4, textAlign: 'center', color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ไม่พบข้อมูลสาขา</Typography>}
     </DashboardMain>
   );
 }

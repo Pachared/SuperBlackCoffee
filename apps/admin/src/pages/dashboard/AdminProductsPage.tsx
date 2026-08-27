@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -25,6 +25,7 @@ import {
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
+import { listInventory, listMenuItems } from '../../lib/api';
 
 type ProductIngredient = { name: string; quantity: string };
 type Product = {
@@ -37,100 +38,14 @@ type Product = {
   position: string;
   ingredients: ProductIngredient[];
 };
-const products: Product[] = [
-  {
-    name: 'อเมริกาโน่เย็น',
-    storePrice: 85,
-    lineManPrice: 95,
-    costPrice: 24,
-    category: 'กาแฟ',
-    status: 'พร้อมขาย',
-    position: '12% 50%',
-    ingredients: [
-      { name: 'เมล็ดกาแฟ House Blend', quantity: '18 กรัม' },
-      { name: 'น้ำแข็ง', quantity: '1 แก้ว' },
-    ],
-  },
-  {
-    name: 'ลาเต้เย็น',
-    storePrice: 95,
-    lineManPrice: 110,
-    costPrice: 38,
-    category: 'กาแฟ',
-    status: 'พร้อมขาย',
-    position: '34% 50%',
-    ingredients: [
-      { name: 'เมล็ดกาแฟ House Blend', quantity: '18 กรัม' },
-      { name: 'นมสด', quantity: '180 มล.' },
-      { name: 'น้ำแข็ง', quantity: '1 แก้ว' },
-    ],
-  },
-  {
-    name: 'มัทฉะลาเต้',
-    storePrice: 110,
-    lineManPrice: 125,
-    costPrice: 42,
-    category: 'ชาและมัทฉะ',
-    status: 'พร้อมขาย',
-    position: '55% 50%',
-    ingredients: [
-      { name: 'ผงมัทฉะ', quantity: '3 กรัม' },
-      { name: 'นมสด', quantity: '180 มล.' },
-      { name: 'น้ำแข็ง', quantity: '1 แก้ว' },
-    ],
-  },
-  {
-    name: 'ช็อกโกแลตเย็น',
-    storePrice: 100,
-    lineManPrice: 115,
-    costPrice: 35,
-    category: 'เครื่องดื่ม',
-    status: 'พร้อมขาย',
-    position: '76% 50%',
-    ingredients: [
-      { name: 'ผงโกโก้', quantity: '20 กรัม' },
-      { name: 'นมสด', quantity: '180 มล.' },
-    ],
-  },
-  {
-    name: 'ครัวซองต์เนยสด',
-    storePrice: 75,
-    lineManPrice: 85,
-    costPrice: 28,
-    category: 'เบเกอรี่',
-    status: 'หมดชั่วคราว',
-    position: '38% 24%',
-    ingredients: [{ name: 'ครัวซองต์เนยสด', quantity: '1 ชิ้น' }],
-  },
-  {
-    name: 'เค้กช็อกโกแลต',
-    storePrice: 120,
-    lineManPrice: 135,
-    costPrice: 45,
-    category: 'เบเกอรี่',
-    status: 'หมดชั่วคราว',
-    position: '50% 85%',
-    ingredients: [{ name: 'เค้กช็อกโกแลต', quantity: '1 ชิ้น' }],
-  },
-];
 const filters = [
   'ทั้งหมด',
   'กาแฟ',
   'ชาและมัทฉะ',
   'เครื่องดื่ม',
+  'อาหาร',
   'เบเกอรี่',
 ] as const;
-const availableIngredients = [
-  'เมล็ดกาแฟ House Blend',
-  'นมสด',
-  'นมโอ๊ต',
-  'ผงมัทฉะ',
-  'ผงโกโก้',
-  'ไซรัปวานิลลา',
-  'ซอสคาราเมล',
-  'น้ำแข็ง',
-  'แก้วกระดาษ 16 oz',
-];
 type ProductFilter = (typeof filters)[number];
 
 export function AdminProductsPage({
@@ -143,11 +58,14 @@ export function AdminProductsPage({
   const closeRef = useRef<XIconHandle>(null);
   const branchSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [filter, setFilter] = useState<ProductFilter>('ทั้งหมด');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [availableIngredients, setAvailableIngredients] = useState<string[]>([]);
   const [productIngredients, setProductIngredients] = useState<
     ProductIngredient[]
   >([{ name: '', quantity: '' }]);
@@ -159,12 +77,12 @@ export function AdminProductsPage({
   );
   const matches = useMemo(
     () =>
-      products.filter(
+      catalogProducts.filter(
         (item) =>
-          item.name.includes(query) &&
+          item.name.includes(deferredQuery) &&
           (filter === 'ทั้งหมด' || item.category === filter),
       ),
-    [filter, query],
+    [catalogProducts, deferredQuery, filter],
   );
   const displayedBranches =
     activeBranch === 'ทุกสาขา' ? ingredientBranches.slice(1) : [activeBranch];
@@ -223,6 +141,40 @@ export function AdminProductsPage({
       timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [activeBranch]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      listMenuItems(),
+      listInventory('ingredient'),
+      listInventory('stock'),
+    ])
+      .then(([items, ingredients, stock]) => {
+        if (!active) return;
+        setAvailableIngredients(
+          [...ingredients, ...stock].map((item) => item.name),
+        );
+        setCatalogProducts(
+          items.map((item, index) => ({
+            name: item.name,
+            storePrice: item.storePrice,
+            lineManPrice: item.linemanPrice,
+            costPrice: item.costPrice,
+            category: item.category,
+            status: item.status === 'soldout' ? 'หมดชั่วคราว' : 'พร้อมขาย',
+            position: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
+            ingredients: item.ingredients.map((ingredient) => ({
+              name: ingredient.name,
+              quantity: `${ingredient.quantity} ${ingredient.unit}`,
+            })),
+          })),
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <DashboardMain>
@@ -453,6 +405,24 @@ export function AdminProductsPage({
                                 justifyContent: 'space-between',
                                 px: 1,
                                 py: 0.45,
+                                color: '#5f4b3d',
+                                fontFamily: 'Kanit, sans-serif',
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              ราคาต้นทุน
+                              <Box component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>
+                                {item.costPrice} บาท
+                              </Box>
+                            </Typography>
+                            <Typography
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                px: 1,
+                                py: 0.45,
                                 borderRadius: '8px',
                                 color: '#805637',
                                 fontFamily: 'Kanit, sans-serif',
@@ -463,24 +433,6 @@ export function AdminProductsPage({
                               ราคาหน้าร้าน
                               <Box component="span" sx={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
                                 {item.storePrice} บาท
-                              </Box>
-                            </Typography>
-                            <Typography
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                px: 1,
-                                py: 0.45,
-                                color: '#5f4b3d',
-                                fontFamily: 'Kanit, sans-serif',
-                                fontSize: 12,
-                                fontWeight: 600,
-                              }}
-                            >
-                              ราคาต้นทุน
-                              <Box component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>
-                                {item.costPrice} บาท
                               </Box>
                             </Typography>
                             <Typography
@@ -935,7 +887,15 @@ export function AdminProductsPage({
                           )
                         }
                         placeholder="เลือกวัตถุดิบ"
-                        slotProps={{ select: { displayEmpty: true } }}
+                        slotProps={{
+                          select: {
+                            displayEmpty: true,
+                            renderValue: (value) =>
+                              typeof value === 'string' && value
+                                ? value
+                                : 'เลือกวัตถุดิบ',
+                          },
+                        }}
                       >
                         <MenuItem value="" disabled>
                           เลือกวัตถุดิบ

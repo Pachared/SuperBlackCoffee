@@ -1,21 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Box, Button, Card, Chip, Drawer, InputAdornment, MenuItem, TextField, Typography } from '@mui/material';
 import { DashboardMain, coffeeIngredientsImage, INGREDIENT_STATUS_BADGES, PlusIcon, SearchIcon, XIcon, type IngredientStatus, type PlusIconHandle, type SearchIconHandle, type XIconHandle } from '@stackbuild/ui';
-import { ingredientBranches, type IngredientBranch } from '../../components/sidebar/IngredientBranchesSidebar';
+import { ingredientBranchCodes, ingredientBranches, type IngredientBranch } from '../../components/sidebar/IngredientBranchesSidebar';
 import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
+import { listInventory } from '../../lib/api';
 
 type Ingredient = { name: string; amount: string; status: IngredientStatus; imagePosition: string };
+type InventoryBranch = Exclude<IngredientBranch, 'ทุกสาขา'>;
 
-const ingredients: Ingredient[] = [
-  { name: 'เมล็ดกาแฟ House Blend', amount: 'คงเหลือ 18 กก.', status: 'พร้อมใช้', imagePosition: '12% 50%' },
-  { name: 'นมสด', amount: 'คงเหลือ 24 ลิตร', status: 'พร้อมใช้', imagePosition: '34% 50%' },
-  { name: 'นมโอ๊ต', amount: 'คงเหลือ 6 ลิตร', status: 'วัตถุดิบใกล้หมด', imagePosition: '55% 50%' },
-  { name: 'ไซรัปวานิลลา', amount: 'คงเหลือ 8 ขวด', status: 'พร้อมใช้', imagePosition: '76% 50%' },
-  { name: 'ผงมัทฉะ', amount: 'คงเหลือ 0 กก.', status: 'วัตถุดิบหมด', imagePosition: '38% 24%' },
-  { name: 'แก้วกระดาษ 16 oz', amount: 'คงเหลือ 320 ใบ', status: 'พร้อมใช้', imagePosition: '85% 60%' },
-  { name: 'ซอสคาราเมล', amount: 'คงเหลือ 14 ขวด', status: 'วัตถุดิบค้างสต๊อก', imagePosition: '68% 76%' },
-  { name: 'ผงโกโก้', amount: 'คงเหลือ 3 กก.', status: 'วัตถุดิบใกล้หมด', imagePosition: '50% 85%' },
-];
 
 const filters = ['ทั้งหมด', 'วัตถุดิบใกล้หมด', 'วัตถุดิบหมด', 'วัตถุดิบค้างสต๊อก'] as const;
 type IngredientFilter = (typeof filters)[number];
@@ -25,19 +17,37 @@ export function AdminIngredientsPage({ activeBranch }: { activeBranch: Ingredien
   const searchIconRef = useRef<SearchIconHandle>(null);
   const closeIconRef = useRef<XIconHandle>(null);
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [filter, setFilter] = useState<IngredientFilter>('ทั้งหมด');
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [catalogIngredientsByBranch, setCatalogIngredientsByBranch] = useState<Record<string, Ingredient[]>>({});
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
   const [visibleBranchNames, setVisibleBranchNames] = useState<Set<string>>(() => new Set());
   const [loadedBranchNames, setLoadedBranchNames] = useState<Set<string>>(() => new Set());
   const branchSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const filteredIngredients = useMemo(() => ingredients.filter((ingredient) => {
-    const matchesQuery = ingredient.name.toLowerCase().includes(query.trim().toLowerCase());
+  const filterIngredients = (items: Ingredient[]) => items.filter((ingredient) => {
+    const matchesQuery = ingredient.name.toLowerCase().includes(deferredQuery.trim().toLowerCase());
     const matchesFilter = filter === 'ทั้งหมด' || ingredient.status === filter;
     return matchesQuery && matchesFilter;
-  }), [filter, query]);
+  });
+  useEffect(() => {
+    let active = true;
+    const branchNames: InventoryBranch[] = activeBranch === 'ทุกสาขา' ? ingredientBranches.filter((branch): branch is InventoryBranch => branch !== 'ทุกสาขา') : [activeBranch];
+    void Promise.all(branchNames.map(async (branch) => {
+      const items = await listInventory('ingredient', ingredientBranchCodes[branch]);
+      return [branch, items.map((item, index) => ({
+        name: item.name,
+        amount: `คงเหลือ ${item.quantity} ${item.unit} · ต้นทุน ${item.unitCost.toFixed(2)} บาท/${item.unit}`,
+        status: (item.status === 'out' ? 'วัตถุดิบหมด' : item.status === 'low' ? 'วัตถุดิบใกล้หมด' : 'พร้อมใช้') as IngredientStatus,
+        imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
+      }))] as const;
+    })).then((entries) => {
+      if (active) setCatalogIngredientsByBranch(Object.fromEntries(entries) as Record<string, Ingredient[]>);
+    }).catch(() => { if (active) setCatalogIngredientsByBranch({}); });
+    return () => { active = false; };
+  }, [activeBranch]);
   useEffect(() => () => {
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
   }, [imagePreviewUrl]);
@@ -80,6 +90,7 @@ export function AdminIngredientsPage({ activeBranch }: { activeBranch: Ingredien
       </Box>
       <Box sx={{ display: 'grid', gap: 4 }}>
         {displayedBranches.map((branch, index) => {
+          const filteredIngredients = filterIngredients(catalogIngredientsByBranch[branch] ?? []);
           const isBranchVisible = activeBranch !== 'ทุกสาขา' || visibleBranchNames.has(branch);
           const isBranchLoaded = activeBranch !== 'ทุกสาขา' || loadedBranchNames.has(branch);
           return <Box key={branch} ref={(section: HTMLDivElement | null) => { branchSectionRefs.current[branch] = section; }} data-branch={branch} sx={index === 0 ? undefined : { position: 'relative', pt: 4, '&::before': { content: '""', position: 'absolute', top: 0, left: '-40px', right: '-40px', borderTop: '1px solid #e8ddd5' } }}>
@@ -100,7 +111,7 @@ export function AdminIngredientsPage({ activeBranch }: { activeBranch: Ingredien
           </Box>;
         })}
       </Box>
-      {filteredIngredients.length === 0 && <Typography sx={{ pt: 4, textAlign: 'center', color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ไม่พบวัตถุดิบที่ค้นหา</Typography>}
+      {Object.values(catalogIngredientsByBranch).every((items) => filterIngredients(items).length === 0) && <Typography sx={{ pt: 4, textAlign: 'center', color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ไม่พบวัตถุดิบที่ค้นหา</Typography>}
       <Drawer anchor="bottom" open={isAddDrawerOpen} onClose={() => setIsAddDrawerOpen(false)} transitionDuration={{ enter: 360, exit: 280 }} sx={{ zIndex: 1300 }} slotProps={{ paper: { sx: { left: { md: '280px' }, width: { md: 'calc(100% - 304px)' }, minHeight: { sm: 520 }, maxHeight: '82vh', overflowY: 'auto', borderRadius: '24px 24px 0 0', bgcolor: '#fffaf7', boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)' } } }}>
         <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
           <Box sx={{ width: 44, height: 5, mx: 'auto', mb: 2.5, borderRadius: 99, bgcolor: '#d8c8bd' }} />

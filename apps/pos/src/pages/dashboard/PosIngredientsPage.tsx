@@ -44,45 +44,6 @@ type Ingredient = {
 };
 type OrderItem = Ingredient & { quantity: number };
 
-const ingredients: Ingredient[] = [
-  {
-    name: 'เมล็ดกาแฟ House Blend',
-    amount: 'คงเหลือ 18 กก.',
-    status: 'พร้อมใช้',
-    imagePosition: '12% 50%',
-  },
-  {
-    name: 'นมสด',
-    amount: 'คงเหลือ 24 ลิตร',
-    status: 'พร้อมใช้',
-    imagePosition: '34% 50%',
-  },
-  {
-    name: 'นมโอ๊ต',
-    amount: 'คงเหลือ 6 ลิตร',
-    status: 'วัตถุดิบใกล้หมด',
-    imagePosition: '55% 50%',
-  },
-  {
-    name: 'ผงมัทฉะ',
-    amount: 'คงเหลือ 0 กก.',
-    status: 'วัตถุดิบหมด',
-    imagePosition: '38% 24%',
-  },
-  {
-    name: 'ไซรัปวานิลลา',
-    amount: 'คงเหลือ 8 ขวด',
-    status: 'วัตถุดิบค้างสต๊อก',
-    imagePosition: '76% 50%',
-  },
-  {
-    name: 'โกโก้',
-    amount: 'คงเหลือ 3 กก.',
-    status: 'พร้อมใช้',
-    imagePosition: '50% 85%',
-  },
-];
-
 const filters = [
   'ทั้งหมด',
   'วัตถุดิบใกล้หมด',
@@ -106,7 +67,7 @@ export function PosIngredientsPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [deleteTargetName, setDeleteTargetName] = useState<string | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [inventory, setInventory] = useState<Ingredient[]>(ingredients);
+  const [inventory, setInventory] = useState<Ingredient[]>([]);
   const filteredIngredients = useMemo(
     () =>
       inventory.filter((ingredient) => {
@@ -131,7 +92,7 @@ export function PosIngredientsPage() {
           ...item,
           amount: `คงเหลือ ${item.quantity} ${item.unit}`,
           status: statusByApiStatus[item.status] ?? 'พร้อมใช้',
-          imagePosition: ingredients[index % ingredients.length]?.imagePosition ?? '50% 50%',
+          imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
         })));
       })
       .catch(() => undefined)
@@ -178,7 +139,7 @@ export function PosIngredientsPage() {
       else await createInventory(payload);
       const items = await listInventory();
       const statusByApiStatus: Record<string, IngredientStatus> = { ready: 'พร้อมใช้', low: 'วัตถุดิบใกล้หมด', out: 'วัตถุดิบหมด' };
-      setInventory(items.map((item, index) => ({ ...item, amount: `คงเหลือ ${item.quantity} ${item.unit}`, status: statusByApiStatus[item.status] ?? 'พร้อมใช้', imagePosition: ingredients[index % ingredients.length]?.imagePosition ?? '50% 50%' })));
+      setInventory(items.map((item, index) => ({ ...item, amount: `คงเหลือ ${item.quantity} ${item.unit}`, status: statusByApiStatus[item.status] ?? 'พร้อมใช้', imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%` })));
       setIsAddDrawerOpen(false);
     } catch (error) { window.alert(error instanceof Error ? error.message : 'บันทึกวัตถุดิบไม่สำเร็จ'); }
   };

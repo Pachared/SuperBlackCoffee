@@ -1,25 +1,49 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, Chip, Divider, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import { DashboardMain } from '@stackbuild/ui';
+import { useEffect, useState } from 'react';
+import { Box, Card, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { DashboardMain, formatDate } from '@stackbuild/ui';
 import { getDailySalesReport, type DailySalesReport } from '../../lib/api';
 
-const periods = ['วันนี้', '7 วัน', '30 วัน'] as const;
-type Period = (typeof periods)[number];
-const reportData: Record<Period, { sales: number; orders: number; average: number; change: string; topMenu: string; points: { label: string; value: number }[] }> = {
-  วันนี้: { sales: 18_940, orders: 186, average: 102, change: '+9.8%', topMenu: 'อเมริกาโน่เย็น', points: [{ label: '08:00', value: 34 }, { label: '10:00', value: 52 }, { label: '12:00', value: 94 }, { label: '14:00', value: 68 }, { label: '16:00', value: 79 }, { label: '18:00', value: 58 }] },
-  '7 วัน': { sales: 126_780, orders: 1_216, average: 104, change: '+6.2%', topMenu: 'ลาเต้เย็น', points: [{ label: 'จ.', value: 59 }, { label: 'อ.', value: 72 }, { label: 'พ.', value: 64 }, { label: 'พฤ.', value: 88 }, { label: 'ศ.', value: 96 }, { label: 'ส.', value: 78 }, { label: 'อา.', value: 62 }] },
-  '30 วัน': { sales: 522_460, orders: 5_028, average: 104, change: '+14.5%', topMenu: 'มัทฉะลาเต้', points: [{ label: 'สัปดาห์ 1', value: 58 }, { label: 'สัปดาห์ 2', value: 71 }, { label: 'สัปดาห์ 3', value: 84 }, { label: 'สัปดาห์ 4', value: 96 }] },
+const currency = (amount: number) => `${amount.toLocaleString('th-TH')} บาท`;
+const inputDate = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 };
 
 export function PosReportsPage() {
-  const [period, setPeriod] = useState<Period>('วันนี้');
   const [dailyReport, setDailyReport] = useState<DailySalesReport | null>(null);
-  useEffect(() => { if (period !== 'วันนี้') return; getDailySalesReport().then(setDailyReport).catch(() => setDailyReport(null)); }, [period]);
-  const report = useMemo(() => reportData[period], [period]);
-  const currency = (amount: number) => `${amount.toLocaleString('th-TH')} บาท`;
+  const [selectedDate, setSelectedDate] = useState(inputDate);
+
+  useEffect(() => {
+    let active = true;
+    void getDailySalesReport(selectedDate).then((report) => { if (active) setDailyReport(report); }).catch(() => { if (active) setDailyReport(null); });
+    return () => { active = false; };
+  }, [selectedDate]);
+
+  const items = dailyReport?.items ?? [];
+  const totals = dailyReport?.totals ?? { quantity: 0, costTotal: 0, revenueTotal: 0, profit: 0 };
+  const profitColor = totals.profit >= 0 ? '#177245' : '#b42318';
+
   return <DashboardMain>
-    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { md: 'center' }, gap: 1.5, mb: 2.5 }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 24, fontWeight: 700 }}>รายงานยอดขาย</Typography><Box sx={{ display: 'flex', gap: 1 }}>{periods.map((item) => <Button key={item} size="small" variant={period === item ? 'contained' : 'outlined'} onClick={() => setPeriod(item)} sx={{ minHeight: 34, borderRadius: '12px', borderColor: '#d8c8bd', bgcolor: period === item ? '#201914' : '#fff', color: period === item ? '#fff' : '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { borderColor: '#201914', bgcolor: period === item ? '#3c2d24' : '#f5eee9', boxShadow: 'none' } }}>{item}</Button>)}</Box></Box>
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: '16px', mb: 2 }}><Card variant="outlined" sx={{ p: 2.25, borderRadius: '15px', borderColor: '#e8ddd5' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>ยอดขายรวม</Typography><Typography sx={{ mt: .5, color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: 25, fontWeight: 700 }}>{currency(report.sales)}</Typography><Typography sx={{ mt: .25, color: '#177245', fontFamily: 'Kanit, sans-serif', fontSize: 12, fontWeight: 600 }}>{report.change} จากช่วงก่อนหน้า</Typography></Card><Card variant="outlined" sx={{ p: 2.25, borderRadius: '15px', borderColor: '#e8ddd5' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>จำนวนออเดอร์</Typography><Typography sx={{ mt: .5, fontFamily: 'Kanit, sans-serif', fontSize: 25, fontWeight: 700 }}>{report.orders.toLocaleString('th-TH')} รายการ</Typography><Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>เฉลี่ย {currency(report.average)} / ออเดอร์</Typography></Card><Card variant="outlined" sx={{ p: 2.25, borderRadius: '15px', borderColor: '#e8ddd5' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>เมนูขายดี</Typography><Typography sx={{ mt: .5, fontFamily: 'Kanit, sans-serif', fontSize: 22, fontWeight: 700 }}>{report.topMenu}</Typography><Typography sx={{ mt: .25, color: '#805637', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>อันดับ 1 ในช่วงนี้</Typography></Card></Box>
-    <Card variant="outlined" sx={{ p: { xs: 1.5, md: 2.5 }, borderRadius: '15px', borderColor: '#e8ddd5', overflowX: 'auto' }}><Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 18, fontWeight: 600 }}>สรุปยอดขายรายวัน</Typography><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>แสดงราคาขาย ต้นทุน และกำไรของแต่ละเมนู</Typography></Box><Chip label={dailyReport?.date ?? period} size="small" sx={{ borderRadius: '10px', bgcolor: '#f3ebe5', color: '#5f4b3d', fontFamily: 'Kanit, sans-serif' }} /></Box><Divider sx={{ my: 2 }} /><Table size="small"><TableHead><TableRow>{['เมนู','จำนวน','ราคาต้นทุน','ราคาขาย','กำไร/ขาดทุน'].map((heading) => <TableCell key={heading} sx={{ fontFamily: 'Kanit, sans-serif', fontWeight: 600, whiteSpace: 'nowrap' }}>{heading}</TableCell>)}</TableRow></TableHead><TableBody>{(dailyReport?.items ?? []).map((item) => <TableRow key={item.productName}><TableCell sx={{ fontFamily: 'Kanit, sans-serif' }}>{item.productName}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{currency(item.costTotal)}</TableCell><TableCell>{currency(item.revenueTotal)}</TableCell><TableCell sx={{ color: item.profit >= 0 ? '#177245' : '#b42318', fontWeight: 700 }}>{currency(item.profit)}</TableCell></TableRow>)}{dailyReport && <TableRow><TableCell sx={{ fontWeight: 700 }}>รวม</TableCell><TableCell sx={{ fontWeight: 700 }}>{dailyReport.totals.quantity}</TableCell><TableCell sx={{ fontWeight: 700 }}>{currency(dailyReport.totals.costTotal)}</TableCell><TableCell sx={{ fontWeight: 700 }}>{currency(dailyReport.totals.revenueTotal)}</TableCell><TableCell sx={{ color: dailyReport.totals.profit >= 0 ? '#177245' : '#b42318', fontWeight: 700 }}>{currency(dailyReport.totals.profit)}</TableCell></TableRow>}</TableBody></Table>{!dailyReport?.items.length && <Typography sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ยังไม่มีรายการขายในวันนี้</Typography>}</Card>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+      <Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 24, fontWeight: 700 }}>รายงานยอดขาย</Typography>
+      <TextField type="date" size="small" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value || inputDate())} slotProps={{ htmlInput: { 'aria-label': 'เลือกวันที่รายงาน' } }} sx={{ width: 170, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fff' }, '& input': { fontFamily: 'Kanit, sans-serif', fontSize: 13, py: 1 } }} />
+    </Box>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: '16px', mb: 2 }}>
+      <Card variant="outlined" sx={{ p: 2.25, borderRadius: '15px', borderColor: '#e8ddd5' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>ยอดขายรวม</Typography><Typography sx={{ mt: .5, color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: 25, fontWeight: 700 }}>{currency(totals.revenueTotal)}</Typography><Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>จากรายการที่ชำระแล้ว</Typography></Card>
+      <Card variant="outlined" sx={{ p: 2.25, borderRadius: '15px', borderColor: '#e8ddd5' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>จำนวนที่ขาย</Typography><Typography sx={{ mt: .5, fontFamily: 'Kanit, sans-serif', fontSize: 25, fontWeight: 700 }}>{totals.quantity.toLocaleString('th-TH')} รายการ</Typography><Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>รวมทุกเมนูวันนี้</Typography></Card>
+      <Card variant="outlined" sx={{ p: 2.25, borderRadius: '15px', borderColor: '#e8ddd5' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>กำไรสุทธิ</Typography><Typography sx={{ mt: .5, color: profitColor, fontFamily: 'Kanit, sans-serif', fontSize: 25, fontWeight: 700 }}>{currency(totals.profit)}</Typography><Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>รายได้หักต้นทุน</Typography></Card>
+    </Box>
+    <Card variant="outlined" sx={{ borderRadius: '15px', borderColor: '#e8ddd5', overflow: 'hidden' }}>
+      <Box sx={{ p: { xs: 2, md: 2.5 } }}><Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 18, fontWeight: 600 }}>สรุปยอดขายรายวัน</Typography><Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>ดูรายได้ ต้นทุน และกำไรแยกตามเมนู</Typography></Box><Typography sx={{ flexShrink: 0, color: '#805637', fontFamily: 'Kanit, sans-serif', fontSize: 13, fontWeight: 600 }}>{dailyReport?.date ? formatDate(dailyReport.date) : 'กำลังโหลด...'}</Typography></Box></Box>
+      <Divider />
+      <TableContainer sx={{ overflowX: 'auto' }}><Table size="small" sx={{ minWidth: 600 }}>
+        <TableHead><TableRow sx={{ bgcolor: '#fbf7f3' }}><TableCell sx={{ width: '34%', color: '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>เมนู</TableCell><TableCell align="right" sx={{ color: '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>จำนวน</TableCell><TableCell align="right" sx={{ color: '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>รายได้</TableCell><TableCell align="right" sx={{ color: '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>ต้นทุน</TableCell><TableCell align="right" sx={{ color: '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>กำไร</TableCell></TableRow></TableHead>
+        <TableBody>{items.map((item) => <TableRow key={item.productName} sx={{ '&:last-child td': { borderBottom: 0 }, '&:hover': { bgcolor: '#fffaf7' } }}><TableCell sx={{ fontFamily: 'Kanit, sans-serif', fontWeight: 600 }}>{item.productName}</TableCell><TableCell align="right" sx={{ fontFamily: 'Kanit, sans-serif' }}>{item.quantity.toLocaleString('th-TH')}</TableCell><TableCell align="right" sx={{ fontFamily: 'Kanit, sans-serif' }}>{currency(item.revenueTotal)}</TableCell><TableCell align="right" sx={{ color: '#6f625b', fontFamily: 'Kanit, sans-serif' }}>{currency(item.costTotal)}</TableCell><TableCell align="right" sx={{ color: item.profit >= 0 ? '#177245' : '#b42318', fontFamily: 'Kanit, sans-serif', fontWeight: 700 }}>{currency(item.profit)}</TableCell></TableRow>)}
+          <TableRow sx={{ bgcolor: '#f7eee8', '& td': { borderBottom: 0 } }}><TableCell sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontWeight: 700 }}>รวมทั้งหมด</TableCell><TableCell align="right" sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontWeight: 700 }}>{totals.quantity.toLocaleString('th-TH')}</TableCell><TableCell align="right" sx={{ color: '#201914', fontFamily: 'Kanit, sans-serif', fontWeight: 700 }}>{currency(totals.revenueTotal)}</TableCell><TableCell align="right" sx={{ color: '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontWeight: 700 }}>{currency(totals.costTotal)}</TableCell><TableCell align="right" sx={{ color: profitColor, fontFamily: 'Kanit, sans-serif', fontWeight: 700 }}>{currency(totals.profit)}</TableCell></TableRow>
+        </TableBody>
+      </Table></TableContainer>
+      {items.length === 0 && <Typography sx={{ px: 2, pb: 2.5, textAlign: 'center', color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ยังไม่มีรายการขายในวันนี้</Typography>}
+    </Card>
   </DashboardMain>;
 }

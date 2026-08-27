@@ -172,6 +172,53 @@ func (h *PlatformHandler) ListBranches(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "data": result})
 }
 
+func (h *PlatformHandler) BranchSales(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	period := c.DefaultQuery("period", "today")
+	var start string
+	switch period {
+	case "today":
+		start = "date_trunc('day', now())"
+	case "month":
+		start = "date_trunc('month', now())"
+	case "year":
+		start = "date_trunc('year', now())"
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "period must be today, month, or year"})
+		return
+	}
+	query := `SELECT b.id,b.name,b.code,b.status,
+		COALESCE(SUM(o.total) FILTER (WHERE o.status='paid'), 0),
+		COUNT(o.id) FILTER (WHERE o.status='paid')
+		FROM branches b LEFT JOIN pos_orders o ON o.branch_id=b.id AND o.created_at >= ` + start + `
+		GROUP BY b.id,b.name,b.code,b.status ORDER BY b.name`
+	rows, err := h.db.QueryContext(c, query)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to load branch sales"})
+		return
+	}
+	defer rows.Close()
+	result := []gin.H{}
+	for rows.Next() {
+		var id int64
+		var name, code, status string
+		var sales float64
+		var orders int
+		if err := rows.Scan(&id, &name, &code, &status, &sales, &orders); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "failed to read branch sales"})
+			return
+		}
+		result = append(result, gin.H{"id": id, "name": name, "code": code, "status": status, "sales": sales, "orders": orders})
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to read branch sales"})
+		return
+	}
+	c.JSON(200, gin.H{"success": true, "data": result})
+}
+
 func (h *PlatformHandler) ListInventory(c *gin.Context) {
 	if h.unavailable(c) {
 		return
@@ -180,7 +227,19 @@ func (h *PlatformHandler) ListInventory(c *gin.Context) {
 	if !ok {
 		return
 	}
-	rows, err := h.db.QueryContext(c, `SELECT id,name,category,quantity,unit,reorder_level,updated_at FROM inventory_items WHERE branch_id=$1 ORDER BY name`, branchID)
+	kind := c.Query("kind")
+	if kind != "" && kind != "ingredient" && kind != "stock" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "kind must be ingredient or stock"})
+		return
+	}
+	query := `SELECT id,name,category,kind,quantity,unit,reorder_level,unit_cost,updated_at FROM inventory_items WHERE branch_id=$1`
+	args := []any{branchID}
+	if kind != "" {
+		query += ` AND kind=$2`
+		args = append(args, kind)
+	}
+	query += ` ORDER BY name`
+	rows, err := h.db.QueryContext(c, query, args...)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "failed to list inventory"})
 		return
@@ -189,17 +248,17 @@ func (h *PlatformHandler) ListInventory(c *gin.Context) {
 	result := []gin.H{}
 	for rows.Next() {
 		var id int64
-		var name, category, unit string
-		var quantity, reorder float64
+		var name, category, itemKind, unit string
+		var quantity, reorder, unitCost float64
 		var updated time.Time
-		_ = rows.Scan(&id, &name, &category, &quantity, &unit, &reorder, &updated)
+		_ = rows.Scan(&id, &name, &category, &itemKind, &quantity, &unit, &reorder, &unitCost, &updated)
 		status := "ready"
 		if quantity <= 0 {
 			status = "out"
 		} else if quantity <= reorder {
 			status = "low"
 		}
-		result = append(result, gin.H{"id": id, "name": name, "category": category, "quantity": quantity, "unit": unit, "reorderLevel": reorder, "status": status, "updatedAt": updated})
+		result = append(result, gin.H{"id": id, "name": name, "category": category, "kind": itemKind, "quantity": quantity, "unit": unit, "reorderLevel": reorder, "unitCost": unitCost, "status": status, "updatedAt": updated})
 	}
 	c.JSON(200, gin.H{"success": true, "data": result})
 }
@@ -207,9 +266,11 @@ func (h *PlatformHandler) ListInventory(c *gin.Context) {
 type inventoryInput struct {
 	Name         string  `json:"name" binding:"required"`
 	Category     string  `json:"category"`
+	Kind         string  `json:"kind" binding:"omitempty,oneof=ingredient stock"`
 	Quantity     float64 `json:"quantity"`
 	Unit         string  `json:"unit" binding:"required"`
 	ReorderLevel float64 `json:"reorderLevel"`
+	UnitCost     float64 `json:"unitCost" binding:"gte=0"`
 }
 
 func (h *PlatformHandler) CreateInventory(c *gin.Context) {
@@ -226,7 +287,7 @@ func (h *PlatformHandler) CreateInventory(c *gin.Context) {
 		return
 	}
 	var id int64
-	err := h.db.QueryRowContext(c, `INSERT INTO inventory_items(branch_id,name,category,quantity,unit,reorder_level) VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, branchID, input.Name, defaultString(input.Category, "other"), input.Quantity, input.Unit, input.ReorderLevel).Scan(&id)
+	err := h.db.QueryRowContext(c, `INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, branchID, input.Name, defaultString(input.Category, "other"), defaultString(input.Kind, "ingredient"), input.Quantity, input.Unit, input.ReorderLevel, input.UnitCost).Scan(&id)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "failed to create inventory item"})
 		return
@@ -252,7 +313,7 @@ func (h *PlatformHandler) UpdateInventory(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "message": "invalid inventory input"})
 		return
 	}
-	result, err := h.db.ExecContext(c, `UPDATE inventory_items SET name=$1,category=$2,quantity=$3,unit=$4,reorder_level=$5,updated_at=now() WHERE id=$6 AND branch_id=$7`, input.Name, defaultString(input.Category, "other"), input.Quantity, input.Unit, input.ReorderLevel, id, branchID)
+	result, err := h.db.ExecContext(c, `UPDATE inventory_items SET name=$1,category=$2,kind=$3,quantity=$4,unit=$5,reorder_level=$6,unit_cost=$7,updated_at=now() WHERE id=$8 AND branch_id=$9`, input.Name, defaultString(input.Category, "other"), defaultString(input.Kind, "ingredient"), input.Quantity, input.Unit, input.ReorderLevel, input.UnitCost, id, branchID)
 	if err != nil || rowsAffected(result) == 0 {
 		c.JSON(404, gin.H{"success": false, "message": "inventory item was not found"})
 		return
@@ -385,12 +446,109 @@ func (h *PlatformHandler) UpdateStockRequestStatus(c *gin.Context) {
 	}
 	claims := middleware.ClaimsFrom(c)
 	validCurrentStatuses := map[string][]string{"approved": {"pending"}, "rejected": {"pending"}, "preparing": {"pending", "approved"}, "completed": {"preparing"}}
-	result, err := h.db.ExecContext(c, `UPDATE stock_requests SET status=$1,approved_by=$2,updated_at=now() WHERE id=$3 AND status = ANY($4)`, input.Status, claims.UserID, id, validCurrentStatuses[input.Status])
-	if err != nil || rowsAffected(result) == 0 {
+	if input.Status != "completed" {
+		result, err := h.db.ExecContext(c, `UPDATE stock_requests SET status=$1,approved_by=$2,updated_at=now() WHERE id=$3 AND status = ANY($4)`, input.Status, claims.UserID, id, validCurrentStatuses[input.Status])
+		if err != nil || rowsAffected(result) == 0 {
+			c.JSON(409, gin.H{"success": false, "message": "request cannot be updated"})
+			return
+		}
+		c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id, "status": input.Status}})
+		return
+	}
+
+	tx, err := h.db.BeginTx(c, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		return
+	}
+	defer tx.Rollback()
+	var branchID int64
+	err = tx.QueryRowContext(c, `SELECT branch_id FROM stock_requests WHERE id=$1 AND status = ANY($2) FOR UPDATE`, id, validCurrentStatuses[input.Status]).Scan(&branchID)
+	if errors.Is(err, sql.ErrNoRows) {
 		c.JSON(409, gin.H{"success": false, "message": "request cannot be updated"})
 		return
 	}
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		return
+	}
+	rows, err := tx.QueryContext(c, `SELECT item_name,quantity,unit FROM stock_request_items WHERE stock_request_id=$1`, id)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name, unit string
+		var quantity float64
+		if err := rows.Scan(&name, &quantity, &unit); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+			return
+		}
+		result, updateErr := tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE branch_id=$2 AND name=$3 AND unit=$4`, quantity, branchID, name, unit)
+		if updateErr != nil {
+			c.JSON(500, gin.H{"success": false, "message": "failed to receive requested inventory"})
+			return
+		}
+		if rowsAffected(result) == 0 {
+			if _, insertErr := tx.ExecContext(c, `INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,$2,'other','ingredient',$3,$4,0,0)`, branchID, name, quantity, unit); insertErr != nil {
+				c.JSON(500, gin.H{"success": false, "message": "failed to receive requested inventory"})
+				return
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		return
+	}
+	if _, err = tx.ExecContext(c, `UPDATE stock_requests SET status='completed',approved_by=$1,updated_at=now() WHERE id=$2`, claims.UserID, id); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		return
+	}
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id, "status": input.Status}})
+}
+
+func (h *PlatformHandler) ListMenuItems(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	branchID, ok := h.branchScope(c)
+	if !ok {
+		return
+	}
+	rows, err := h.db.QueryContext(c, `
+		SELECT m.id,m.name,m.category,m.store_price,m.lineman_price,m.cost_price,m.status,
+			COALESCE(json_agg(json_build_object(
+				'inventoryItemId',i.id,'name',i.name,'quantity',mi.quantity,'unit',mi.unit,'costAmount',mi.cost_amount
+			) ORDER BY i.name) FILTER (WHERE i.id IS NOT NULL),'[]')
+		FROM menu_items m
+		LEFT JOIN menu_item_ingredients mi ON mi.menu_item_id=m.id
+		LEFT JOIN inventory_items i ON i.id=mi.inventory_item_id
+		WHERE m.branch_id=$1
+		GROUP BY m.id
+		ORDER BY m.category,m.name`, branchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "failed to list menu items"})
+		return
+	}
+	defer rows.Close()
+	result := []gin.H{}
+	for rows.Next() {
+		var id int64
+		var name, category, status string
+		var storePrice, linemanPrice, costPrice float64
+		var ingredients []byte
+		if err := rows.Scan(&id, &name, &category, &storePrice, &linemanPrice, &costPrice, &status, &ingredients); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "failed to read menu items"})
+			return
+		}
+		result = append(result, gin.H{"id": id, "name": name, "category": category, "storePrice": storePrice, "linemanPrice": linemanPrice, "costPrice": costPrice, "status": status, "ingredients": json.RawMessage(ingredients)})
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }
 
 type orderItemInput struct {
@@ -418,10 +576,6 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 	if !ok {
 		return
 	}
-	total := 0.0
-	for _, item := range input.Items {
-		total += float64(item.Quantity) * item.UnitPrice
-	}
 	claims := middleware.ClaimsFrom(c)
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
@@ -430,14 +584,53 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	var orderID int64
-	err = tx.QueryRowContext(c, `INSERT INTO pos_orders(branch_id,channel,total,cashier_id) VALUES($1,$2,$3,$4) RETURNING id`, branchID, input.Channel, total, claims.UserID).Scan(&orderID)
+	err = tx.QueryRowContext(c, `INSERT INTO pos_orders(branch_id,channel,total,cashier_id) VALUES($1,$2,0,$3) RETURNING id`, branchID, input.Channel, claims.UserID).Scan(&orderID)
+	total := 0.0
 	for _, item := range input.Items {
 		if err != nil {
 			break
 		}
 		costPrice := item.CostPrice
-		_ = tx.QueryRowContext(c, `SELECT cost_price FROM menu_items WHERE branch_id=$1 AND name=$2`, branchID, item.ProductName).Scan(&costPrice)
-		_, err = tx.ExecContext(c, `INSERT INTO pos_order_items(order_id,product_name,quantity,unit_price,cost_price) VALUES($1,$2,$3,$4,$5)`, orderID, item.ProductName, item.Quantity, item.UnitPrice, costPrice)
+		var menuItemID int64
+		var storePrice, linemanPrice float64
+		menuErr := tx.QueryRowContext(c, `SELECT id,cost_price,store_price,lineman_price FROM menu_items WHERE branch_id=$1 AND name=$2`, branchID, item.ProductName).Scan(&menuItemID, &costPrice, &storePrice, &linemanPrice)
+		if errors.Is(menuErr, sql.ErrNoRows) {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบเมนู " + item.ProductName})
+			return
+		}
+		if menuErr != nil {
+			err = menuErr
+			break
+		}
+		unitPrice := storePrice
+		if input.Channel == "lineman" {
+			unitPrice = linemanPrice
+		}
+		total += float64(item.Quantity) * unitPrice
+		var requiredCount, availableCount int
+		err = tx.QueryRowContext(c, `
+			SELECT COUNT(*), COUNT(*) FILTER (WHERE i.quantity >= mi.quantity * $1)
+			FROM menu_item_ingredients mi
+			JOIN inventory_items i ON i.id=mi.inventory_item_id
+			WHERE mi.menu_item_id=$2`, item.Quantity, menuItemID).Scan(&requiredCount, &availableCount)
+		if err != nil {
+			break
+		}
+		if requiredCount > 0 && availableCount != requiredCount {
+			c.JSON(http.StatusConflict, gin.H{"success": false, "message": "วัตถุดิบหรือสต๊อกคงเหลือไม่เพียงพอสำหรับเมนู " + item.ProductName})
+			return
+		}
+		_, err = tx.ExecContext(c, `INSERT INTO pos_order_items(order_id,product_name,quantity,unit_price,cost_price) VALUES($1,$2,$3,$4,$5)`, orderID, item.ProductName, item.Quantity, unitPrice, costPrice)
+		if err == nil {
+			_, err = tx.ExecContext(c, `
+				UPDATE inventory_items i
+				SET quantity=i.quantity-(mi.quantity*$1),updated_at=now()
+				FROM menu_item_ingredients mi
+				WHERE mi.menu_item_id=$2 AND i.id=mi.inventory_item_id`, item.Quantity, menuItemID)
+		}
+	}
+	if err == nil {
+		_, err = tx.ExecContext(c, `UPDATE pos_orders SET total=$1 WHERE id=$2`, total, orderID)
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "failed to save order"})
@@ -525,6 +718,14 @@ func (h *PlatformHandler) Dashboard(c *gin.Context) {
 func (h *PlatformHandler) branchScope(c *gin.Context) (int64, bool) {
 	claims := middleware.ClaimsFrom(c)
 	if claims.Role == "admin" {
+		if code := strings.TrimSpace(c.Query("branchCode")); code != "" {
+			var branchID int64
+			if err := h.db.QueryRowContext(c, `SELECT id FROM branches WHERE code=$1`, code).Scan(&branchID); err != nil {
+				c.JSON(404, gin.H{"success": false, "message": "branch was not found"})
+				return 0, false
+			}
+			return branchID, true
+		}
 		value, err := strconv.ParseInt(c.Query("branchId"), 10, 64)
 		if err != nil || value < 1 {
 			c.JSON(400, gin.H{"success": false, "message": "branchId is required"})
