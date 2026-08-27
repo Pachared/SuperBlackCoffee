@@ -31,6 +31,7 @@ type Product = {
   name: string;
   storePrice: number;
   lineManPrice: number;
+  costPrice: number;
   category: string;
   status: 'พร้อมขาย' | 'หมดชั่วคราว';
   position: string;
@@ -41,6 +42,7 @@ const products: Product[] = [
     name: 'อเมริกาโน่เย็น',
     storePrice: 85,
     lineManPrice: 95,
+    costPrice: 24,
     category: 'กาแฟ',
     status: 'พร้อมขาย',
     position: '12% 50%',
@@ -53,6 +55,7 @@ const products: Product[] = [
     name: 'ลาเต้เย็น',
     storePrice: 95,
     lineManPrice: 110,
+    costPrice: 38,
     category: 'กาแฟ',
     status: 'พร้อมขาย',
     position: '34% 50%',
@@ -66,6 +69,7 @@ const products: Product[] = [
     name: 'มัทฉะลาเต้',
     storePrice: 110,
     lineManPrice: 125,
+    costPrice: 42,
     category: 'ชาและมัทฉะ',
     status: 'พร้อมขาย',
     position: '55% 50%',
@@ -79,6 +83,7 @@ const products: Product[] = [
     name: 'ช็อกโกแลตเย็น',
     storePrice: 100,
     lineManPrice: 115,
+    costPrice: 35,
     category: 'เครื่องดื่ม',
     status: 'พร้อมขาย',
     position: '76% 50%',
@@ -91,6 +96,7 @@ const products: Product[] = [
     name: 'ครัวซองต์เนยสด',
     storePrice: 75,
     lineManPrice: 85,
+    costPrice: 28,
     category: 'เบเกอรี่',
     status: 'หมดชั่วคราว',
     position: '38% 24%',
@@ -100,6 +106,7 @@ const products: Product[] = [
     name: 'เค้กช็อกโกแลต',
     storePrice: 120,
     lineManPrice: 135,
+    costPrice: 45,
     category: 'เบเกอรี่',
     status: 'หมดชั่วคราว',
     position: '50% 85%',
@@ -465,6 +472,24 @@ export function AdminProductsPage({
                                 justifyContent: 'space-between',
                                 px: 1,
                                 py: 0.45,
+                                color: '#5f4b3d',
+                                fontFamily: 'Kanit, sans-serif',
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              ราคาต้นทุน
+                              <Box component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>
+                                {item.costPrice} บาท
+                              </Box>
+                            </Typography>
+                            <Typography
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                px: 1,
+                                py: 0.45,
                                 borderRadius: '8px',
                                 color: '#06C755',
                                 fontFamily: 'Kanit, sans-serif',
@@ -807,6 +832,14 @@ export function AdminProductsPage({
                 label="ราคา LINE MAN"
                 type="number"
                 defaultValue={editing?.lineManPrice}
+              />
+              <TextField
+                required
+                fullWidth
+                label="ราคาต้นทุนต่อเมนู"
+                type="number"
+                defaultValue={editing?.costPrice}
+                helperText="ใช้คำนวณกำไร/ขาดทุน"
               />
               <TextField
                 required

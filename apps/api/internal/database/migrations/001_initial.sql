@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   branch_id BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE TABLE IF NOT EXISTS franchisees (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS franchisees (
   status TEXT NOT NULL DEFAULT 'invited' CHECK (status IN ('invited','active','suspended')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE TABLE IF NOT EXISTS branches (
   id BIGSERIAL PRIMARY KEY,
   franchisee_id BIGINT REFERENCES franchisees(id) ON DELETE SET NULL,
@@ -41,6 +43,7 @@ CREATE TABLE IF NOT EXISTS inventory_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE TABLE IF NOT EXISTS stock_requests (
   id BIGSERIAL PRIMARY KEY,
   branch_id BIGINT NOT NULL REFERENCES branches(id),
@@ -51,6 +54,7 @@ CREATE TABLE IF NOT EXISTS stock_requests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE TABLE IF NOT EXISTS stock_request_items (
   id BIGSERIAL PRIMARY KEY,
   stock_request_id BIGINT NOT NULL REFERENCES stock_requests(id) ON DELETE CASCADE,
@@ -59,6 +63,7 @@ CREATE TABLE IF NOT EXISTS stock_request_items (
   quantity NUMERIC(12,2) NOT NULL CHECK (quantity > 0),
   unit TEXT NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS pos_orders (
   id BIGSERIAL PRIMARY KEY,
   branch_id BIGINT NOT NULL REFERENCES branches(id),
@@ -68,6 +73,7 @@ CREATE TABLE IF NOT EXISTS pos_orders (
   cashier_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE TABLE IF NOT EXISTS pos_order_items (
   id BIGSERIAL PRIMARY KEY,
   order_id BIGINT NOT NULL REFERENCES pos_orders(id) ON DELETE CASCADE,

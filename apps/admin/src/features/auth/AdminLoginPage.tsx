@@ -13,9 +13,9 @@ export function AdminLoginPage({ onLogin }: { onLogin: () => void }) {
       }
       description="ทุกแก้วที่ดี เริ่มจากการจัดการที่ดี"
       submitLabel="เข้าสู่ระบบผู้ดูแล"
-      onSubmit={async (email, password) => {
+      onSubmit={async (username, password) => {
         try {
-          const session = await login(email, password);
+          const session = await login(username, password);
           if (session.user.role !== 'admin') throw new Error('บัญชีนี้ไม่มีสิทธิ์ผู้ดูแลระบบ');
           sessionStorage.setItem('sbc-access-token', session.accessToken);
           sessionStorage.setItem('sbc-admin-session', 'true');

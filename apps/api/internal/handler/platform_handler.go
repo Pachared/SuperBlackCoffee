@@ -37,7 +37,7 @@ func (h *PlatformHandler) unavailable(c *gin.Context) bool {
 }
 
 type loginInput struct {
-	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -47,15 +47,15 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 	}
 	var input loginInput
 	if c.ShouldBindJSON(&input) != nil {
-		c.JSON(400, gin.H{"success": false, "message": "email and password are required"})
+		c.JSON(400, gin.H{"success": false, "message": "username and password are required"})
 		return
 	}
 	var id int64
 	var name, hash, role string
 	var franchiseeID, branchID sql.NullInt64
-	err := h.db.QueryRowContext(c, `SELECT id,name,password_hash,role,franchisee_id,branch_id FROM users WHERE lower(email)=lower($1)`, input.Email).Scan(&id, &name, &hash, &role, &franchiseeID, &branchID)
+	err := h.db.QueryRowContext(c, `SELECT id,name,password_hash,role,franchisee_id,branch_id FROM users WHERE lower(username)=lower($1)`, input.Username).Scan(&id, &name, &hash, &role, &franchiseeID, &branchID)
 	if errors.Is(err, sql.ErrNoRows) || bcrypt.CompareHashAndPassword([]byte(hash), []byte(input.Password)) != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "invalid email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง"})
 		return
 	}
 	if err != nil {
@@ -397,6 +397,7 @@ type orderItemInput struct {
 	ProductName string  `json:"productName" binding:"required"`
 	Quantity    int     `json:"quantity" binding:"required,gt=0"`
 	UnitPrice   float64 `json:"unitPrice" binding:"required,gte=0"`
+	CostPrice   float64 `json:"costPrice" binding:"gte=0"`
 }
 type posOrderInput struct {
 	BranchID *int64           `json:"branchId"`
@@ -434,7 +435,9 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 		if err != nil {
 			break
 		}
-		_, err = tx.ExecContext(c, `INSERT INTO pos_order_items(order_id,product_name,quantity,unit_price) VALUES($1,$2,$3,$4)`, orderID, item.ProductName, item.Quantity, item.UnitPrice)
+		costPrice := item.CostPrice
+		_ = tx.QueryRowContext(c, `SELECT cost_price FROM menu_items WHERE branch_id=$1 AND name=$2`, branchID, item.ProductName).Scan(&costPrice)
+		_, err = tx.ExecContext(c, `INSERT INTO pos_order_items(order_id,product_name,quantity,unit_price,cost_price) VALUES($1,$2,$3,$4,$5)`, orderID, item.ProductName, item.Quantity, item.UnitPrice, costPrice)
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "failed to save order"})
@@ -445,6 +448,55 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 		return
 	}
 	c.JSON(201, gin.H{"success": true, "data": gin.H{"id": orderID, "total": total}})
+}
+
+func (h *PlatformHandler) DailySalesReport(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	claims := middleware.ClaimsFrom(c)
+	date := c.Query("date")
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+	query := `SELECT oi.product_name, SUM(oi.quantity), SUM(oi.quantity * oi.cost_price), SUM(oi.quantity * oi.unit_price), SUM(oi.quantity * (oi.unit_price - oi.cost_price))
+		FROM pos_order_items oi JOIN pos_orders o ON o.id=oi.order_id WHERE o.status='paid' AND o.created_at >= $1::date AND o.created_at < ($1::date + INTERVAL '1 day')`
+	args := []any{date}
+	if claims.Role != "admin" {
+		branchID, ok := h.branchScope(c)
+		if !ok {
+			return
+		}
+		query += ` AND o.branch_id=$2`
+		args = append(args, branchID)
+	}
+	query += ` GROUP BY oi.product_name ORDER BY SUM(oi.quantity * oi.unit_price) DESC`
+	rows, err := h.db.QueryContext(c, query, args...)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "failed to load daily sales report"})
+		return
+	}
+	defer rows.Close()
+	items := []gin.H{}
+	var totals struct {
+		quantity              int
+		cost, revenue, profit float64
+	}
+	for rows.Next() {
+		var name string
+		var quantity int
+		var cost, revenue, profit float64
+		if err := rows.Scan(&name, &quantity, &cost, &revenue, &profit); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "failed to read daily sales report"})
+			return
+		}
+		items = append(items, gin.H{"productName": name, "quantity": quantity, "costTotal": cost, "revenueTotal": revenue, "profit": profit})
+		totals.quantity += quantity
+		totals.cost += cost
+		totals.revenue += revenue
+		totals.profit += profit
+	}
+	c.JSON(200, gin.H{"success": true, "data": gin.H{"date": date, "items": items, "totals": gin.H{"quantity": totals.quantity, "costTotal": totals.cost, "revenueTotal": totals.revenue, "profit": totals.profit}}})
 }
 func (h *PlatformHandler) Dashboard(c *gin.Context) {
 	if h.unavailable(c) {

@@ -3,9 +3,9 @@ const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1';
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
 type AuthSession = { accessToken: string; user: { id: number; name: string; role: string } };
 
-export async function login(email: string, password: string): Promise<AuthSession> {
+export async function login(username: string, password: string): Promise<AuthSession> {
   const response = await fetch(`${apiUrl}/auth/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }),
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
   });
   const body = (await response.json()) as ApiEnvelope<AuthSession>;
   if (!response.ok || !body.success) throw new Error(body.message ?? 'ไม่สามารถเข้าสู่ระบบได้');

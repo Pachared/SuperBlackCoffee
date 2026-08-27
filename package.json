@@ -6,11 +6,11 @@
   "scripts": {
     "format": "prettier --write .",
     "clean": "rimraf apps/*/dist apps/*/.next",
-    "dev:customer": "pnpm --filter @stackbuild/customer dev",
+    "dev:pos": "pnpm --filter @stackbuild/pos dev",
     "dev:website": "pnpm --filter @stackbuild/website dev",
-    "build:customer": "pnpm --filter @stackbuild/customer build",
+    "build:pos": "pnpm --filter @stackbuild/pos build",
     "build:website": "pnpm --filter @stackbuild/website build",
-    "lint:customer": "pnpm --filter @stackbuild/customer lint",
+    "lint:pos": "pnpm --filter @stackbuild/pos lint",
     "lint:website": "pnpm --filter @stackbuild/website lint",
     "dev:api": "cd apps/api && go run ./cmd/api",
     "build:api": "cd apps/api && go build ./cmd/api",
@@ -20,9 +20,9 @@
     "build:franchise": "pnpm --filter @stackbuild/franchise build",
     "lint:admin": "pnpm --filter @stackbuild/admin lint",
     "lint:franchise": "pnpm --filter @stackbuild/franchise lint",
-    "dev": "concurrently \"pnpm run dev:website\" \"pnpm run dev:customer\" \"cd apps/api && go run ./cmd/api\" \"pnpm run dev:admin\" \"pnpm run dev:franchise\"",
-    "build": "pnpm run build:website && pnpm run build:customer && cd apps/api && go build ./cmd/api && pnpm run build:admin && pnpm run build:franchise",
-    "lint": "pnpm run lint:website && pnpm run lint:customer && pnpm run lint:admin && pnpm run lint:franchise"
+    "dev": "concurrently \"pnpm run dev:website\" \"pnpm run dev:pos\" \"cd apps/api && go run ./cmd/api\" \"pnpm run dev:admin\" \"pnpm run dev:franchise\"",
+    "build": "pnpm run build:website && pnpm run build:pos && cd apps/api && go build ./cmd/api && pnpm run build:admin && pnpm run build:franchise",
+    "lint": "pnpm run lint:website && pnpm run lint:pos && pnpm run lint:admin && pnpm run lint:franchise"
   },
   "devDependencies": {
     "concurrently": "latest",

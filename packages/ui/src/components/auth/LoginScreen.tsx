@@ -15,7 +15,7 @@ export function LoginScreen({
   headline: ReactNode;
   description: string;
   submitLabel: string;
-  onSubmit: (email: string, password: string) => void | Promise<void>;
+  onSubmit: (username: string, password: string) => void | Promise<void>;
 }) {
   const iconRef = useRef<LogInIconHandle>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,7 +26,7 @@ export function LoginScreen({
     await new Promise((resolve) => window.setTimeout(resolve, 550));
     try {
       await onSubmit(
-        String(data.get('email') ?? ''),
+        String(data.get('username') ?? ''),
         String(data.get('password') ?? ''),
       );
     } finally {
@@ -109,10 +109,10 @@ export function LoginScreen({
           </Typography>
           <Stack spacing={2}>
             <TextField
-              name="email"
-              label="อีเมล"
-              type="email"
-              autoComplete="email"
+              name="username"
+              label="ชื่อผู้ใช้งาน"
+              type="text"
+              autoComplete="username"
               fullWidth
               required
             />
