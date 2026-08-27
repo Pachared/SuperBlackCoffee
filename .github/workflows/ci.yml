@@ -18,8 +18,8 @@ jobs:
       - run: pnpm run lint:website
       - run: pnpm run build:website
 
-  customer:
-    name: Customer
+  pos:
+    name: POS
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,8 +30,8 @@ jobs:
           cache: pnpm
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint:customer
-      - run: pnpm run build:customer
+      - run: pnpm run lint:pos
+      - run: pnpm run build:pos
 
   admin:
     name: Admin
