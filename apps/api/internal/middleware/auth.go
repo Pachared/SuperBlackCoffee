@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -24,7 +25,12 @@ func RequireAuth(secret string, roles ...string) gin.HandlerFunc {
 			return
 		}
 		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(raw, claims, func(t *jwt.Token) (any, error) { return []byte(secret), nil })
+		token, err := jwt.ParseWithClaims(raw, claims, func(t *jwt.Token) (any, error) {
+			if t.Method != jwt.SigningMethodHS256 {
+				return nil, fmt.Errorf("unexpected signing method: %s", t.Method.Alg())
+			}
+			return []byte(secret), nil
+		})
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "invalid access token"})
 			return

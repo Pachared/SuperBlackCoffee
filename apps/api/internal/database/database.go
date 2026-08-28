@@ -36,6 +36,9 @@ func Open(ctx context.Context, url string) (*sql.DB, error) {
 }
 
 func migrate(ctx context.Context, db *sql.DB) error {
+	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`); err != nil {
+		return fmt.Errorf("create migration ledger: %w", err)
+	}
 	entries, err := migrationFiles.ReadDir("migrations")
 	if err != nil {
 		return err
@@ -49,8 +52,27 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		if readErr != nil {
 			return readErr
 		}
-		if _, execErr := db.ExecContext(ctx, string(contents)); execErr != nil {
+		var applied bool
+		if err := db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE name=$1)`, entry.Name()).Scan(&applied); err != nil {
+			return fmt.Errorf("check migration %s: %w", entry.Name(), err)
+		}
+		if applied {
+			continue
+		}
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("begin migration %s: %w", entry.Name(), err)
+		}
+		if _, execErr := tx.ExecContext(ctx, string(contents)); execErr != nil {
+			_ = tx.Rollback()
 			return fmt.Errorf("apply migration %s: %w", entry.Name(), execErr)
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations(name) VALUES($1)`, entry.Name()); err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("record migration %s: %w", entry.Name(), err)
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit migration %s: %w", entry.Name(), err)
 		}
 	}
 	return nil

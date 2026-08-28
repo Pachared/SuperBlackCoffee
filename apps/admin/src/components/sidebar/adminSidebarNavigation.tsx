@@ -12,6 +12,7 @@ import {
 export const adminSidebarNavigation = [
   { label: 'ภาพรวม', icon: <LayoutGridIcon /> },
   { label: 'คำสั่งซื้อ', icon: <ReceiptIcon /> },
+  { label: 'ประวัติการทำรายการ', icon: <ReceiptTextIcon /> },
   { label: 'เมนูและสินค้า', icon: <ReceiptTextIcon /> },
   { label: 'วัตถุดิบ', icon: <BoxesIcon /> },
   { label: 'สต๊อก', icon: <BoxIcon /> },

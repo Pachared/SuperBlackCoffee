@@ -11,6 +11,7 @@ import { AdminCustomerChatPage } from '../../pages/dashboard/AdminCustomerChatPa
 import { AdminFranchiseBranchesPage } from '../../pages/dashboard/AdminFranchiseBranchesPage';
 import { AdminIngredientsPage } from '../../pages/dashboard/AdminIngredientsPage';
 import { AdminOrdersPage } from '../../pages/dashboard/AdminOrdersPage';
+import { AdminAuditPage } from '../../pages/dashboard/AdminAuditPage';
 import { AdminOverviewPage } from '../../pages/dashboard/AdminOverviewPage';
 import { AdminProductsPage } from '../../pages/dashboard/AdminProductsPage';
 import { AdminStockPage } from '../../pages/dashboard/AdminStockPage';
@@ -18,6 +19,7 @@ import { AdminStockPage } from '../../pages/dashboard/AdminStockPage';
 const pages = {
   ภาพรวม: AdminOverviewPage,
   คำสั่งซื้อ: AdminOrdersPage,
+  ประวัติการทำรายการ: AdminAuditPage,
   เมนูและสินค้า: AdminProductsPage,
   วัตถุดิบ: AdminIngredientsPage,
   สต๊อก: AdminStockPage,
@@ -98,6 +100,8 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminOverviewPage />
   ) : activePage === 'คำสั่งซื้อ' ? (
     <AdminOrdersPage activeBranch={activeIngredientBranch} />
+  ) : activePage === 'ประวัติการทำรายการ' ? (
+    <AdminAuditPage />
   ) : isStockPage ? (
     <AdminStockPage activeBranch={activeIngredientBranch} />
   ) : activePage === 'เมนูและสินค้า' ? (

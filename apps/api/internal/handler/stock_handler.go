@@ -49,6 +49,7 @@ func (h *PlatformHandler) CreateStockRequest(c *gin.Context) {
 	}
 	h.cache.Publish(c, "sbc:events", gin.H{"type": "stock.request.created", "requestId": requestID, "branchId": branchID})
 	h.cache.Enqueue(c, "sbc:jobs", map[string]any{"type": "stock.request.notify", "requestId": requestID})
+	h.recordAudit(c, branchID, "stock_request", requestID, "created", gin.H{"itemCount": len(input.Items)})
 	c.JSON(201, gin.H{"success": true, "data": gin.H{"id": requestID, "status": "pending"}})
 }
 
@@ -106,13 +107,15 @@ func (h *PlatformHandler) UpdateStockRequestStatus(c *gin.Context) {
 	claims := middleware.ClaimsFrom(c)
 	validCurrentStatuses := map[string][]string{"approved": {"pending"}, "rejected": {"pending"}, "preparing": {"pending", "approved"}, "completed": {"preparing"}}
 	if input.Status != "completed" {
-		result, err := h.db.ExecContext(c, `UPDATE stock_requests SET status=$1,approved_by=$2,updated_at=now() WHERE id=$3 AND status = ANY($4)`, input.Status, claims.UserID, id, validCurrentStatuses[input.Status])
-		if err != nil || rowsAffected(result) == 0 {
+		var branchID int64
+		err := h.db.QueryRowContext(c, `UPDATE stock_requests SET status=$1,approved_by=$2,updated_at=now() WHERE id=$3 AND status = ANY($4) RETURNING branch_id`, input.Status, claims.UserID, id, validCurrentStatuses[input.Status]).Scan(&branchID)
+		if err != nil {
 			c.JSON(409, gin.H{"success": false, "message": "request cannot be updated"})
 			return
 		}
 		h.cache.Publish(c, "sbc:events", gin.H{"type": "stock.request.updated", "requestId": id, "status": input.Status})
 		h.cache.Enqueue(c, "sbc:jobs", map[string]any{"type": "stock.request.notify", "requestId": id})
+		h.recordAudit(c, branchID, "stock_request", id, input.Status, nil)
 		c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id, "status": input.Status}})
 		return
 	}
@@ -173,5 +176,6 @@ func (h *PlatformHandler) UpdateStockRequestStatus(c *gin.Context) {
 	h.invalidateBranchCache(c, branchID)
 	h.cache.Publish(c, "sbc:events", gin.H{"type": "stock.request.updated", "requestId": id, "branchId": branchID, "status": input.Status})
 	h.cache.Enqueue(c, "sbc:jobs", map[string]any{"type": "stock.request.notify", "requestId": id})
+	h.recordAudit(c, branchID, "stock_request", id, "completed", nil)
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id, "status": input.Status}})
 }

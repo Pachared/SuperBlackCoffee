@@ -31,7 +31,21 @@ async function secured<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const listStockRequests = () => secured<StockRequest[]>('/stock-requests');
-export const updateStockRequestStatus = (id: number, status: 'approved' | 'preparing' | 'completed') => secured<{ id: number; status: string }>(`/stock-requests/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const updateStockRequestStatus = (id: number, status: 'approved' | 'preparing' | 'completed' | 'rejected') => secured<{ id: number; status: string }>(`/stock-requests/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+
+export type AuditEvent = {
+  id: number;
+  branchId: number | null;
+  branchName: string;
+  actorId: number | null;
+  actorName: string;
+  entityType: 'inventory_item' | 'stock_request';
+  entityId: number | null;
+  action: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+export const listAuditEvents = () => secured<AuditEvent[]>('/audit-events?limit=100');
 
 export type DashboardSummary = { todaySales: number; todayOrders: number };
 export const getDashboardSummary = () => secured<DashboardSummary>('/dashboard');

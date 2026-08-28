@@ -9,11 +9,16 @@ import (
 	"syscall"
 	"time"
 	"y/internal/cache"
+	"y/internal/config"
 	"y/internal/database"
 	"y/internal/router"
 )
 
 func main() {
+	if err := config.ValidateRuntime(); err != nil {
+		slog.Error("invalid runtime configuration", "error", err)
+		os.Exit(1)
+	}
 	port := os.Getenv("API_PORT")
 	if port == "" {
 		port = "8080"

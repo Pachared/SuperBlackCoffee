@@ -64,6 +64,7 @@ func (h *PlatformHandler) CreateInventory(c *gin.Context) {
 		return
 	}
 	h.invalidateBranchCache(c, branchID)
+	h.recordAudit(c, branchID, "inventory_item", id, "created", gin.H{"name": item.Name, "quantity": item.Quantity, "unit": item.Unit})
 	c.JSON(201, gin.H{"success": true, "data": gin.H{"id": id}})
 }
 
@@ -92,6 +93,7 @@ func (h *PlatformHandler) UpdateInventory(c *gin.Context) {
 		return
 	}
 	h.invalidateBranchCache(c, branchID)
+	h.recordAudit(c, branchID, "inventory_item", id, "updated", gin.H{"name": item.Name, "quantity": item.Quantity, "unit": item.Unit})
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id}})
 }
 
@@ -114,6 +116,7 @@ func (h *PlatformHandler) DeleteInventory(c *gin.Context) {
 		return
 	}
 	h.invalidateBranchCache(c, branchID)
+	h.recordAudit(c, branchID, "inventory_item", id, "deleted", nil)
 	c.Status(http.StatusNoContent)
 }
 

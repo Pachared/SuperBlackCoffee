@@ -14,7 +14,7 @@ import (
 
 func New(db *sql.DB, redisCache *cache.Client) *gin.Engine {
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery(), middleware.CORS())
+	r.Use(middleware.RequestLogger(), middleware.RequestMetrics(), gin.Recovery(), middleware.CORS())
 
 	deps := routeDependencies{
 		users:    handler.NewUserHandler(service.NewUserService(repository.NewPostgresUserRepository(db))),

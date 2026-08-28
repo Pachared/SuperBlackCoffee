@@ -2,12 +2,14 @@ package handler
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"y/internal/cache"
+	"y/internal/middleware"
 	"y/internal/service"
 )
 
@@ -18,6 +20,22 @@ type PlatformHandler struct {
 	inventory *service.InventoryService
 	auth      *service.AuthService
 	menu      *service.MenuService
+}
+
+func (h *PlatformHandler) recordAudit(c *gin.Context, branchID int64, entityType string, entityID int64, action string, metadata any) {
+	claims := middleware.ClaimsFrom(c)
+	if claims == nil || h.db == nil {
+		return
+	}
+	payload, err := json.Marshal(metadata)
+	if err != nil {
+		return
+	}
+	_, err = h.db.ExecContext(c, `INSERT INTO audit_events(branch_id,actor_id,entity_type,entity_id,action,metadata) VALUES($1,$2,$3,$4,$5,$6)`, branchID, claims.UserID, entityType, entityID, action, payload)
+	if err != nil {
+		// Auditing must not turn a successfully committed store operation into a failure.
+		return
+	}
 }
 
 func NewPlatformHandler(db *sql.DB, redisCache *cache.Client, inventoryService *service.InventoryService, authService *service.AuthService, menuService *service.MenuService) *PlatformHandler {
