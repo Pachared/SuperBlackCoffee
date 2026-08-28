@@ -29,7 +29,7 @@ func (h *PlatformHandler) ListMenuItems(c *gin.Context) {
 	}
 	result, err := h.menu.List(c, branchID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "failed to list menu items"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "ไม่สามารถดึงรายการเมนูได้"})
 		return
 	}
 	h.cache.SetJSON(c, cacheKey, result, 30*time.Second)
@@ -45,7 +45,7 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 	}
 	var input posOrderInput
 	if c.ShouldBindJSON(&input) != nil {
-		c.JSON(400, gin.H{"success": false, "message": "invalid order"})
+		c.JSON(400, gin.H{"success": false, "message": "ข้อมูลคำสั่งซื้อไม่ถูกต้อง"})
 		return
 	}
 	branchID, ok := h.requestBranchScope(c, input.BranchID)
@@ -55,7 +55,7 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 	claims := middleware.ClaimsFrom(c)
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to create order"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างคำสั่งซื้อได้"})
 		return
 	}
 	defer tx.Rollback()
@@ -83,37 +83,38 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 			unitPrice = linemanPrice
 		}
 		total += float64(item.Quantity) * unitPrice
-		var requiredCount, availableCount int
-		err = tx.QueryRowContext(c, `
-			SELECT COUNT(*), COUNT(*) FILTER (WHERE i.quantity >= mi.quantity * $1)
-			FROM menu_item_ingredients mi
-			JOIN inventory_items i ON i.id=mi.inventory_item_id
-			WHERE mi.menu_item_id=$2`, item.Quantity, menuItemID).Scan(&requiredCount, &availableCount)
+		var requiredCount int
+		err = tx.QueryRowContext(c, `SELECT COUNT(*) FROM menu_item_ingredients WHERE menu_item_id=$1`, menuItemID).Scan(&requiredCount)
 		if err != nil {
 			break
 		}
-		if requiredCount > 0 && availableCount != requiredCount {
-			c.JSON(http.StatusConflict, gin.H{"success": false, "message": "วัตถุดิบหรือสต๊อกคงเหลือไม่เพียงพอสำหรับเมนู " + item.ProductName})
-			return
-		}
 		_, err = tx.ExecContext(c, `INSERT INTO pos_order_items(order_id,product_name,quantity,unit_price,cost_price) VALUES($1,$2,$3,$4,$5)`, orderID, item.ProductName, item.Quantity, unitPrice, costPrice)
 		if err == nil {
-			_, err = tx.ExecContext(c, `
-				UPDATE inventory_items i
-				SET quantity=i.quantity-(mi.quantity*$1),updated_at=now()
+			var deductedCount int
+			err = tx.QueryRowContext(c, `WITH updated AS (
+				UPDATE inventory_items i SET quantity=i.quantity-(mi.quantity*$1),updated_at=now()
 				FROM menu_item_ingredients mi
-				WHERE mi.menu_item_id=$2 AND i.id=mi.inventory_item_id`, item.Quantity, menuItemID)
+				WHERE mi.menu_item_id=$2 AND i.id=mi.inventory_item_id AND i.quantity >= mi.quantity*$1
+				RETURNING i.id
+			) SELECT COUNT(*) FROM updated`, item.Quantity, menuItemID).Scan(&deductedCount)
+			if err == nil && deductedCount != requiredCount {
+				c.JSON(http.StatusConflict, gin.H{"success": false, "message": "วัตถุดิบหรือสต๊อกคงเหลือไม่เพียงพอสำหรับเมนู " + item.ProductName})
+				return
+			}
 		}
 	}
 	if err == nil {
 		_, err = tx.ExecContext(c, `UPDATE pos_orders SET total=$1 WHERE id=$2`, total, orderID)
 	}
+	if err == nil {
+		err = recordAuditTx(c, tx, branchID, claims.UserID, "pos_order", orderID, "created", gin.H{"total": total, "itemCount": len(input.Items)})
+	}
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to save order"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกคำสั่งซื้อได้"})
 		return
 	}
 	if err = tx.Commit(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to save order"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกคำสั่งซื้อได้"})
 		return
 	}
 	h.invalidateBranchCache(c, branchID)

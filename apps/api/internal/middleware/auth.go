@@ -21,18 +21,18 @@ func RequireAuth(secret string, roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		raw := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
 		if raw == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "missing access token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "ไม่พบ access token"})
 			return
 		}
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(raw, claims, func(t *jwt.Token) (any, error) {
 			if t.Method != jwt.SigningMethodHS256 {
-				return nil, fmt.Errorf("unexpected signing method: %s", t.Method.Alg())
+				return nil, fmt.Errorf("รูปแบบการลงนามของ token ไม่ถูกต้อง: %s", t.Method.Alg())
 			}
 			return []byte(secret), nil
 		})
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "invalid access token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"success": false, "message": "access token ไม่ถูกต้องหรือหมดอายุ"})
 			return
 		}
 		if len(roles) > 0 {
@@ -44,7 +44,7 @@ func RequireAuth(secret string, roles ...string) gin.HandlerFunc {
 				}
 			}
 			if !allowed {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "message": "insufficient permission"})
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "message": "คุณไม่มีสิทธิ์ดำเนินการนี้"})
 				return
 			}
 		}

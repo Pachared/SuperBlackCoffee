@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -11,6 +12,16 @@ import (
 // Client is an optional Redis integration. PostgreSQL remains the source of truth;
 // callers can safely skip caching when Redis is unavailable.
 type Client struct{ rdb *redis.Client }
+
+type fallbackLoginWindow struct {
+	count     int
+	expiresAt time.Time
+}
+
+var fallbackLoginLimits = struct {
+	sync.Mutex
+	entries map[string]fallbackLoginWindow
+}{entries: make(map[string]fallbackLoginWindow)}
 
 func New(ctx context.Context, url string) (*Client, error) {
 	if url == "" {
@@ -88,11 +99,11 @@ func (c *Client) DeletePattern(ctx context.Context, pattern string) {
 // AllowLogin applies a small fixed-window limit per username and IP address.
 func (c *Client) AllowLogin(ctx context.Context, key string, limit int, window time.Duration) bool {
 	if c == nil || c.rdb == nil {
-		return true
+		return allowFallbackLogin(key, limit, window)
 	}
 	count, err := c.rdb.Incr(ctx, key).Result()
 	if err != nil {
-		return true
+		return allowFallbackLogin(key, limit, window)
 	}
 	if count == 1 {
 		_ = c.rdb.Expire(ctx, key, window).Err()
@@ -100,7 +111,30 @@ func (c *Client) AllowLogin(ctx context.Context, key string, limit int, window t
 	return count <= int64(limit)
 }
 
-func (c *Client) Reset(ctx context.Context, key string) { c.Delete(ctx, key) }
+func allowFallbackLogin(key string, limit int, window time.Duration) bool {
+	now := time.Now()
+	fallbackLoginLimits.Lock()
+	defer fallbackLoginLimits.Unlock()
+	for existingKey, existing := range fallbackLoginLimits.entries {
+		if !existing.expiresAt.After(now) {
+			delete(fallbackLoginLimits.entries, existingKey)
+		}
+	}
+	entry := fallbackLoginLimits.entries[key]
+	if entry.expiresAt.Before(now) {
+		entry = fallbackLoginWindow{expiresAt: now.Add(window)}
+	}
+	entry.count++
+	fallbackLoginLimits.entries[key] = entry
+	return entry.count <= limit
+}
+
+func (c *Client) Reset(ctx context.Context, key string) {
+	c.Delete(ctx, key)
+	fallbackLoginLimits.Lock()
+	delete(fallbackLoginLimits.entries, key)
+	fallbackLoginLimits.Unlock()
+}
 
 func (c *Client) Publish(ctx context.Context, channel string, payload any) {
 	if c == nil || c.rdb == nil {

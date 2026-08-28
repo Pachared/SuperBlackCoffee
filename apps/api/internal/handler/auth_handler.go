@@ -20,7 +20,7 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 	}
 	var input loginInput
 	if c.ShouldBindJSON(&input) != nil {
-		c.JSON(400, gin.H{"success": false, "message": "username and password are required"})
+		c.JSON(400, gin.H{"success": false, "message": "ต้องระบุชื่อผู้ใช้และรหัสผ่าน"})
 		return
 	}
 	loginKey := "sbc:login:limit:" + c.ClientIP() + ":" + strings.ToLower(strings.TrimSpace(input.Username))
@@ -34,7 +34,7 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to sign in"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถเข้าสู่ระบบได้"})
 		return
 	}
 	if h.cache != nil {
@@ -45,7 +45,7 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 	claims.BranchID = user.BranchID
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(h.jwtSecret))
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to create access token"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้าง access token ได้"})
 		return
 	}
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"accessToken": token, "user": gin.H{"id": user.ID, "name": user.Name, "role": user.Role, "franchiseeId": claims.FranchiseeID, "branchId": claims.BranchID}}})

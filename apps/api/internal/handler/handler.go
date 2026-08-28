@@ -38,6 +38,15 @@ func (h *PlatformHandler) recordAudit(c *gin.Context, branchID int64, entityType
 	}
 }
 
+func recordAuditTx(c *gin.Context, tx *sql.Tx, branchID, actorID int64, entityType string, entityID int64, action string, metadata any) error {
+	payload, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(c, `INSERT INTO audit_events(branch_id,actor_id,entity_type,entity_id,action,metadata) VALUES($1,$2,$3,$4,$5,$6)`, branchID, actorID, entityType, entityID, action, payload)
+	return err
+}
+
 func NewPlatformHandler(db *sql.DB, redisCache *cache.Client, inventoryService *service.InventoryService, authService *service.AuthService, menuService *service.MenuService) *PlatformHandler {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
@@ -63,7 +72,7 @@ func (h *PlatformHandler) invalidateBranchCache(c *gin.Context, branchID int64) 
 }
 func (h *PlatformHandler) unavailable(c *gin.Context) bool {
 	if h.db == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "database is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "message": "ยังไม่ได้ตั้งค่าฐานข้อมูล"})
 		return true
 	}
 	return false

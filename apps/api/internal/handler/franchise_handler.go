@@ -15,7 +15,7 @@ func (h *PlatformHandler) ListFranchisees(c *gin.Context) {
 	}
 	rows, err := h.db.QueryContext(c, `SELECT id,name,email,plan,status,created_at FROM franchisees ORDER BY created_at DESC`)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to list franchisees"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดึงรายชื่อแฟรนไชส์ได้"})
 		return
 	}
 	defer rows.Close()
@@ -44,12 +44,12 @@ func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 	}
 	var input franchiseInput
 	if c.ShouldBindJSON(&input) != nil {
-		c.JSON(400, gin.H{"success": false, "message": "invalid franchise input"})
+		c.JSON(400, gin.H{"success": false, "message": "ข้อมูลแฟรนไชส์ไม่ถูกต้อง"})
 		return
 	}
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to create franchise"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างแฟรนไชส์ได้"})
 		return
 	}
 	defer tx.Rollback()
@@ -59,11 +59,11 @@ func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 		_, err = tx.ExecContext(c, `INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,$2,$3,'inactive')`, franchiseeID, input.BranchName, input.BranchCode)
 	}
 	if err != nil {
-		c.JSON(409, gin.H{"success": false, "message": "franchise email or branch code already exists"})
+		c.JSON(409, gin.H{"success": false, "message": "อีเมลแฟรนไชส์หรือรหัสสาขานี้มีอยู่แล้ว"})
 		return
 	}
 	if err = tx.Commit(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to save franchise"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกแฟรนไชส์ได้"})
 		return
 	}
 	c.JSON(201, gin.H{"success": true, "data": gin.H{"id": franchiseeID, "status": "invited"}})
@@ -77,17 +77,21 @@ func (h *PlatformHandler) ListBranches(c *gin.Context) {
 	query := `SELECT b.id,b.name,b.code,b.status,b.franchisee_id,f.name FROM branches b LEFT JOIN franchisees f ON f.id=b.franchisee_id`
 	args := []any{}
 	if claims.Role != "admin" {
-		if claims.FranchiseeID == nil {
-			c.JSON(403, gin.H{"success": false, "message": "branch scope is required"})
+		if claims.Role == "branch_manager" && claims.BranchID != nil {
+			query += ` WHERE b.id=$1`
+			args = append(args, *claims.BranchID)
+		} else if claims.FranchiseeID != nil {
+			query += ` WHERE b.franchisee_id=$1`
+			args = append(args, *claims.FranchiseeID)
+		} else {
+			c.JSON(403, gin.H{"success": false, "message": "ต้องกำหนดสิทธิ์เข้าถึงสาขา"})
 			return
 		}
-		query += ` WHERE b.franchisee_id=$1`
-		args = append(args, *claims.FranchiseeID)
 	}
 	query += ` ORDER BY b.name`
 	rows, err := h.db.QueryContext(c, query, args...)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to list branches"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดึงรายชื่อสาขาได้"})
 		return
 	}
 	defer rows.Close()
@@ -116,7 +120,7 @@ func (h *PlatformHandler) BranchSales(c *gin.Context) {
 	case "year":
 		start = "date_trunc('year', now())"
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "period must be today, month, or year"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "period ต้องเป็น today, month หรือ year"})
 		return
 	}
 	query := `SELECT b.id,b.name,b.code,b.status,
@@ -126,7 +130,7 @@ func (h *PlatformHandler) BranchSales(c *gin.Context) {
 		GROUP BY b.id,b.name,b.code,b.status ORDER BY b.name`
 	rows, err := h.db.QueryContext(c, query)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to load branch sales"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดยอดขายสาขาได้"})
 		return
 	}
 	defer rows.Close()
@@ -137,13 +141,13 @@ func (h *PlatformHandler) BranchSales(c *gin.Context) {
 		var sales float64
 		var orders int
 		if err := rows.Scan(&id, &name, &code, &status, &sales, &orders); err != nil {
-			c.JSON(500, gin.H{"success": false, "message": "failed to read branch sales"})
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านยอดขายสาขาได้"})
 			return
 		}
 		result = append(result, gin.H{"id": id, "name": name, "code": code, "status": status, "sales": sales, "orders": orders})
 	}
 	if err := rows.Err(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to read branch sales"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านยอดขายสาขาได้"})
 		return
 	}
 	c.JSON(200, gin.H{"success": true, "data": result})

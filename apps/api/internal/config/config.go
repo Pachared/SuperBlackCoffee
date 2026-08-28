@@ -20,10 +20,10 @@ func ValidateRuntime() error {
 		return nil
 	}
 	if strings.TrimSpace(os.Getenv("JWT_SECRET")) == "" {
-		return fmt.Errorf("JWT_SECRET must be configured in production")
+		return fmt.Errorf("ต้องกำหนด JWT_SECRET สำหรับระบบจริง")
 	}
 	if strings.TrimSpace(os.Getenv("CORS_ORIGINS")) == "" {
-		return fmt.Errorf("CORS_ORIGINS must be configured in production")
+		return fmt.Errorf("ต้องกำหนด CORS_ORIGINS สำหรับระบบจริง")
 	}
 	return nil
 }

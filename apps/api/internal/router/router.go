@@ -2,6 +2,7 @@ package router
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"y/internal/cache"
@@ -14,7 +15,8 @@ import (
 
 func New(db *sql.DB, redisCache *cache.Client) *gin.Engine {
 	r := gin.New()
-	r.Use(middleware.RequestLogger(), middleware.RequestMetrics(), gin.Recovery(), middleware.CORS())
+	r.ContextWithFallback = true
+	r.Use(middleware.RequestTimeout(15*time.Second), middleware.RequestLogger(), middleware.RequestMetrics(), gin.Recovery(), middleware.CORS())
 
 	deps := routeDependencies{
 		users:    handler.NewUserHandler(service.NewUserService(repository.NewPostgresUserRepository(db))),

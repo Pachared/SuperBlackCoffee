@@ -14,12 +14,12 @@ func (h *UserHandler) List(c *gin.Context) {
 	if h.service != nil {
 		result, err := h.service.List()
 		if err != nil {
-			c.JSON(500, gin.H{"success": false, "message": "failed to get users"})
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดึงข้อมูลผู้ใช้ได้"})
 			return
 		}
 		for _, user := range result {
 			users = append(users, user)
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Users retrieved", "data": users})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "ดึงข้อมูลผู้ใช้สำเร็จ", "data": users})
 }

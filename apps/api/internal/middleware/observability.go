@@ -26,6 +26,6 @@ func RequestLogger() gin.HandlerFunc {
 		if len(c.Errors) > 0 {
 			attributes = append(attributes, "errors", c.Errors.String())
 		}
-		slog.Info("http request", attributes...)
+		slog.Info("บันทึกคำขอ HTTP", attributes...)
 	}
 }

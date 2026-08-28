@@ -20,6 +20,10 @@ func (h *PlatformHandler) DailySalesReport(c *gin.Context) {
 	if date == "" {
 		date = time.Now().Format("2006-01-02")
 	}
+	if _, err := time.Parse("2006-01-02", date); err != nil {
+		c.JSON(400, gin.H{"success": false, "message": "date ต้องอยู่ในรูปแบบ YYYY-MM-DD"})
+		return
+	}
 	cacheKey := "sbc:report:daily:" + date + ":all"
 	var branchID int64
 	if claims.Role != "admin" {
@@ -45,7 +49,7 @@ func (h *PlatformHandler) DailySalesReport(c *gin.Context) {
 	query += ` GROUP BY oi.product_name ORDER BY SUM(oi.quantity * oi.unit_price) DESC`
 	rows, err := h.db.QueryContext(c, query, args...)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to load daily sales report"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดรายงานยอดขายรายวันได้"})
 		return
 	}
 	defer rows.Close()
@@ -59,7 +63,7 @@ func (h *PlatformHandler) DailySalesReport(c *gin.Context) {
 		var quantity int
 		var cost, revenue, profit float64
 		if err := rows.Scan(&name, &quantity, &cost, &revenue, &profit); err != nil {
-			c.JSON(500, gin.H{"success": false, "message": "failed to read daily sales report"})
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านรายงานยอดขายรายวันได้"})
 			return
 		}
 		items = append(items, gin.H{"productName": name, "quantity": quantity, "costTotal": cost, "revenueTotal": revenue, "profit": profit})
@@ -101,7 +105,7 @@ func (h *PlatformHandler) Dashboard(c *gin.Context) {
 	var sales float64
 	var orders int
 	if err := h.db.QueryRowContext(c, query, args...).Scan(&sales, &orders); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to load dashboard"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดข้อมูลภาพรวมได้"})
 		return
 	}
 	data := gin.H{"todaySales": sales, "todayOrders": orders}
@@ -116,7 +120,7 @@ func (h *PlatformHandler) requestBranchScope(c *gin.Context, requested *int64) (
 	claims := middleware.ClaimsFrom(c)
 	if claims.Role == "admin" {
 		if requested == nil || *requested < 1 {
-			c.JSON(400, gin.H{"success": false, "message": "branchId is required"})
+			c.JSON(400, gin.H{"success": false, "message": "ต้องระบุ branchId"})
 			return 0, false
 		}
 		return *requested, true

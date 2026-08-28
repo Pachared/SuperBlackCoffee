@@ -32,9 +32,30 @@ func TestProtectedRoutesRequireToken(t *testing.T) {
 	}
 }
 
+func TestUsersRequireAdminToken(t *testing.T) {
+	r := New(nil, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	res := httptest.NewRecorder()
+	r.ServeHTTP(res, req)
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", res.Code, http.StatusUnauthorized)
+	}
+}
+
 func TestAdminRouteRejectsNonAdminRole(t *testing.T) {
 	r := New(nil, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/franchisees", nil)
+	req.Header.Set("Authorization", "Bearer "+testToken(t, "cashier"))
+	res := httptest.NewRecorder()
+	r.ServeHTTP(res, req)
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", res.Code, http.StatusForbidden)
+	}
+}
+
+func TestStockRequestsRejectCashierRole(t *testing.T) {
+	r := New(nil, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/stock-requests", nil)
 	req.Header.Set("Authorization", "Bearer "+testToken(t, "cashier"))
 	res := httptest.NewRecorder()
 	r.ServeHTTP(res, req)

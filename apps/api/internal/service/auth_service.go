@@ -9,7 +9,7 @@ import (
 	"y/internal/repository"
 )
 
-var ErrInvalidCredentials = errors.New("invalid credentials")
+var ErrInvalidCredentials = errors.New("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง")
 
 type AuthService struct{ repo repository.AuthRepository }
 

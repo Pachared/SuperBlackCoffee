@@ -18,7 +18,7 @@ func registerPublicRoutes(r *gin.Engine, deps routeDependencies) {
 	r.GET("/health", health)
 	v1 := r.Group("/api/v1")
 	v1.GET("/status", health)
-	v1.GET("/users", deps.users.List)
+	v1.GET("/users", middleware.RequireAuth(deps.secret, "admin"), deps.users.List)
 	v1.POST("/auth/login", deps.platform.Login)
 }
 
@@ -36,7 +36,7 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 	protected.PATCH("/inventory/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.UpdateInventory)
 	protected.DELETE("/inventory/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.DeleteInventory)
 	protected.POST("/stock-requests", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.CreateStockRequest)
-	protected.GET("/stock-requests", deps.platform.ListStockRequests)
+	protected.GET("/stock-requests", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.ListStockRequests)
 	protected.GET("/audit-events", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListAuditEvents)
 	protected.PATCH("/stock-requests/:id/status", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdateStockRequestStatus)
 	protected.POST("/pos/orders", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager", "cashier"), deps.platform.CreatePOSOrder)
@@ -51,5 +51,5 @@ func registerAdminRoutes(protected *gin.RouterGroup, deps routeDependencies) {
 }
 
 func health(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "API is running", "data": gin.H{"status": "healthy"}})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "API ทำงานปกติ", "data": gin.H{"status": "พร้อมใช้งาน"}})
 }

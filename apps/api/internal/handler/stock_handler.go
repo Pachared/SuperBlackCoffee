@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -17,7 +18,7 @@ func (h *PlatformHandler) CreateStockRequest(c *gin.Context) {
 	}
 	var input requestInput
 	if c.ShouldBindJSON(&input) != nil {
-		c.JSON(400, gin.H{"success": false, "message": "at least one requested item is required"})
+		c.JSON(400, gin.H{"success": false, "message": "ต้องระบุรายการที่ขออย่างน้อย 1 รายการ"})
 		return
 	}
 	branchID, ok := h.requestBranchScope(c, input.BranchID)
@@ -25,9 +26,20 @@ func (h *PlatformHandler) CreateStockRequest(c *gin.Context) {
 		return
 	}
 	claims := middleware.ClaimsFrom(c)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if limit < 1 {
+		limit = 1
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if offset < 0 {
+		offset = 0
+	}
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to create request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างคำขอได้"})
 		return
 	}
 	defer tx.Rollback()
@@ -37,19 +49,33 @@ func (h *PlatformHandler) CreateStockRequest(c *gin.Context) {
 		if err != nil {
 			break
 		}
-		_, err = tx.ExecContext(c, `INSERT INTO stock_request_items(stock_request_id,inventory_item_id,item_name,quantity,unit) VALUES($1,$2,$3,$4,$5)`, requestID, item.InventoryItemID, item.Name, item.Quantity, item.Unit)
+		itemName, itemUnit := item.Name, item.Unit
+		if item.InventoryItemID != nil {
+			err = tx.QueryRowContext(c, `SELECT name,unit FROM inventory_items WHERE id=$1 AND branch_id=$2`, *item.InventoryItemID, branchID).Scan(&itemName, &itemUnit)
+			if errors.Is(err, sql.ErrNoRows) {
+				c.JSON(400, gin.H{"success": false, "message": "รายการสต็อกไม่อยู่ในสาขาที่ระบุ"})
+				return
+			}
+			if err != nil {
+				break
+			}
+		}
+		_, err = tx.ExecContext(c, `INSERT INTO stock_request_items(stock_request_id,inventory_item_id,item_name,quantity,unit) VALUES($1,$2,$3,$4,$5)`, requestID, item.InventoryItemID, itemName, item.Quantity, itemUnit)
 	}
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to save request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกคำขอได้"})
+		return
+	}
+	if err = recordAuditTx(c, tx, branchID, claims.UserID, "stock_request", requestID, "created", gin.H{"itemCount": len(input.Items)}); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกประวัติคำขอได้"})
 		return
 	}
 	if err = tx.Commit(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to save request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกคำขอได้"})
 		return
 	}
 	h.cache.Publish(c, "sbc:events", gin.H{"type": "stock.request.created", "requestId": requestID, "branchId": branchID})
 	h.cache.Enqueue(c, "sbc:jobs", map[string]any{"type": "stock.request.notify", "requestId": requestID})
-	h.recordAudit(c, branchID, "stock_request", requestID, "created", gin.H{"itemCount": len(input.Items)})
 	c.JSON(201, gin.H{"success": true, "data": gin.H{"id": requestID, "status": "pending"}})
 }
 
@@ -58,6 +84,17 @@ func (h *PlatformHandler) ListStockRequests(c *gin.Context) {
 		return
 	}
 	claims := middleware.ClaimsFrom(c)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if limit < 1 {
+		limit = 1
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if offset < 0 {
+		offset = 0
+	}
 	query := `SELECT r.id,r.status,r.note,r.created_at,b.id,b.name,
 		COALESCE(json_agg(json_build_object('name',i.item_name,'quantity',i.quantity,'unit',i.unit) ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL),'[]')
 		FROM stock_requests r JOIN branches b ON b.id=r.branch_id LEFT JOIN stock_request_items i ON i.stock_request_id=r.id`
@@ -71,9 +108,11 @@ func (h *PlatformHandler) ListStockRequests(c *gin.Context) {
 		args = append(args, branchID)
 	}
 	query += ` GROUP BY r.id,b.id ORDER BY r.created_at DESC`
+	args = append(args, limit, offset)
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args))
 	rows, err := h.db.QueryContext(c, query, args...)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to list stock requests"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดึงรายการคำขอได้"})
 		return
 	}
 	defer rows.Close()
@@ -84,98 +123,125 @@ func (h *PlatformHandler) ListStockRequests(c *gin.Context) {
 		var created time.Time
 		var items []byte
 		if err := rows.Scan(&id, &status, &note, &created, &branchID, &branchName, &items); err != nil {
-			c.JSON(500, gin.H{"success": false, "message": "failed to read stock requests"})
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านรายการคำขอได้"})
 			return
 		}
 		result = append(result, gin.H{"id": id, "status": status, "note": note, "createdAt": created, "branch": gin.H{"id": branchID, "name": branchName}, "items": json.RawMessage(items)})
 	}
-	c.JSON(200, gin.H{"success": true, "data": result})
+	c.JSON(200, gin.H{"success": true, "data": result, "pagination": gin.H{"limit": limit, "offset": offset}})
 }
 
 func (h *PlatformHandler) UpdateStockRequestStatus(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
+	if parseErr != nil || id < 1 {
+		c.JSON(400, gin.H{"success": false, "message": "รหัสคำขอไม่ถูกต้อง"})
+		return
+	}
 	var input struct {
 		Status string `json:"status" binding:"required,oneof=approved preparing completed rejected"`
 	}
 	if c.ShouldBindJSON(&input) != nil {
-		c.JSON(400, gin.H{"success": false, "message": "invalid status"})
+		c.JSON(400, gin.H{"success": false, "message": "สถานะที่ระบุไม่ถูกต้อง"})
 		return
 	}
 	claims := middleware.ClaimsFrom(c)
 	validCurrentStatuses := map[string][]string{"approved": {"pending"}, "rejected": {"pending"}, "preparing": {"pending", "approved"}, "completed": {"preparing"}}
 	if input.Status != "completed" {
-		var branchID int64
-		err := h.db.QueryRowContext(c, `UPDATE stock_requests SET status=$1,approved_by=$2,updated_at=now() WHERE id=$3 AND status = ANY($4) RETURNING branch_id`, input.Status, claims.UserID, id, validCurrentStatuses[input.Status]).Scan(&branchID)
+		tx, err := h.db.BeginTx(c, nil)
 		if err != nil {
-			c.JSON(409, gin.H{"success": false, "message": "request cannot be updated"})
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถเปลี่ยนสถานะคำขอได้"})
+			return
+		}
+		defer tx.Rollback()
+		var branchID int64
+		err = tx.QueryRowContext(c, `UPDATE stock_requests SET status=$1,approved_by=$2,updated_at=now() WHERE id=$3 AND status = ANY($4) RETURNING branch_id`, input.Status, claims.UserID, id, validCurrentStatuses[input.Status]).Scan(&branchID)
+		if err != nil {
+			c.JSON(409, gin.H{"success": false, "message": "ไม่สามารถเปลี่ยนสถานะคำขอนี้ได้"})
+			return
+		}
+		if err = recordAuditTx(c, tx, branchID, claims.UserID, "stock_request", id, input.Status, nil); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกประวัติคำขอได้"})
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถเปลี่ยนสถานะคำขอได้"})
 			return
 		}
 		h.cache.Publish(c, "sbc:events", gin.H{"type": "stock.request.updated", "requestId": id, "status": input.Status})
 		h.cache.Enqueue(c, "sbc:jobs", map[string]any{"type": "stock.request.notify", "requestId": id})
-		h.recordAudit(c, branchID, "stock_request", id, input.Status, nil)
 		c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id, "status": input.Status}})
 		return
 	}
 
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 		return
 	}
 	defer tx.Rollback()
 	var branchID int64
 	err = tx.QueryRowContext(c, `SELECT branch_id FROM stock_requests WHERE id=$1 AND status = ANY($2) FOR UPDATE`, id, validCurrentStatuses[input.Status]).Scan(&branchID)
 	if errors.Is(err, sql.ErrNoRows) {
-		c.JSON(409, gin.H{"success": false, "message": "request cannot be updated"})
+		c.JSON(409, gin.H{"success": false, "message": "ไม่สามารถเปลี่ยนสถานะคำขอนี้ได้"})
 		return
 	}
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 		return
 	}
-	rows, err := tx.QueryContext(c, `SELECT item_name,quantity,unit FROM stock_request_items WHERE stock_request_id=$1`, id)
+	rows, err := tx.QueryContext(c, `SELECT inventory_item_id,item_name,quantity,unit FROM stock_request_items WHERE stock_request_id=$1`, id)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 		return
 	}
 	defer rows.Close()
 	for rows.Next() {
+		var inventoryItemID *int64
 		var name, unit string
 		var quantity float64
-		if err := rows.Scan(&name, &quantity, &unit); err != nil {
-			c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		if err := rows.Scan(&inventoryItemID, &name, &quantity, &unit); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 			return
 		}
-		result, updateErr := tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE branch_id=$2 AND name=$3 AND unit=$4`, quantity, branchID, name, unit)
+		var result sql.Result
+		var updateErr error
+		if inventoryItemID != nil {
+			result, updateErr = tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE id=$2 AND branch_id=$3`, quantity, *inventoryItemID, branchID)
+		} else {
+			result, updateErr = tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE branch_id=$2 AND name=$3 AND unit=$4`, quantity, branchID, name, unit)
+		}
 		if updateErr != nil {
-			c.JSON(500, gin.H{"success": false, "message": "failed to receive requested inventory"})
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถรับสินค้าเข้าสต็อกได้"})
 			return
 		}
 		if rowsAffected(result) == 0 {
 			if _, insertErr := tx.ExecContext(c, `INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,$2,'other','ingredient',$3,$4,0,0)`, branchID, name, quantity, unit); insertErr != nil {
-				c.JSON(500, gin.H{"success": false, "message": "failed to receive requested inventory"})
+				c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถรับสินค้าเข้าสต็อกได้"})
 				return
 			}
 		}
 	}
 	if err := rows.Err(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 		return
 	}
 	if _, err = tx.ExecContext(c, `UPDATE stock_requests SET status='completed',approved_by=$1,updated_at=now() WHERE id=$2`, claims.UserID, id); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
+		return
+	}
+	if err = recordAuditTx(c, tx, branchID, claims.UserID, "stock_request", id, "completed", nil); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกประวัติคำขอได้"})
 		return
 	}
 	if err = tx.Commit(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "failed to complete request"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 		return
 	}
 	h.invalidateBranchCache(c, branchID)
 	h.cache.Publish(c, "sbc:events", gin.H{"type": "stock.request.updated", "requestId": id, "branchId": branchID, "status": input.Status})
 	h.cache.Enqueue(c, "sbc:jobs", map[string]any{"type": "stock.request.notify", "requestId": id})
-	h.recordAudit(c, branchID, "stock_request", id, "completed", nil)
 	c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id, "status": input.Status}})
 }
