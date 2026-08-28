@@ -25,7 +25,9 @@ export function DashboardTopbar({
         position: 'fixed',
         top: 0,
         left: sidebarWidth,
-        transition: disableSidebarTransition ? 'none' : 'left .28s cubic-bezier(.2,.8,.2,1)',
+        transition: disableSidebarTransition
+          ? 'none'
+          : 'left .28s cubic-bezier(.2,.8,.2,1)',
         right: 0,
         zIndex: 1100,
         height: 72,

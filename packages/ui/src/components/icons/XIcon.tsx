@@ -43,7 +43,12 @@ export const XIcon = forwardRef<
       {...props}
       onMouseEnter={enter}
       onMouseLeave={leave}
-      style={{ display: 'flex', alignItems: 'center', lineHeight: 0, ...props.style }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        lineHeight: 0,
+        ...props.style,
+      }}
     >
       <svg
         fill="none"

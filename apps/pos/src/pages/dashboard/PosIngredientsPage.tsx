@@ -86,18 +86,26 @@ export function PosIngredientsPage() {
       .then((items) => {
         if (cancelled) return;
         const statusByApiStatus: Record<string, IngredientStatus> = {
-          ready: 'พร้อมใช้', low: 'วัตถุดิบใกล้หมด', out: 'วัตถุดิบหมด',
+          ready: 'พร้อมใช้',
+          low: 'วัตถุดิบใกล้หมด',
+          out: 'วัตถุดิบหมด',
         };
-        setInventory(items.map((item, index) => ({
-          ...item,
-          amount: `คงเหลือ ${item.quantity} ${item.unit}`,
-          status: statusByApiStatus[item.status] ?? 'พร้อมใช้',
-          imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
-        })));
+        setInventory(
+          items.map((item, index) => ({
+            ...item,
+            amount: `คงเหลือ ${item.quantity} ${item.unit}`,
+            status: statusByApiStatus[item.status] ?? 'พร้อมใช้',
+            imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
+          })),
+        );
       })
       .catch(() => undefined)
-      .finally(() => { if (!cancelled) setIsIngredientsLoaded(true); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setIsIngredientsLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   useEffect(
     () => () => {
@@ -135,30 +143,63 @@ export function PosIngredientsPage() {
       reorderLevel: Number(form.get('reorderLevel') ?? 0),
     };
     try {
-      if (editingIngredient?.id) await updateInventory(editingIngredient.id, payload);
+      if (editingIngredient?.id)
+        await updateInventory(editingIngredient.id, payload);
       else await createInventory(payload);
       const items = await listInventory();
-      const statusByApiStatus: Record<string, IngredientStatus> = { ready: 'พร้อมใช้', low: 'วัตถุดิบใกล้หมด', out: 'วัตถุดิบหมด' };
-      setInventory(items.map((item, index) => ({ ...item, amount: `คงเหลือ ${item.quantity} ${item.unit}`, status: statusByApiStatus[item.status] ?? 'พร้อมใช้', imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%` })));
+      const statusByApiStatus: Record<string, IngredientStatus> = {
+        ready: 'พร้อมใช้',
+        low: 'วัตถุดิบใกล้หมด',
+        out: 'วัตถุดิบหมด',
+      };
+      setInventory(
+        items.map((item, index) => ({
+          ...item,
+          amount: `คงเหลือ ${item.quantity} ${item.unit}`,
+          status: statusByApiStatus[item.status] ?? 'พร้อมใช้',
+          imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
+        })),
+      );
       setIsAddDrawerOpen(false);
-    } catch (error) { window.alert(error instanceof Error ? error.message : 'บันทึกวัตถุดิบไม่สำเร็จ'); }
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : 'บันทึกวัตถุดิบไม่สำเร็จ',
+      );
+    }
   };
   const confirmDelete = async () => {
-    const item = inventory.find((candidate) => candidate.name === deleteTargetName);
+    const item = inventory.find(
+      (candidate) => candidate.name === deleteTargetName,
+    );
     try {
       if (item?.id) await deleteInventory(item.id);
-      setInventory((items) => items.filter((candidate) => candidate.name !== deleteTargetName));
+      setInventory((items) =>
+        items.filter((candidate) => candidate.name !== deleteTargetName),
+      );
       setDeleteTargetName(null);
-    } catch (error) { window.alert(error instanceof Error ? error.message : 'ลบวัตถุดิบไม่สำเร็จ'); }
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : 'ลบวัตถุดิบไม่สำเร็จ',
+      );
+    }
   };
   const submitOrder = async () => {
     if (!orderItems.length) return;
     try {
-      await createStockRequest(orderItems.map((item) => ({ inventoryItemId: item.id, name: item.name, quantity: item.quantity, unit: item.unit ?? 'ชิ้น' })));
+      await createStockRequest(
+        orderItems.map((item) => ({
+          inventoryItemId: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit ?? 'ชิ้น',
+        })),
+      );
       setOrderItems([]);
       setIsOrderDrawerOpen(false);
       window.alert('ส่งคำขอสั่งวัตถุดิบไปยังสำนักงานกลางแล้ว');
-    } catch (error) { window.alert(error instanceof Error ? error.message : 'ส่งคำขอไม่สำเร็จ'); }
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'ส่งคำขอไม่สำเร็จ');
+    }
   };
 
   return (
@@ -970,7 +1011,19 @@ export function PosIngredientsPage() {
             )}
           </Box>
           {orderItems.length > 0 && (
-            <Button variant="contained" onClick={submitOrder} sx={{ mt: 3, minHeight: 44, borderRadius: '12px', bgcolor: '#201914', fontFamily: 'Kanit, sans-serif', boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>
+            <Button
+              variant="contained"
+              onClick={submitOrder}
+              sx={{
+                mt: 3,
+                minHeight: 44,
+                borderRadius: '12px',
+                bgcolor: '#201914',
+                fontFamily: 'Kanit, sans-serif',
+                boxShadow: 'none',
+                '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
+              }}
+            >
               ส่งคำขอสั่งวัตถุดิบ
             </Button>
           )}

@@ -13,4 +13,11 @@ export type WebsiteLead = {
   createdAt: string;
 };
 export const listWebsiteLeads = () => secured<WebsiteLead[]>('/website/leads');
-export const updateWebsiteLeadStatus = (id: number, status: WebsiteLead['status']) => secured<{ id: number; status: WebsiteLead['status'] }>(`/website/leads/${id}/status`, { method: 'PATCH', data: { status } });
+export const updateWebsiteLeadStatus = (
+  id: number,
+  status: WebsiteLead['status'],
+) =>
+  secured<{ id: number; status: WebsiteLead['status'] }>(
+    `/website/leads/${id}/status`,
+    { method: 'PATCH', data: { status } },
+  );

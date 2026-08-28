@@ -19,9 +19,18 @@ export function SbcThemeProvider({
     shape: { borderRadius: 20 },
     typography: {
       fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif',
-      h3: { fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif', fontWeight: 700 },
-      h4: { fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif', fontWeight: 700 },
-      h5: { fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif', fontWeight: 700 },
+      h3: {
+        fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif',
+        fontWeight: 700,
+      },
+      h4: {
+        fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif',
+        fontWeight: 700,
+      },
+      h5: {
+        fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif',
+        fontWeight: 700,
+      },
     },
   });
   return (

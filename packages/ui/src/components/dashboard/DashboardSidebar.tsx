@@ -1,5 +1,11 @@
 import type { ReactElement, ReactNode } from 'react';
-import { cloneElement, isValidElement, useLayoutEffect, useRef, useState } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   Box,
   Button,
@@ -58,9 +64,8 @@ export function DashboardSidebar({
   const closeIconRef = useRef<PanelLeftCloseIconHandle>(null);
   const openIconRef = useRef<PanelLeftOpenIconHandle>(null);
   const [showExpandedContent, setShowExpandedContent] = useState(!collapsed);
-  const [expandedContentVisible, setExpandedContentVisible] = useState(
-    !collapsed,
-  );
+  const [expandedContentVisible, setExpandedContentVisible] =
+    useState(!collapsed);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [clickedMenu, setClickedMenu] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | undefined>(undefined);
@@ -82,7 +87,8 @@ export function DashboardSidebar({
     return () => window.cancelAnimationFrame(frame);
   }, [collapsed, collapseContentImmediately]);
   const width = collapsed ? 96 : 230;
-  const renderExpandedContent = showExpandedContent && (!collapseContentImmediately || !collapsed);
+  const renderExpandedContent =
+    showExpandedContent && (!collapseContentImmediately || !collapsed);
   return (
     <Drawer
       variant="permanent"
@@ -92,7 +98,9 @@ export function DashboardSidebar({
       }}
       sx={{
         width,
-        transition: disableWidthTransition ? 'none' : 'width .28s cubic-bezier(.2,.8,.2,1)',
+        transition: disableWidthTransition
+          ? 'none'
+          : 'width .28s cubic-bezier(.2,.8,.2,1)',
         '& .MuiDrawer-paper': {
           width,
           boxSizing: 'border-box',
@@ -102,7 +110,9 @@ export function DashboardSidebar({
           borderRadius: '0 12px 0 0',
           overflow: 'visible',
           p: 2,
-          transition: disableWidthTransition ? 'none' : 'width .28s cubic-bezier(.2,.8,.2,1), padding .28s cubic-bezier(.2,.8,.2,1)',
+          transition: disableWidthTransition
+            ? 'none'
+            : 'width .28s cubic-bezier(.2,.8,.2,1), padding .28s cubic-bezier(.2,.8,.2,1)',
         },
       }}
     >
@@ -160,7 +170,24 @@ export function DashboardSidebar({
           alt="Super Black Coffee"
           sx={{ width: 52, height: 52, objectFit: 'contain' }}
         />
-        <Typography sx={{ fontSize: 12, letterSpacing: 0.5, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap', maxHeight: 24, minHeight: 24, opacity: collapsed ? 0 : 1, visibility: collapseContentImmediately && collapsed ? 'hidden' : 'visible', overflow: 'hidden', transition: collapseContentImmediately ? 'none' : 'opacity .14s ease' }}>
+        <Typography
+          sx={{
+            fontSize: 12,
+            letterSpacing: 0.5,
+            fontWeight: 800,
+            textAlign: 'center',
+            whiteSpace: 'nowrap',
+            maxHeight: 24,
+            minHeight: 24,
+            opacity: collapsed ? 0 : 1,
+            visibility:
+              collapseContentImmediately && collapsed ? 'hidden' : 'visible',
+            overflow: 'hidden',
+            transition: collapseContentImmediately
+              ? 'none'
+              : 'opacity .14s ease',
+          }}
+        >
           SUPER{' '}
           <Box component="span" color={accentColor}>
             BLACK
@@ -185,7 +212,10 @@ export function DashboardSidebar({
               setHoveredMenu(label);
             }}
             onMouseLeave={() => {
-              hoverTimerRef.current = window.setTimeout(() => setHoveredMenu(null), 350);
+              hoverTimerRef.current = window.setTimeout(
+                () => setHoveredMenu(null),
+                350,
+              );
             }}
             sx={{
               minHeight: 48,
@@ -196,67 +226,67 @@ export function DashboardSidebar({
               mb: 0.5,
               '&.Mui-selected': disableActiveConnection
                 ? {
-                  bgcolor: activeBackground,
-                  color: '#171411',
-                  borderRadius: '12px 0 0 12px',
-                  mr: 0,
-                }
+                    bgcolor: activeBackground,
+                    color: '#171411',
+                    borderRadius: '12px 0 0 12px',
+                    mr: 0,
+                  }
                 : collapsed
                   ? {
-                    bgcolor: activeBackground,
-                    color: '#171411',
-                    borderRadius: '12px 0 0 12px',
-                    mr: -2,
-                    position: 'relative',
-                    zIndex: 1,
-                    '&::before, &::after': {
-                      content: '""',
-                      position: 'absolute',
-                      right: 0,
-                      width: 14,
-                      height: 14,
-                      bgcolor: '#171411',
-                      pointerEvents: 'none',
-                    },
-                    '&::before': {
-                      top: -14,
-                      borderRadius: '0 0 14px 0',
-                      boxShadow: '7px 7px 0 7px ' + activeBackground,
-                    },
-                    '&::after': {
-                      bottom: -14,
-                      borderRadius: '0 14px 0 0',
-                      boxShadow: '7px -7px 0 7px ' + activeBackground,
-                    },
-                  }
+                      bgcolor: activeBackground,
+                      color: '#171411',
+                      borderRadius: '12px 0 0 12px',
+                      mr: -2,
+                      position: 'relative',
+                      zIndex: 1,
+                      '&::before, &::after': {
+                        content: '""',
+                        position: 'absolute',
+                        right: 0,
+                        width: 14,
+                        height: 14,
+                        bgcolor: '#171411',
+                        pointerEvents: 'none',
+                      },
+                      '&::before': {
+                        top: -14,
+                        borderRadius: '0 0 14px 0',
+                        boxShadow: '7px 7px 0 7px ' + activeBackground,
+                      },
+                      '&::after': {
+                        bottom: -14,
+                        borderRadius: '0 14px 0 0',
+                        boxShadow: '7px -7px 0 7px ' + activeBackground,
+                      },
+                    }
                   : {
-                    bgcolor: activeBackground,
-                    color: '#171411',
-                    borderRadius: '12px 0 0 12px',
-                    mr: -2,
-                    pr: 2,
-                    position: 'relative',
-                    zIndex: 1,
-                    '&::before, &::after': {
-                      content: '""',
-                      position: 'absolute',
-                      right: 0,
-                      width: 14,
-                      height: 14,
-                      bgcolor: '#171411',
-                      pointerEvents: 'none',
+                      bgcolor: activeBackground,
+                      color: '#171411',
+                      borderRadius: '12px 0 0 12px',
+                      mr: -2,
+                      pr: 2,
+                      position: 'relative',
+                      zIndex: 1,
+                      '&::before, &::after': {
+                        content: '""',
+                        position: 'absolute',
+                        right: 0,
+                        width: 14,
+                        height: 14,
+                        bgcolor: '#171411',
+                        pointerEvents: 'none',
+                      },
+                      '&::before': {
+                        top: -14,
+                        borderRadius: '0 0 14px 0',
+                        boxShadow: '7px 7px 0 7px ' + activeBackground,
+                      },
+                      '&::after': {
+                        bottom: -14,
+                        borderRadius: '0 14px 0 0',
+                        boxShadow: '7px -7px 0 7px ' + activeBackground,
+                      },
                     },
-                    '&::before': {
-                      top: -14,
-                      borderRadius: '0 0 14px 0',
-                      boxShadow: '7px 7px 0 7px ' + activeBackground,
-                    },
-                    '&::after': {
-                      bottom: -14,
-                      borderRadius: '0 14px 0 0',
-                      boxShadow: '7px -7px 0 7px ' + activeBackground,
-                    },
-                  },
               '&.Mui-selected:hover': { bgcolor: activeBackground },
               '&:not(.Mui-selected):hover': {
                 bgcolor: selectedColor,
@@ -278,10 +308,59 @@ export function DashboardSidebar({
                 transition: 'color .2s ease',
               }}
             >
-              {isValidElement(icon) ? cloneElement(icon as ReactElement<{ animate?: boolean }>, { animate: hoveredMenu === label || clickedMenu === label }) : icon}
+              {isValidElement(icon)
+                ? cloneElement(icon as ReactElement<{ animate?: boolean }>, {
+                    animate: hoveredMenu === label || clickedMenu === label,
+                  })
+                : icon}
             </ListItemIcon>
-            {renderExpandedContent && <ListItemText sx={{ m: 0, ml: '44px', whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translateX(0)' : 'translateX(-10px)', transition: 'opacity .14s ease, transform .14s ease' }} primary={<Typography sx={{ fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' }}>{label}</Typography>} />}
-            {!!badge && <Box className="sbc-nav-badge" sx={{ position: 'absolute', top: '50%', left: collapsed ? 48 : 172, zIndex: 3, display: 'grid', placeItems: 'center', minWidth: 22, height: 22, px: .5, borderRadius: 99, bgcolor: '#e5291d', color: '#fff', transform: 'translateY(-50%)', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 800, lineHeight: 1 }}>{badge > 99 ? '99+' : badge}</Box>}
+            {renderExpandedContent && (
+              <ListItemText
+                sx={{
+                  m: 0,
+                  ml: '44px',
+                  whiteSpace: 'nowrap',
+                  opacity: expandedContentVisible ? 1 : 0,
+                  transform: expandedContentVisible
+                    ? 'translateX(0)'
+                    : 'translateX(-10px)',
+                  transition: 'opacity .14s ease, transform .14s ease',
+                }}
+                primary={
+                  <Typography
+                    sx={{ fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' }}
+                  >
+                    {label}
+                  </Typography>
+                }
+              />
+            )}
+            {!!badge && (
+              <Box
+                className="sbc-nav-badge"
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: collapsed ? 48 : 172,
+                  zIndex: 3,
+                  display: 'grid',
+                  placeItems: 'center',
+                  minWidth: 22,
+                  height: 22,
+                  px: 0.5,
+                  borderRadius: 99,
+                  bgcolor: '#e5291d',
+                  color: '#fff',
+                  transform: 'translateY(-50%)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                }}
+              >
+                {badge > 99 ? '99+' : badge}
+              </Box>
+            )}
           </ListItemButton>
         ))}
       </List>
@@ -317,10 +396,43 @@ export function DashboardSidebar({
               lineHeight: 1,
             }}
           >
-            <Box sx={{ position: 'absolute', left: 22, top: '50%', display: 'flex', transform: 'translateY(-50%)', transition: 'color .2s ease' }}>
-              <LogoutIcon ref={logoutIconRef} size={19} style={{ display: 'flex', alignItems: 'center', lineHeight: 0 }} />
+            <Box
+              sx={{
+                position: 'absolute',
+                left: 22,
+                top: '50%',
+                display: 'flex',
+                transform: 'translateY(-50%)',
+                transition: 'color .2s ease',
+              }}
+            >
+              <LogoutIcon
+                ref={logoutIconRef}
+                size={19}
+                style={{ display: 'flex', alignItems: 'center', lineHeight: 0 }}
+              />
             </Box>
-            {renderExpandedContent && <Box component="span" sx={{ position: 'absolute', left: 50, top: '50%', display: 'inline-flex', alignItems: 'center', lineHeight: 1, whiteSpace: 'nowrap', opacity: expandedContentVisible ? 1 : 0, transform: expandedContentVisible ? 'translate(0, -50%)' : 'translate(-10px, -50%)', transition: 'opacity .14s ease, transform .14s ease' }}>ออกจากระบบ</Box>}
+            {renderExpandedContent && (
+              <Box
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  left: 50,
+                  top: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                  opacity: expandedContentVisible ? 1 : 0,
+                  transform: expandedContentVisible
+                    ? 'translate(0, -50%)'
+                    : 'translate(-10px, -50%)',
+                  transition: 'opacity .14s ease, transform .14s ease',
+                }}
+              >
+                ออกจากระบบ
+              </Box>
+            )}
           </Box>
         </Button>
       </Box>

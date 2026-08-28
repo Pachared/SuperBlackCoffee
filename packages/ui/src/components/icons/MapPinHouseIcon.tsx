@@ -6,7 +6,10 @@ type MapPinHouseIconProps = { animate?: boolean; size?: number };
 // Source: https://lucide-animated.com/icons/map-pin-house
 const pinVariants: Variants = {
   normal: { y: 0 },
-  animate: { y: [0, -5, -3], transition: { duration: 0.5, times: [0, 0.6, 1] } },
+  animate: {
+    y: [0, -5, -3],
+    transition: { duration: 0.5, times: [0, 0.6, 1] },
+  },
 };
 
 const houseVariants: Variants = {
@@ -14,11 +17,18 @@ const houseVariants: Variants = {
   animate: {
     opacity: [0, 1],
     pathLength: [0, 1],
-    transition: { delay: 0.3, duration: 0.3, opacity: { duration: 0.1, delay: 0.3 } },
+    transition: {
+      delay: 0.3,
+      duration: 0.3,
+      opacity: { duration: 0.1, delay: 0.3 },
+    },
   },
 };
 
-export function MapPinHouseIcon({ animate = false, size = 22 }: MapPinHouseIconProps) {
+export function MapPinHouseIcon({
+  animate = false,
+  size = 22,
+}: MapPinHouseIconProps) {
   const controls = useAnimation();
 
   useEffect(() => {

@@ -75,10 +75,19 @@ export function AdminAuditPage() {
             fontFamily: 'Kanit, sans-serif',
           }}
         >
-          {error.message} <Button size="small" onClick={() => refetch()}>ลองใหม่</Button>
+          {error.message}{' '}
+          <Button size="small" onClick={() => refetch()}>
+            ลองใหม่
+          </Button>
         </Card>
       ) : null}
-      {isLoading ? <Typography sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}>กำลังโหลดประวัติ...</Typography> : null}
+      {isLoading ? (
+        <Typography
+          sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}
+        >
+          กำลังโหลดประวัติ...
+        </Typography>
+      ) : null}
       <Box sx={{ display: 'grid', gap: 1.25 }}>
         {groupedEvents.map((event) => (
           <Card

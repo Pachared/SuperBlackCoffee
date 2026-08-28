@@ -40,7 +40,7 @@ export function PosDashboardLayout({
         title={activePage === 'คำสั่งซื้อ' ? 'ประวัติการสั่งซื้อ' : activePage}
         initials="NS"
         name="Narin S."
-              role="POS"
+        role="POS"
         sidebarWidth={isCollapsed ? 96 : 230}
       />
       {children}

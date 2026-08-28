@@ -5,6 +5,8 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:go": "find apps/api -name '*.go' -type f -print0 | xargs -0 gofmt -w",
     "clean": "rimraf apps/*/dist apps/*/.next",
     "dev:pos": "pnpm --filter @stackbuild/pos dev",
     "dev:website": "pnpm --filter @stackbuild/website dev",
