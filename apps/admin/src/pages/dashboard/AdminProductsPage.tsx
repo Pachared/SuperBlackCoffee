@@ -25,7 +25,7 @@ import {
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
-import { listInventory, listMenuItems } from '../../lib/api';
+import { listInventory, listMenuItems } from '../../api';
 
 type ProductIngredient = { name: string; quantity: string };
 type Product = {
@@ -66,7 +66,9 @@ export function AdminProductsPage({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
-  const [availableIngredients, setAvailableIngredients] = useState<string[]>([]);
+  const [availableIngredients, setAvailableIngredients] = useState<string[]>(
+    [],
+  );
   const [productIngredients, setProductIngredients] = useState<
     ProductIngredient[]
   >([{ name: '', quantity: '' }]);
@@ -414,7 +416,14 @@ export function AdminProductsPage({
                               }}
                             >
                               ราคาต้นทุน
-                              <Box component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontSize: 18,
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                }}
+                              >
                                 {item.costPrice} บาท
                               </Box>
                             </Typography>
@@ -433,7 +442,14 @@ export function AdminProductsPage({
                               }}
                             >
                               ราคาหน้าร้าน
-                              <Box component="span" sx={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontSize: 20,
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                }}
+                              >
                                 {item.storePrice} บาท
                               </Box>
                             </Typography>
@@ -452,7 +468,14 @@ export function AdminProductsPage({
                               }}
                             >
                               ราคา LINE MAN
-                              <Box component="span" sx={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontSize: 20,
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                }}
+                              >
                                 {item.lineManPrice} บาท
                               </Box>
                             </Typography>

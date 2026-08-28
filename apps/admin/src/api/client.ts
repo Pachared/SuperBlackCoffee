@@ -1,0 +1,61 @@
+import axios, { type AxiosRequestConfig } from 'axios';
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
+
+function messageFrom(error: unknown) {
+  if (axios.isAxiosError<ApiEnvelope<unknown>>(error))
+    return error.response?.data?.message ?? 'ไม่สามารถเชื่อมต่อระบบได้';
+  return error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อระบบได้';
+}
+
+export async function publicRequest<T>(
+  path: string,
+  options: AxiosRequestConfig = {},
+): Promise<T> {
+  try {
+    const response = await apiClient.request<ApiEnvelope<T>>({
+      url: path,
+      ...options,
+    });
+    if (!response.data.success)
+      throw new Error(response.data.message ?? 'ไม่สามารถเชื่อมต่อระบบได้');
+    return response.data.data;
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+export async function secured<T>(
+  path: string,
+  options: AxiosRequestConfig = {},
+): Promise<T> {
+  try {
+    const response = await apiClient.request<ApiEnvelope<T>>({
+      url: path,
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${sessionStorage.getItem('sbc-access-token') ?? ''}`,
+      },
+    });
+    if (!response.data.success)
+      throw new Error(response.data.message ?? 'ไม่สามารถเชื่อมต่อระบบได้');
+    return response.data.data;
+  } catch (error) {
+    if (
+      axios.isAxiosError(error) &&
+      (error.response?.status === 401 || error.response?.status === 403)
+    ) {
+      sessionStorage.removeItem('sbc-access-token');
+      sessionStorage.removeItem('sbc-admin-session');
+      window.dispatchEvent(new Event('sbc:session-expired'));
+      throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    }
+    throw new Error(messageFrom(error));
+  }
+}

@@ -1,0 +1,128 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"y/internal/dto"
+	"y/internal/middleware"
+)
+
+// CreateMenuItem creates a menu item and its recipe atomically for the selected branch.
+func (h *PlatformHandler) CreateMenuItem(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	var input dto.MenuRequest
+	if err := c.ShouldBindJSON(&input); err != nil || input.Name == "" || input.Category == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลเมนูไม่ถูกต้อง"})
+		return
+	}
+	branchID, ok := h.branchScope(c)
+	if !ok {
+		return
+	}
+	tx, err := h.db.BeginTx(c, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างเมนูได้"})
+		return
+	}
+	defer tx.Rollback()
+	var id int64
+	err = tx.QueryRowContext(c, `INSERT INTO menu_items(branch_id,name,category,store_price,lineman_price,cost_price,status) VALUES($1,$2,$3,$4,$5,$6,'available') RETURNING id`, branchID, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice).Scan(&id)
+	for _, ingredient := range input.Ingredients {
+		if err != nil {
+			break
+		}
+		_, err = tx.ExecContext(c, `INSERT INTO menu_item_ingredients(menu_item_id,inventory_item_id,quantity,unit,cost_amount) VALUES($1,$2,$3,$4,0)`, id, ingredient.InventoryItemID, ingredient.Quantity, ingredient.Unit)
+	}
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างเมนูได้"})
+		return
+	}
+	if err = recordAuditTx(c, tx, branchID, middleware.ClaimsFrom(c).UserID, "menu_item", id, "created", gin.H{"name": input.Name}); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกประวัติได้"})
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างเมนูได้"})
+		return
+	}
+	h.invalidateBranchCache(c, branchID)
+	c.JSON(201, gin.H{"success": true, "data": gin.H{"id": id}})
+}
+
+func (h *PlatformHandler) UpdateMenuItem(c *gin.Context) { h.writeMenuItem(c) }
+func (h *PlatformHandler) writeMenuItem(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id < 1 {
+		c.JSON(400, gin.H{"success": false, "message": "รหัสเมนูไม่ถูกต้อง"})
+		return
+	}
+	var input dto.MenuRequest
+	if c.ShouldBindJSON(&input) != nil || input.Name == "" || input.Category == "" {
+		c.JSON(400, gin.H{"success": false, "message": "ข้อมูลเมนูไม่ถูกต้อง"})
+		return
+	}
+	branchID, ok := h.branchScope(c)
+	if !ok {
+		return
+	}
+	tx, err := h.db.BeginTx(c, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถแก้ไขเมนูได้"})
+		return
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(c, `UPDATE menu_items SET name=$1,category=$2,store_price=$3,lineman_price=$4,cost_price=$5,updated_at=now() WHERE id=$6 AND branch_id=$7`, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice, id, branchID)
+	if err != nil || rowsAffected(result) == 0 {
+		c.JSON(404, gin.H{"success": false, "message": "ไม่พบเมนู"})
+		return
+	}
+	_, err = tx.ExecContext(c, `DELETE FROM menu_item_ingredients WHERE menu_item_id=$1`, id)
+	for _, ingredient := range input.Ingredients {
+		if err != nil {
+			break
+		}
+		_, err = tx.ExecContext(c, `INSERT INTO menu_item_ingredients(menu_item_id,inventory_item_id,quantity,unit,cost_amount) VALUES($1,$2,$3,$4,0)`, id, ingredient.InventoryItemID, ingredient.Quantity, ingredient.Unit)
+	}
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถแก้ไขเมนูได้"})
+		return
+	}
+	if err = recordAuditTx(c, tx, branchID, middleware.ClaimsFrom(c).UserID, "menu_item", id, "updated", gin.H{"name": input.Name}); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถบันทึกประวัติได้"})
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถแก้ไขเมนูได้"})
+		return
+	}
+	h.invalidateBranchCache(c, branchID)
+	c.JSON(200, gin.H{"success": true, "data": gin.H{"id": id}})
+}
+func (h *PlatformHandler) DeleteMenuItem(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id < 1 {
+		c.JSON(400, gin.H{"success": false, "message": "รหัสเมนูไม่ถูกต้อง"})
+		return
+	}
+	branchID, ok := h.branchScope(c)
+	if !ok {
+		return
+	}
+	result, err := h.db.ExecContext(c, `DELETE FROM menu_items WHERE id=$1 AND branch_id=$2`, id, branchID)
+	if err != nil || rowsAffected(result) == 0 {
+		c.JSON(404, gin.H{"success": false, "message": "ไม่พบเมนู"})
+		return
+	}
+	h.invalidateBranchCache(c, branchID)
+	c.Status(http.StatusNoContent)
+}

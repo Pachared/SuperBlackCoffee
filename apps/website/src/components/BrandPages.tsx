@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Box, Button, Divider, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
+import { trackEvent } from './GoogleAnalytics';
 
 const brown = '#171411';
 const gold = '#d09a3f';
@@ -264,6 +265,16 @@ export function BranchesContent() {
 }
 
 export function FranchiseContent() {
+  const [form, setForm] = useState({ name: '', phone: '', email: '', province: '', plan: '', message: '' });
+  const [state, setState] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setState('sending');
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'}/website/leads`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, topic: 'franchise' }) });
+      if (!response.ok) throw new Error();
+      trackEvent('generate_lead', { form_name: 'franchise' }); setState('success'); setForm({ name: '', phone: '', email: '', province: '', plan: '', message: '' });
+    } catch { setState('error'); }
+  };
   return <>
     <PageIntro title="ธุรกิจที่เติบโตไปด้วยกัน" text="เริ่มต้นแฟรนไชส์ในรูปแบบที่เหมาะกับพื้นที่และเป้าหมายของคุณ" image="/brand-hero.png" />
     <Box sx={{ ...shell, py: { xs: 7, md: 10 } }}>
@@ -282,7 +293,17 @@ export function FranchiseContent() {
     <Box id="apply" sx={{ bgcolor: brown, color: '#fff', py: { xs: 8, md: 10 } }}>
       <Box sx={{ ...shell, textAlign: 'center' }}><Typography variant="h2" sx={heading}>เริ่มต้นเพียง 5 ขั้นตอน</Typography>
       <Typography sx={{ mt: 2, color: 'rgba(255,255,255,.7)' }}>กรอกข้อมูล · นัดพูดคุย · ประเมินทำเล · สรุปสัญญา · เตรียมเปิดร้าน</Typography>
-      <Box sx={{ mt: 3 }}><CTA href="/contact">พูดคุยกับทีมแฟรนไชส์</CTA></Box></Box>
+      <Box component="form" onSubmit={submit} sx={{ mt: 4, mx: 'auto', maxWidth: 720, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, textAlign: 'left' }}>
+        <TextField required label="ชื่อ" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <TextField required type="tel" label="เบอร์โทรศัพท์" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        <TextField type="email" label="อีเมล" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <TextField label="จังหวัด / ทำเลที่สนใจ" value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value })} />
+        <TextField select label="รูปแบบที่สนใจ" value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}><MenuItem value="">ยังไม่แน่ใจ</MenuItem><MenuItem value="S">Smart Café</MenuItem><MenuItem value="M">Lifestyle Café</MenuItem><MenuItem value="L">Lifestyle Hub</MenuItem></TextField>
+        <TextField label="ข้อความเพิ่มเติม" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+        <Box sx={{ gridColumn: { sm: '1 / -1' }, textAlign: 'center' }}><Button type="submit" disabled={state === 'sending'} variant="contained" sx={{ ...pill, bgcolor: gold, color: brown }}>{state === 'sending' ? 'กำลังส่ง...' : 'ส่งข้อมูลให้ทีมแฟรนไชส์'}</Button>
+          {state === 'success' && <Typography sx={{ mt: 1.5, color: '#dff2d8' }}>ส่งข้อมูลถึงทีมงานแล้ว เราจะติดต่อกลับโดยเร็วที่สุด</Typography>}
+          {state === 'error' && <Typography sx={{ mt: 1.5, color: '#ffd1c8' }}>ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</Typography>}</Box>
+      </Box></Box>
     </Box>
   </>;
 }

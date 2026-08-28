@@ -3,6 +3,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import localFont from 'next/font/local';
 import './globals.css';
 import { WebsiteThemeProvider } from './WebsiteThemeProvider';
+import { GoogleAnalytics } from '../src/components/GoogleAnalytics';
 
 const kanit = localFont({
   src: [
@@ -52,6 +53,7 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${kanit.variable} ${inter.variable}`}>
       <body>
+        <GoogleAnalytics />
         <AppRouterCacheProvider>
           <WebsiteThemeProvider>{children}</WebsiteThemeProvider>
         </AppRouterCacheProvider>

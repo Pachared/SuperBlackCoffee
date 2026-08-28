@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SbcThemeProvider } from '@stackbuild/ui';
 import { AdminLoginPage } from './features/auth/AdminLoginPage';
 import { AdminDashboard } from './features/dashboard/AdminDashboard';
@@ -12,6 +12,10 @@ export default function App() {
     sessionStorage.removeItem('sbc-admin-session');
     setLoggedIn(false);
   };
+  useEffect(() => {
+    window.addEventListener('sbc:session-expired', logout);
+    return () => window.removeEventListener('sbc:session-expired', logout);
+  }, []);
   return (
     <SbcThemeProvider secondary="#8f6040" background="#fbfaf8">
       {loggedIn ? (

@@ -1,5 +1,5 @@
 import { LoginScreen } from '@stackbuild/ui';
-import { login } from '../../lib/api';
+import { login } from '../../api';
 
 export function AdminLoginPage({ onLogin }: { onLogin: () => void }) {
   return (
@@ -16,12 +16,15 @@ export function AdminLoginPage({ onLogin }: { onLogin: () => void }) {
       onSubmit={async (username, password) => {
         try {
           const session = await login(username, password);
-          if (session.user.role !== 'admin') throw new Error('บัญชีนี้ไม่มีสิทธิ์ผู้ดูแลระบบ');
+          if (session.user.role !== 'admin')
+            throw new Error('บัญชีนี้ไม่มีสิทธิ์ผู้ดูแลระบบ');
           sessionStorage.setItem('sbc-access-token', session.accessToken);
           sessionStorage.setItem('sbc-admin-session', 'true');
           onLogin();
         } catch (error) {
-          window.alert(error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ');
+          window.alert(
+            error instanceof Error ? error.message : 'เข้าสู่ระบบไม่สำเร็จ',
+          );
         }
       }}
     />

@@ -1,15 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Card, Chip, InputAdornment, TextField, Typography } from '@mui/material';
-import { BRANCH_STATUS_BADGES, DashboardMain, SearchIcon, type BranchStatus, type SearchIconHandle } from '@stackbuild/ui';
-import { listBranchSales } from '../../lib/api';
+import {
+  Box,
+  Button,
+  Card,
+  Chip,
+  InputAdornment,
+  TextField,
+  Typography,
+} from '@mui/material';
+import {
+  BRANCH_STATUS_BADGES,
+  DashboardMain,
+  SearchIcon,
+  type BranchStatus,
+  type SearchIconHandle,
+} from '@stackbuild/ui';
+import { listBranchSales } from '../../api';
 
 const periods = ['วันนี้', 'เดือนนี้', 'ปีนี้'] as const;
 type Period = (typeof periods)[number];
-type Branch = { id: number; name: string; code: string; status: BranchStatus; sales: number; orders: number };
+type Branch = {
+  id: number;
+  name: string;
+  code: string;
+  status: BranchStatus;
+  sales: number;
+  orders: number;
+};
 
-const apiPeriod: Record<Period, 'today' | 'month' | 'year'> = { วันนี้: 'today', เดือนนี้: 'month', ปีนี้: 'year' };
-const periodLabel: Record<Period, string> = { วันนี้: 'ยอดขายวันนี้', เดือนนี้: 'ยอดขายเดือนนี้', ปีนี้: 'ยอดขายปีนี้' };
-const statusLabel: Record<string, BranchStatus> = { active: 'เปิดให้บริการ', maintenance: 'ปิดปรับปรุง', inactive: 'ปิดทำการ' };
+const apiPeriod: Record<Period, 'today' | 'month' | 'year'> = {
+  วันนี้: 'today',
+  เดือนนี้: 'month',
+  ปีนี้: 'year',
+};
+const periodLabel: Record<Period, string> = {
+  วันนี้: 'ยอดขายวันนี้',
+  เดือนนี้: 'ยอดขายเดือนนี้',
+  ปีนี้: 'ยอดขายปีนี้',
+};
+const statusLabel: Record<string, BranchStatus> = {
+  active: 'เปิดให้บริการ',
+  maintenance: 'ปิดปรับปรุง',
+  inactive: 'ปิดทำการ',
+};
 
 export function AdminBranchesPage() {
   const searchIconRef = useRef<SearchIconHandle>(null);
@@ -23,44 +56,272 @@ export function AdminBranchesPage() {
     setIsLoading(true);
     void listBranchSales(apiPeriod[period])
       .then((items) => {
-        if (!cancelled) setBranches(items.map((item) => ({ ...item, status: statusLabel[item.status] ?? 'ปิดทำการ' })));
+        if (!cancelled)
+          setBranches(
+            items.map((item) => ({
+              ...item,
+              status: statusLabel[item.status] ?? 'ปิดทำการ',
+            })),
+          );
       })
-      .catch(() => { if (!cancelled) setBranches([]); })
-      .finally(() => { if (!cancelled) setIsLoading(false); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setBranches([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [period]);
 
   const visibleBranches = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('th-TH');
     if (!normalizedQuery) return branches;
-    return branches.filter((branch) => `${branch.name} ${branch.code}`.toLocaleLowerCase('th-TH').includes(normalizedQuery));
+    return branches.filter((branch) =>
+      `${branch.name} ${branch.code}`
+        .toLocaleLowerCase('th-TH')
+        .includes(normalizedQuery),
+    );
   }, [branches, query]);
-  const totalSales = branches.reduce((total, branch) => total + branch.sales, 0);
-  const totalOrders = branches.reduce((total, branch) => total + branch.orders, 0);
+  const totalSales = branches.reduce(
+    (total, branch) => total + branch.sales,
+    0,
+  );
+  const totalOrders = branches.reduce(
+    (total, branch) => total + branch.orders,
+    0,
+  );
 
   return (
     <DashboardMain>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 1.5, mb: 2 }}>
-        <TextField value={query} onChange={(event) => setQuery(event.target.value)} onFocus={() => searchIconRef.current?.startAnimation()} onBlur={() => searchIconRef.current?.stopAnimation()} placeholder="ค้นหาสาขา" size="small" name="branch-search" autoComplete="off" sx={{ width: { xs: '100%', sm: 310 }, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'center', display: 'flex', alignItems: 'center', height: 18 }}><SearchIcon ref={searchIconRef} size={18} /></InputAdornment> } }} />
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>{periods.map((item) => <Button key={item} size="small" variant={period === item ? 'contained' : 'outlined'} onClick={() => setPeriod(item)} sx={{ minHeight: 34, borderRadius: '12px', borderColor: '#d8c8bd', bgcolor: period === item ? '#201914' : '#fff', color: period === item ? '#fff' : '#5f4b3d', fontFamily: 'Kanit, sans-serif', fontSize: 12, boxShadow: 'none', '&:hover': { borderColor: '#201914', bgcolor: period === item ? '#3c2d24' : '#f5eee9', boxShadow: 'none' } }}>{item}</Button>)}</Box>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          justifyContent: 'space-between',
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        <TextField
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onFocus={() => searchIconRef.current?.startAnimation()}
+          onBlur={() => searchIconRef.current?.stopAnimation()}
+          placeholder="ค้นหาสาขา"
+          size="small"
+          name="branch-search"
+          autoComplete="off"
+          sx={{
+            width: { xs: '100%', sm: 310 },
+            '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment
+                  position="start"
+                  sx={{
+                    alignSelf: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: 18,
+                  }}
+                >
+                  <SearchIcon ref={searchIconRef} size={18} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {periods.map((item) => (
+            <Button
+              key={item}
+              size="small"
+              variant={period === item ? 'contained' : 'outlined'}
+              onClick={() => setPeriod(item)}
+              sx={{
+                minHeight: 34,
+                borderRadius: '12px',
+                borderColor: '#d8c8bd',
+                bgcolor: period === item ? '#201914' : '#fff',
+                color: period === item ? '#fff' : '#5f4b3d',
+                fontFamily: 'Kanit, sans-serif',
+                fontSize: 12,
+                boxShadow: 'none',
+                '&:hover': {
+                  borderColor: '#201914',
+                  bgcolor: period === item ? '#3c2d24' : '#f5eee9',
+                  boxShadow: 'none',
+                },
+              }}
+            >
+              {item}
+            </Button>
+          ))}
+        </Box>
       </Box>
 
-      <Card variant="outlined" sx={{ mb: 3, p: { xs: 2.25, md: 2.5 }, borderRadius: '15px', borderColor: '#e8ddd5' }}>
-        <Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 14 }}>{periodLabel[period]}</Typography>
-        <Typography sx={{ mt: .25, color: '#201914', fontFamily: 'Kanit, sans-serif', fontSize: { xs: 28, md: 32 }, fontWeight: 700 }}>{totalSales.toLocaleString('th-TH')} บาท</Typography>
-        <Typography sx={{ mt: .25, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>จาก {totalOrders.toLocaleString('th-TH')} ออเดอร์ที่ชำระเงินแล้วของทุกสาขา</Typography>
+      <Card
+        variant="outlined"
+        sx={{
+          mb: 3,
+          p: { xs: 2.25, md: 2.5 },
+          borderRadius: '15px',
+          borderColor: '#e8ddd5',
+        }}
+      >
+        <Typography
+          sx={{
+            color: 'text.secondary',
+            fontFamily: 'Kanit, sans-serif',
+            fontSize: 14,
+          }}
+        >
+          {periodLabel[period]}
+        </Typography>
+        <Typography
+          sx={{
+            mt: 0.25,
+            color: '#201914',
+            fontFamily: 'Kanit, sans-serif',
+            fontSize: { xs: 28, md: 32 },
+            fontWeight: 700,
+          }}
+        >
+          {totalSales.toLocaleString('th-TH')} บาท
+        </Typography>
+        <Typography
+          sx={{
+            mt: 0.25,
+            color: 'text.secondary',
+            fontFamily: 'Kanit, sans-serif',
+            fontSize: 13,
+          }}
+        >
+          จาก {totalOrders.toLocaleString('th-TH')}{' '}
+          ออเดอร์ที่ชำระเงินแล้วของทุกสาขา
+        </Typography>
       </Card>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }, gap: '16px' }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(4, minmax(0, 1fr))',
+          },
+          gap: '16px',
+        }}
+      >
         {visibleBranches.map((branch) => {
           const badge = BRANCH_STATUS_BADGES[branch.status];
-          return <Card key={branch.id} variant="outlined" sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}><Box sx={{ p: { xs: 2.25, md: 2.5 } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}><Box><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 19, fontWeight: 600 }}>{branch.name}</Typography><Typography sx={{ mt: .35, color: '#805637', fontFamily: '"SBC Sans", sans-serif', fontSize: 12, fontWeight: 700, letterSpacing: .5 }}>{branch.code}</Typography></Box><Chip label={branch.status} size="small" sx={{ height: 25, borderRadius: '12px', bgcolor: badge.main, color: badge.contrastText, fontFamily: 'Kanit, sans-serif', fontSize: 11, fontWeight: 500 }} /></Box>
-            <Box sx={{ mt: 2, pt: 1.75, borderTop: '1px solid #eee6e0' }}><Typography sx={{ color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{periodLabel[period]}</Typography><Typography sx={{ mt: .2, color: branch.sales > 0 ? '#805637' : 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 22, fontWeight: 700 }}>{branch.sales.toLocaleString('th-TH')} บาท</Typography><Typography sx={{ mt: .35, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 12 }}>{branch.orders.toLocaleString('th-TH')} ออเดอร์ที่ชำระเงินแล้ว</Typography></Box>
-          </Box></Card>;
+          return (
+            <Card
+              key={branch.id}
+              variant="outlined"
+              sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}
+            >
+              <Box sx={{ p: { xs: 2.25, md: 2.5 } }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 1,
+                  }}
+                >
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 19,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {branch.name}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mt: 0.35,
+                        color: '#805637',
+                        fontFamily: '"SBC Sans", sans-serif',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {branch.code}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={branch.status}
+                    size="small"
+                    sx={{
+                      height: 25,
+                      borderRadius: '12px',
+                      bgcolor: badge.main,
+                      color: badge.contrastText,
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 11,
+                      fontWeight: 500,
+                    }}
+                  />
+                </Box>
+                <Box sx={{ mt: 2, pt: 1.75, borderTop: '1px solid #eee6e0' }}>
+                  <Typography
+                    sx={{
+                      color: 'text.secondary',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 12,
+                    }}
+                  >
+                    {periodLabel[period]}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.2,
+                      color: branch.sales > 0 ? '#805637' : 'text.secondary',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 22,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {branch.sales.toLocaleString('th-TH')} บาท
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.35,
+                      color: 'text.secondary',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 12,
+                    }}
+                  >
+                    {branch.orders.toLocaleString('th-TH')}{' '}
+                    ออเดอร์ที่ชำระเงินแล้ว
+                  </Typography>
+                </Box>
+              </Box>
+            </Card>
+          );
         })}
       </Box>
-      {!isLoading && visibleBranches.length === 0 && <Typography sx={{ pt: 4, textAlign: 'center', color: 'text.secondary', fontFamily: 'Kanit, sans-serif' }}>ไม่พบข้อมูลสาขา</Typography>}
+      {!isLoading && visibleBranches.length === 0 && (
+        <Typography
+          sx={{
+            pt: 4,
+            textAlign: 'center',
+            color: 'text.secondary',
+            fontFamily: 'Kanit, sans-serif',
+          }}
+        >
+          ไม่พบข้อมูลสาขา
+        </Typography>
+      )}
     </DashboardMain>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { coffeeIngredientsImage } from '@stackbuild/ui';
 import { adminSidebarNavigation } from '../../components/sidebar/adminSidebarNavigation';
 import {
@@ -6,41 +6,62 @@ import {
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { AdminDashboardLayout } from '../../layouts/AdminDashboardLayout';
-import { AdminBranchesPage } from '../../pages/dashboard/AdminBranchesPage';
-import { AdminCustomerChatPage } from '../../pages/dashboard/AdminCustomerChatPage';
-import { AdminFranchiseBranchesPage } from '../../pages/dashboard/AdminFranchiseBranchesPage';
-import { AdminIngredientsPage } from '../../pages/dashboard/AdminIngredientsPage';
-import { AdminOrdersPage } from '../../pages/dashboard/AdminOrdersPage';
-import { AdminAuditPage } from '../../pages/dashboard/AdminAuditPage';
-import { AdminOverviewPage } from '../../pages/dashboard/AdminOverviewPage';
-import { AdminProductsPage } from '../../pages/dashboard/AdminProductsPage';
-import { AdminStockPage } from '../../pages/dashboard/AdminStockPage';
-
-const pages = {
-  ภาพรวม: AdminOverviewPage,
-  คำสั่งซื้อ: AdminOrdersPage,
-  ประวัติการทำรายการ: AdminAuditPage,
-  เมนูและสินค้า: AdminProductsPage,
-  วัตถุดิบ: AdminIngredientsPage,
-  สต๊อก: AdminStockPage,
-  'สาขา SBC': AdminBranchesPage,
-  สาขาแฟรนไชส์: AdminFranchiseBranchesPage,
-  แชทลูกค้า: AdminCustomerChatPage,
-};
-
-type AdminPage = keyof typeof pages;
-
-function pageFromHistory(): AdminPage {
-  const page = window.history.state?.sbcAdminPage;
-  if (page === 'สาขา') return 'สาขา SBC';
-  if (page === 'วัตถุดิบและสต๊อก') return 'วัตถุดิบ';
-  return typeof page === 'string' && page in pages
-    ? (page as AdminPage)
-    : 'ภาพรวม';
-}
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  adminPageFromPath,
+  adminPagePaths,
+  type AdminPage,
+} from '../../routes/adminRoutes';
+const AdminBranchesPage = lazy(() =>
+  import('../../pages/dashboard/AdminBranchesPage').then((module) => ({
+    default: module.AdminBranchesPage,
+  })),
+);
+const AdminCustomerChatPage = lazy(() =>
+  import('../../pages/dashboard/AdminCustomerChatPage').then((module) => ({
+    default: module.AdminCustomerChatPage,
+  })),
+);
+const AdminFranchiseBranchesPage = lazy(() =>
+  import('../../pages/dashboard/AdminFranchiseBranchesPage').then((module) => ({
+    default: module.AdminFranchiseBranchesPage,
+  })),
+);
+const AdminIngredientsPage = lazy(() =>
+  import('../../pages/dashboard/AdminIngredientsPage').then((module) => ({
+    default: module.AdminIngredientsPage,
+  })),
+);
+const AdminOrdersPage = lazy(() =>
+  import('../../pages/dashboard/AdminOrdersPage').then((module) => ({
+    default: module.AdminOrdersPage,
+  })),
+);
+const AdminAuditPage = lazy(() =>
+  import('../../pages/dashboard/AdminAuditPage').then((module) => ({
+    default: module.AdminAuditPage,
+  })),
+);
+const AdminOverviewPage = lazy(() =>
+  import('../../pages/dashboard/AdminOverviewPage').then((module) => ({
+    default: module.AdminOverviewPage,
+  })),
+);
+const AdminProductsPage = lazy(() =>
+  import('../../pages/dashboard/AdminProductsPage').then((module) => ({
+    default: module.AdminProductsPage,
+  })),
+);
+const AdminStockPage = lazy(() =>
+  import('../../pages/dashboard/AdminStockPage').then((module) => ({
+    default: module.AdminStockPage,
+  })),
+);
 
 export function AdminDashboard({ logout }: { logout: () => void }) {
-  const [activePage, setActivePage] = useState<AdminPage>(pageFromHistory);
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const activePage = adminPageFromPath(location.pathname);
   const [activeIngredientBranch, setActiveIngredientBranch] =
     useState<IngredientBranch>('ทุกสาขา');
   const scrollbarTimeoutRef = useRef<number | undefined>(undefined);
@@ -65,27 +86,10 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
       document.documentElement.classList.remove('sbc-is-scrolling');
     };
   }, []);
-  useEffect(() => {
-    if (window.location.hash) {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        `${window.location.pathname}${window.location.search}`,
-      );
-    }
-    const syncPage = () => setActivePage(pageFromHistory());
-    window.addEventListener('popstate', syncPage);
-    return () => window.removeEventListener('popstate', syncPage);
-  }, []);
   const navigate = (page: string) => {
     const nextPage = page as AdminPage;
     if (nextPage === activePage) return;
-    window.history.pushState(
-      { ...window.history.state, sbcAdminPage: nextPage },
-      '',
-      `${window.location.pathname}${window.location.search}`,
-    );
-    setActivePage(nextPage);
+    routerNavigate(adminPagePaths[nextPage]);
   };
   const isIngredientPage = activePage === 'วัตถุดิบ';
   const isStockPage = activePage === 'สต๊อก';
@@ -147,7 +151,9 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
         />
       }
     >
-      {pageContent}
+      <Suspense fallback={<div aria-live="polite">กำลังโหลดหน้า...</div>}>
+        {pageContent}
+      </Suspense>
     </AdminDashboardLayout>
   );
 }

@@ -7,13 +7,12 @@ import {
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 
-export const ingredientBranches = [
-  'ทุกสาขา',
-  'อยุธยา',
-  'พิษณุโลก',
-] as const;
+export const ingredientBranches = ['ทุกสาขา', 'อยุธยา', 'พิษณุโลก'] as const;
 export type IngredientBranch = (typeof ingredientBranches)[number];
-export const ingredientBranchCodes: Record<Exclude<IngredientBranch, 'ทุกสาขา'>, string> = {
+export const ingredientBranchCodes: Record<
+  Exclude<IngredientBranch, 'ทุกสาขา'>,
+  string
+> = {
   อยุธยา: 'SBC-AYA-001',
   พิษณุโลก: 'SBC-PLK-001',
 };
@@ -33,7 +32,10 @@ export function IngredientBranchesSidebar({
   const revealScrollbar = () => {
     setIsScrolling(true);
     window.clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = window.setTimeout(() => setIsScrolling(false), 700);
+    scrollTimeoutRef.current = window.setTimeout(
+      () => setIsScrolling(false),
+      700,
+    );
   };
   return (
     <Box
@@ -49,8 +51,14 @@ export function IngredientBranchesSidebar({
         overflowY: 'auto',
         overscrollBehaviorY: 'none',
         '&::-webkit-scrollbar': { width: 8 },
-        scrollbarColor: isScrolling ? '#805637 transparent' : 'transparent transparent',
-        '&::-webkit-scrollbar-thumb': { bgcolor: isScrolling ? '#805637' : 'transparent', borderRadius: 8, transition: 'background-color .2s ease' },
+        scrollbarColor: isScrolling
+          ? '#805637 transparent'
+          : 'transparent transparent',
+        '&::-webkit-scrollbar-thumb': {
+          bgcolor: isScrolling ? '#805637' : 'transparent',
+          borderRadius: 8,
+          transition: 'background-color .2s ease',
+        },
         '&::-webkit-scrollbar-button': { display: 'none', width: 0, height: 0 },
         '&::-webkit-scrollbar-button:single-button:vertical:decrement, &::-webkit-scrollbar-button:single-button:vertical:increment':
           { display: 'none', height: 0 },
