@@ -1,11 +1,12 @@
 import axios, { type AxiosRequestConfig } from 'axios';
+import type { ApiEnvelope } from '@stackbuild/types';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1',
   headers: { 'Content-Type': 'application/json' },
 });
 
-export type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
+export type { ApiEnvelope } from '@stackbuild/types';
 
 function messageFrom(error: unknown) {
   if (axios.isAxiosError<ApiEnvelope<unknown>>(error))

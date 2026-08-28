@@ -14,8 +14,9 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"],
-      "@stackbuild/ui": ["../../packages/ui/src/index.tsx"]
+      "@stackbuild/ui": ["../../packages/ui/src/index.tsx"],
+      "@stackbuild/types": ["../../packages/types/src/index.ts"]
     }
   },
-  "include": ["src", "../../packages/ui/src"]
+  "include": ["src", "../../packages/ui/src", "../../packages/types/src"]
 }

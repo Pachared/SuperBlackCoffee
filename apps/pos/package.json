@@ -12,15 +12,11 @@
   "dependencies": {
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-router-dom": "latest",
-    "axios": "latest",
-    "@tanstack/react-query": "latest",
-    "zustand": "latest",
     "@mui/material": "latest",
-    "@mui/icons-material": "latest",
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
-    "@stackbuild/ui": "workspace:*"
+    "@stackbuild/ui": "workspace:*",
+    "@stackbuild/types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "latest",

@@ -1,8 +1,9 @@
-export interface ApiResponse<T> {
+export interface ApiEnvelope<T> {
   success: boolean;
-  message: string;
+  message?: string;
   data: T;
 }
+export type ApiResponse<T> = ApiEnvelope<T>;
 export interface User {
   id: string;
   username: string;

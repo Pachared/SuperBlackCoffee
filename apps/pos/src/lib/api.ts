@@ -1,3 +1,5 @@
+import type { ApiEnvelope } from '@stackbuild/types';
+
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1';
 
 export type AuthSession = {
@@ -10,8 +12,6 @@ export type AuthSession = {
     branchId?: number;
   };
 };
-
-type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
 
 export async function api<T>(
   path: string,

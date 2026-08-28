@@ -17,7 +17,6 @@
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
     "@emotion/cache": "latest",
-    "@stackbuild/ui": "workspace:*",
     "@mui/material-nextjs": "latest",
     "next": "latest"
   },
