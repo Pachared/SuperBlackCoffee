@@ -44,6 +44,7 @@ export type CatalogMenuItem = {
   linemanPrice: number;
   costPrice: number;
   status: 'available' | 'soldout';
+  imageUrl: string;
   ingredients: { inventoryItemId: number; name: string; quantity: number; unit: string; costAmount: number }[];
 };
 

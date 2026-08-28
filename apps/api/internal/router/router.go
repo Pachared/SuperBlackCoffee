@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
+	"y/internal/cache"
 	"y/internal/config"
 	"y/internal/handler"
 	"y/internal/middleware"
@@ -11,13 +12,13 @@ import (
 	"y/internal/service"
 )
 
-func New(db *sql.DB) *gin.Engine {
+func New(db *sql.DB, redisCache *cache.Client) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery(), middleware.CORS())
 
 	deps := routeDependencies{
 		users:    handler.NewUserHandler(service.NewUserService(repository.NewPostgresUserRepository(db))),
-		platform: handler.NewPlatformHandler(db),
+		platform: handler.NewPlatformHandler(db, redisCache, service.NewInventoryService(repository.NewPostgresInventoryRepository(db)), service.NewAuthService(repository.NewPostgresAuthRepository(db)), service.NewMenuService(repository.NewPostgresMenuRepository(db))),
 		secret:   config.JWTSecret(),
 	}
 	registerPublicRoutes(r, deps)

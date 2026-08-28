@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"y/internal/cache"
 	"y/internal/database"
 	"y/internal/router"
 )
@@ -25,7 +26,14 @@ func main() {
 	if db != nil {
 		defer db.Close()
 	}
-	r := router.New(db)
+	redisCache, redisErr := cache.New(context.Background(), os.Getenv("REDIS_URL"))
+	if redisErr != nil {
+		slog.Warn("redis unavailable; continuing without cache", "error", redisErr)
+	}
+	if redisCache != nil {
+		defer redisCache.Close()
+	}
+	r := router.New(db, redisCache)
 	server := &http.Server{Addr: ":" + port, Handler: r}
 	go func() {
 		slog.Info("API listening", "port", port)

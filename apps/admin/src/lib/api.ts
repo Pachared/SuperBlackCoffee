@@ -56,6 +56,7 @@ export type InventoryItem = {
   reorderLevel: number;
   unitCost: number;
   status: 'ready' | 'low' | 'out';
+  imageUrl: string;
 };
 
 export type MenuItem = {
@@ -67,6 +68,7 @@ export type MenuItem = {
   costPrice: number;
   status: 'available' | 'soldout';
   ingredients: { inventoryItemId: number; name: string; quantity: number; unit: string; costAmount: number }[];
+  imageUrl: string;
 };
 
 export const listInventory = (kind: 'ingredient' | 'stock', branchCode = 'SBC-AYA-001') => secured<InventoryItem[]>(`/inventory?branchCode=${encodeURIComponent(branchCode)}&kind=${kind}`);

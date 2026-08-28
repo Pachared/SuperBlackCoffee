@@ -37,6 +37,7 @@ type Product = {
   status: 'พร้อมขาย' | 'หมดชั่วคราว';
   position: string;
   ingredients: ProductIngredient[];
+  imageUrl: string;
 };
 const filters = [
   'ทั้งหมด',
@@ -163,6 +164,7 @@ export function AdminProductsPage({
             category: item.category,
             status: item.status === 'soldout' ? 'หมดชั่วคราว' : 'พร้อมขาย',
             position: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
+            imageUrl: item.imageUrl,
             ingredients: item.ingredients.map((ingredient) => ({
               name: ingredient.name,
               quantity: `${ingredient.quantity} ${ingredient.unit}`,
@@ -333,7 +335,7 @@ export function AdminProductsPage({
                         <Box sx={{ position: 'relative' }}>
                           <Box
                             component="img"
-                            src={coffeeIngredientsImage}
+                            src={item.imageUrl || coffeeIngredientsImage}
                             alt={item.name}
                             loading="lazy"
                             decoding="async"

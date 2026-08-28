@@ -5,7 +5,7 @@ import { ingredientBranchCodes, ingredientBranches, type IngredientBranch } from
 import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
 import { listInventory } from '../../lib/api';
 
-type Ingredient = { name: string; amount: string; status: IngredientStatus; imagePosition: string };
+type Ingredient = { name: string; amount: string; status: IngredientStatus; imagePosition: string; imageUrl: string };
 type InventoryBranch = Exclude<IngredientBranch, 'ทุกสาขา'>;
 
 
@@ -42,6 +42,7 @@ export function AdminIngredientsPage({ activeBranch }: { activeBranch: Ingredien
         amount: `คงเหลือ ${item.quantity} ${item.unit} · ต้นทุน ${item.unitCost.toFixed(2)} บาท/${item.unit}`,
         status: (item.status === 'out' ? 'วัตถุดิบหมด' : item.status === 'low' ? 'วัตถุดิบใกล้หมด' : 'พร้อมใช้') as IngredientStatus,
         imagePosition: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
+        imageUrl: item.imageUrl,
       }))] as const;
     })).then((entries) => {
       if (active) setCatalogIngredientsByBranch(Object.fromEntries(entries) as Record<string, Ingredient[]>);
@@ -101,7 +102,7 @@ export function AdminIngredientsPage({ activeBranch }: { activeBranch: Ingredien
                   const statusBadge = INGREDIENT_STATUS_BADGES[ingredient.status];
                   const ingredientKey = `${branch}-${ingredient.name}`;
                   return <Card key={ingredientKey} variant="outlined" sx={{ position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '15px', borderColor: '#e8ddd5', contentVisibility: { xs: 'visible', xl: ingredientIndex >= 5 ? 'auto' : 'visible' }, containIntrinsicSize: { xl: ingredientIndex >= 5 ? 'auto 430px' : 'auto' } }}>
-                    <Box sx={{ position: 'relative' }}><Box component="img" src={coffeeIngredientsImage} alt={ingredient.name} loading="lazy" decoding="async" sx={{ display: 'block', width: '100%', aspectRatio: { xs: '1 / 1', md: '4 / 3' }, objectFit: 'cover', objectPosition: ingredient.imagePosition }} /><Chip label={ingredient.status} size="small" sx={{ position: 'absolute', top: 12, right: 12, height: 25, borderRadius: '12px', bgcolor: statusBadge.main, color: statusBadge.contrastText, fontFamily: 'Kanit, sans-serif', fontSize: 11, fontWeight: 500 }} /></Box>
+                    <Box sx={{ position: 'relative' }}><Box component="img" src={ingredient.imageUrl || coffeeIngredientsImage} alt={ingredient.name} loading="lazy" decoding="async" sx={{ display: 'block', width: '100%', aspectRatio: { xs: '1 / 1', md: '4 / 3' }, objectFit: 'cover', objectPosition: ingredient.imagePosition }} /><Chip label={ingredient.status} size="small" sx={{ position: 'absolute', top: 12, right: 12, height: 25, borderRadius: '12px', bgcolor: statusBadge.main, color: statusBadge.contrastText, fontFamily: 'Kanit, sans-serif', fontSize: 11, fontWeight: 500 }} /></Box>
                     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, p: 2.5 }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 18, fontWeight: 500 }}>{ingredient.name}</Typography><Typography sx={{ mt: .6, color: 'text.secondary', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>{ingredient.amount}</Typography><Box sx={{ display: 'flex', gap: 1, mt: 'auto', pt: 2 }}><Button size="small" variant="contained" onClick={() => { setEditingIngredient(ingredient); setImagePreviewUrl(null); setIsAddDrawerOpen(true); }} sx={{ flex: 1, minHeight: 34, borderRadius: '10px', bgcolor: '#5f4030', color: '#fff', fontFamily: 'Kanit, sans-serif', fontSize: 12, fontWeight: 500, boxShadow: 'none', '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' } }}>แก้ไขวัตถุดิบ</Button><Button size="small" variant="contained" color="error" onClick={() => setDeleteTargetKey(ingredientKey)} sx={{ flex: 1, minHeight: 34, borderRadius: '10px', fontFamily: 'Kanit, sans-serif', fontSize: 12, fontWeight: 500, boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}>ลบวัตถุดิบ</Button></Box></Box>
                     {deleteTargetKey === ingredientKey && <Box sx={{ position: 'absolute', inset: 0, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 2.5, bgcolor: 'rgba(32, 25, 20, .94)', color: '#fff', textAlign: 'center' }}><Typography sx={{ fontFamily: 'Kanit, sans-serif', fontSize: 18, fontWeight: 600 }}>ยืนยันการลบวัตถุดิบ?</Typography><Typography sx={{ color: 'rgba(255,255,255,.75)', fontFamily: 'Kanit, sans-serif', fontSize: 13 }}>รายการนี้จะถูกลบออกจากสต๊อก</Typography><Box sx={{ display: 'flex', width: '100%', gap: 1 }}><Button fullWidth onClick={() => setDeleteTargetKey(null)} sx={{ minHeight: 38, borderRadius: '10px', color: '#fff', border: '1px solid rgba(255,255,255,.45)', fontFamily: 'Kanit, sans-serif' }}>ยกเลิก</Button><Button fullWidth variant="contained" color="error" onClick={() => setDeleteTargetKey(null)} sx={{ minHeight: 38, borderRadius: '10px', fontFamily: 'Kanit, sans-serif', boxShadow: 'none' }}>ยืนยันลบ</Button></Box></Box>}
                   </Card>;
