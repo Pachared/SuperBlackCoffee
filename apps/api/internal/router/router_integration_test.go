@@ -273,6 +273,9 @@ func TestStockRequestLifecycleAddsInventoryAndWritesAudit(t *testing.T) {
 		t.Fatalf("create status = %d, body = %s", create.Code, create.Body.String())
 	}
 	requestID := responseID(t, create)
+	if res := requestJSON(r, http.MethodPatch, "/api/v1/stock-requests/"+strconv.FormatInt(requestID, 10)+"/status", `{"status":"completed"}`, testToken(t, "admin")); res.Code != http.StatusConflict {
+		t.Fatalf("completed from pending = %d, body = %s", res.Code, res.Body.String())
+	}
 	for _, status := range []string{"approved", "preparing", "completed"} {
 		res := requestJSON(r, http.MethodPatch, "/api/v1/stock-requests/"+strconv.FormatInt(requestID, 10)+"/status", `{"status":"`+status+`"}`, testToken(t, "admin"))
 		if res.Code != http.StatusOK {
@@ -397,6 +400,37 @@ func TestWebsiteLeadLifecycleAndBranchScope(t *testing.T) {
 	}
 }
 
+func TestWebsiteLeadRateLimitAndFranchiseCreation(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("กำหนด TEST_DATABASE_URL เพื่อทดสอบ PostgreSQL integration")
+	}
+	db := openRouterTestDB(t, url)
+	branchID := seedBranch(t, db, "FRANCHISE-ADMIN")
+	seedUser(t, db, 7, "admin-franchise", "admin", branchID, nil)
+	r := New(db, nil)
+	for i := 0; i < 5; i++ {
+		res := requestJSONFromIP(r, http.MethodPost, "/api/v1/website/leads", `{"name":"ผู้สนใจทดสอบ","phone":"0812345678"}`, "", "198.51.100.50")
+		if res.Code != http.StatusCreated {
+			t.Fatalf("lead attempt %d = %d: %s", i+1, res.Code, res.Body.String())
+		}
+	}
+	if res := requestJSONFromIP(r, http.MethodPost, "/api/v1/website/leads", `{"name":"ผู้สนใจทดสอบ","phone":"0812345678"}`, "", "198.51.100.50"); res.Code != http.StatusTooManyRequests {
+		t.Fatalf("lead limit = %d: %s", res.Code, res.Body.String())
+	}
+	franchise := requestJSON(r, http.MethodPost, "/api/v1/franchisees", `{"name":"แฟรนไชส์ทดสอบ","email":"franchise@example.com","plan":"M","branchName":"สาขาแฟรนไชส์","branchCode":"FR-TEST"}`, testToken(t, "admin"))
+	if franchise.Code != http.StatusCreated {
+		t.Fatalf("create franchise = %d: %s", franchise.Code, franchise.Body.String())
+	}
+	var branchStatus string
+	if err := db.QueryRow(`SELECT status FROM branches WHERE code='FR-TEST'`).Scan(&branchStatus); err != nil || branchStatus != "inactive" {
+		t.Fatalf("franchise branch status = %q, err = %v", branchStatus, err)
+	}
+	if res := requestJSON(r, http.MethodPost, "/api/v1/franchisees", `{"name":"แฟรนไชส์ซ้ำ","email":"franchise@example.com","plan":"M","branchName":"สาขาซ้ำ","branchCode":"FR-DUPLICATE"}`, testToken(t, "admin")); res.Code != http.StatusConflict {
+		t.Fatalf("duplicate franchise = %d: %s", res.Code, res.Body.String())
+	}
+}
+
 func TestAuditStockRequestPaginationAndReportValidation(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
@@ -435,9 +469,14 @@ func openRouterTestDB(t *testing.T, url string) *sql.DB {
 }
 
 func requestJSON(r http.Handler, method, path, body, token string) *httptest.ResponseRecorder {
+	return requestJSONFromIP(r, method, path, body, token, "192.0.2.1")
+}
+
+func requestJSONFromIP(r http.Handler, method, path, body, token, ip string) *httptest.ResponseRecorder {
 	var reader *strings.Reader
 	reader = strings.NewReader(body)
 	req := httptest.NewRequest(method, path, reader)
+	req.RemoteAddr = ip + ":12345"
 	if body != "" {
 		req.Header.Set("Content-Type", "application/json")
 	}
