@@ -25,3 +25,31 @@ func TestValidateRuntimeAllowsDevelopmentDefaults(t *testing.T) {
 		t.Fatalf("development config should be valid: %v", err)
 	}
 }
+
+func TestValidateRuntimeRejectsUnsafeProductionOrigins(t *testing.T) {
+	tests := []string{
+		"*",
+		"http://admin.example.com",
+		"https://admin.example.com/with-a-path",
+		"https://localhost:5174",
+	}
+	for _, origin := range tests {
+		t.Run(origin, func(t *testing.T) {
+			t.Setenv("APP_ENV", "production")
+			t.Setenv("JWT_SECRET", "a-long-production-secret")
+			t.Setenv("CORS_ORIGINS", origin)
+			if err := ValidateRuntime(); err == nil {
+				t.Fatalf("expected %q to be rejected", origin)
+			}
+		})
+	}
+}
+
+func TestValidateRuntimeAllowsSecureProductionOrigins(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("JWT_SECRET", "a-long-production-secret")
+	t.Setenv("CORS_ORIGINS", "https://admin.example.com,https://pos.example.com")
+	if err := ValidateRuntime(); err != nil {
+		t.Fatalf("expected secure origins to be valid: %v", err)
+	}
+}

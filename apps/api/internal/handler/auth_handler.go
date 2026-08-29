@@ -24,7 +24,7 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 		return
 	}
 	loginKey := "sbc:login:limit:" + c.ClientIP() + ":" + strings.ToLower(strings.TrimSpace(input.Username))
-	if h.cache != nil && !h.cache.AllowLogin(c, loginKey, 10, 15*time.Minute) {
+	if !h.cache.AllowLogin(c, loginKey, 10, 15*time.Minute) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"success": false, "message": "ลองเข้าสู่ระบบใหม่ภายหลัง"})
 		return
 	}
@@ -37,9 +37,7 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถเข้าสู่ระบบได้"})
 		return
 	}
-	if h.cache != nil {
-		h.cache.Reset(c, loginKey)
-	}
+	h.cache.Reset(c, loginKey)
 	claims := middleware.Claims{UserID: int64(user.ID), Role: user.Role, RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)), IssuedAt: jwt.NewNumericDate(time.Now())}}
 	claims.FranchiseeID = user.FranchiseeID
 	claims.BranchID = user.BranchID

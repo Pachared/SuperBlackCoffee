@@ -71,6 +71,21 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+  database-test:
+    container_name: superblackcoffee-postgresql-test
+    image: postgres:17-alpine
+    profiles: ['test']
+    ports: ['5434:5432']
+    environment:
+      POSTGRES_DB: test_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d test_app']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: 'no'
 
 volumes:
   database_data:

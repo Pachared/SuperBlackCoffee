@@ -197,7 +197,12 @@ func (h *PlatformHandler) UpdateStockRequestStatus(c *gin.Context) {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 		return
 	}
-	defer rows.Close()
+	type receivedItem struct {
+		inventoryItemID *int64
+		name, unit      string
+		quantity        float64
+	}
+	items := make([]receivedItem, 0)
 	for rows.Next() {
 		var inventoryItemID *int64
 		var name, unit string
@@ -206,27 +211,35 @@ func (h *PlatformHandler) UpdateStockRequestStatus(c *gin.Context) {
 			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
 			return
 		}
+		items = append(items, receivedItem{inventoryItemID: inventoryItemID, name: name, quantity: quantity, unit: unit})
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
+		return
+	}
+	if err := rows.Close(); err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
+		return
+	}
+	for _, item := range items {
 		var result sql.Result
 		var updateErr error
-		if inventoryItemID != nil {
-			result, updateErr = tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE id=$2 AND branch_id=$3`, quantity, *inventoryItemID, branchID)
+		if item.inventoryItemID != nil {
+			result, updateErr = tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE id=$2 AND branch_id=$3`, item.quantity, *item.inventoryItemID, branchID)
 		} else {
-			result, updateErr = tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE branch_id=$2 AND name=$3 AND unit=$4`, quantity, branchID, name, unit)
+			result, updateErr = tx.ExecContext(c, `UPDATE inventory_items SET quantity=quantity+$1,updated_at=now() WHERE branch_id=$2 AND name=$3 AND unit=$4`, item.quantity, branchID, item.name, item.unit)
 		}
 		if updateErr != nil {
 			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถรับสินค้าเข้าสต็อกได้"})
 			return
 		}
 		if rowsAffected(result) == 0 {
-			if _, insertErr := tx.ExecContext(c, `INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,$2,'other','ingredient',$3,$4,0,0)`, branchID, name, quantity, unit); insertErr != nil {
+			if _, insertErr := tx.ExecContext(c, `INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,$2,'other','ingredient',$3,$4,0,0)`, branchID, item.name, item.quantity, item.unit); insertErr != nil {
 				c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถรับสินค้าเข้าสต็อกได้"})
 				return
 			}
 		}
-	}
-	if err := rows.Err(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})
-		return
 	}
 	if _, err = tx.ExecContext(c, `UPDATE stock_requests SET status='completed',approved_by=$1,updated_at=now() WHERE id=$2`, claims.UserID, id); err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดำเนินการรับสินค้าให้เสร็จสิ้นได้"})

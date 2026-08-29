@@ -54,7 +54,7 @@ func (h *PlatformHandler) CreateWebsiteLead(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "กรุณากรอกชื่อและเบอร์โทรศัพท์ให้ถูกต้อง"})
 		return
 	}
-	if h.cache != nil && !h.cache.AllowLogin(c, "website-lead:"+c.ClientIP(), 5, time.Hour) {
+	if !h.cache.AllowLogin(c, "website-lead:"+c.ClientIP(), 5, time.Hour) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"success": false, "message": "ส่งข้อมูลบ่อยเกินไป กรุณาลองใหม่อีกครั้งภายหลัง"})
 		return
 	}

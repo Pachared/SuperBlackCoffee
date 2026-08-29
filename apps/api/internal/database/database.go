@@ -17,7 +17,7 @@ var migrationFiles embed.FS
 
 func Open(ctx context.Context, url string) (*sql.DB, error) {
 	if strings.TrimSpace(url) == "" {
-		return nil, nil
+		return nil, fmt.Errorf("ไม่ได้กำหนดค่า DATABASE_URL")
 	}
 	db, err := sql.Open("pgx", url)
 	if err != nil {

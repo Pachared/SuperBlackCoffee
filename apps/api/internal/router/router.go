@@ -16,7 +16,7 @@ import (
 func New(db *sql.DB, redisCache *cache.Client) *gin.Engine {
 	r := gin.New()
 	r.ContextWithFallback = true
-	r.Use(middleware.RequestTimeout(15*time.Second), middleware.RequestLogger(), middleware.RequestMetrics(), gin.Recovery(), middleware.CORS())
+	r.Use(middleware.RequestTimeout(15*time.Second), middleware.SecurityHeaders(), gin.Logger(), middleware.RequestMetrics(), gin.Recovery(), middleware.CORS())
 
 	deps := routeDependencies{
 		users:    handler.NewUserHandler(service.NewUserService(repository.NewPostgresUserRepository(db))),

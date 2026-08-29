@@ -101,7 +101,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
   const pageContent = isIngredientPage ? (
     <AdminIngredientsPage activeBranch={activeIngredientBranch} />
   ) : activePage === 'ภาพรวม' ? (
-    <AdminOverviewPage />
+    <AdminOverviewPage onNavigate={navigate} />
   ) : activePage === 'คำสั่งซื้อ' ? (
     <AdminOrdersPage activeBranch={activeIngredientBranch} />
   ) : activePage === 'ประวัติการทำรายการ' ? (
