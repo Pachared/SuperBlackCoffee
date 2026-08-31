@@ -1,10 +1,26 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { posSidebarNavigation } from '../../components/sidebar/posSidebarNavigation';
 import { PosDashboardLayout } from '../../layouts/PosDashboardLayout';
-import { PosIngredientsPage } from '../../pages/dashboard/PosIngredientsPage';
-import { PosOrdersPage } from '../../pages/dashboard/PosOrdersPage';
-import { PosOverviewPage } from '../../pages/dashboard/PosOverviewPage';
-import { PosReportsPage } from '../../pages/dashboard/PosReportsPage';
+const PosOverviewPage = lazy(() =>
+  import('../../pages/dashboard/PosOverviewPage').then((module) => ({
+    default: module.PosOverviewPage,
+  })),
+);
+const PosReportsPage = lazy(() =>
+  import('../../pages/dashboard/PosReportsPage').then((module) => ({
+    default: module.PosReportsPage,
+  })),
+);
+const PosOrdersPage = lazy(() =>
+  import('../../pages/dashboard/PosOrdersPage').then((module) => ({
+    default: module.PosOrdersPage,
+  })),
+);
+const PosIngredientsPage = lazy(() =>
+  import('../../pages/dashboard/PosIngredientsPage').then((module) => ({
+    default: module.PosIngredientsPage,
+  })),
+);
 
 const pages = {
   รับออเดอร์: PosOverviewPage,
@@ -57,7 +73,9 @@ export function PosDashboard({ logout }: { logout: () => void }) {
       onLogout={logout}
       forceSidebarCollapsed={activePage === 'รับออเดอร์'}
     >
-      <Page />
+      <Suspense fallback={null}>
+        <Page />
+      </Suspense>
     </PosDashboardLayout>
   );
 }

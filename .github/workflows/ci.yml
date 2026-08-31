@@ -30,6 +30,7 @@ jobs:
           cache: pnpm
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:frontend
       - run: pnpm run lint:pos
       - run: pnpm run build:pos
 
@@ -74,5 +75,9 @@ jobs:
           cache-dependency-path: apps/api/go.sum
       - run: go test ./...
         working-directory: apps/api
+      - run: docker compose --profile test up -d database-test
+      - run: pnpm test:api:integration
+      - run: docker compose --profile test down -v
+        if: always()
       - run: go build ./cmd/api
         working-directory: apps/api

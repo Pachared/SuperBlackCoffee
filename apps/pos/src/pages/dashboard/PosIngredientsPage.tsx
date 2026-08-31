@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
+  Alert,
   Button,
   Card,
   Chip,
@@ -9,6 +10,7 @@ import {
   MenuItem,
   TextField,
   Typography,
+  Snackbar,
 } from '@mui/material';
 import {
   DashboardMain,
@@ -68,6 +70,7 @@ export function PosIngredientsPage() {
   const [deleteTargetName, setDeleteTargetName] = useState<string | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [inventory, setInventory] = useState<Ingredient[]>([]);
+  const [notice, setNotice] = useState('');
   const filteredIngredients = useMemo(
     () =>
       inventory.filter((ingredient) => {
@@ -162,7 +165,7 @@ export function PosIngredientsPage() {
       );
       setIsAddDrawerOpen(false);
     } catch (error) {
-      window.alert(
+      setNotice(
         error instanceof Error ? error.message : 'บันทึกวัตถุดิบไม่สำเร็จ',
       );
     }
@@ -178,9 +181,7 @@ export function PosIngredientsPage() {
       );
       setDeleteTargetName(null);
     } catch (error) {
-      window.alert(
-        error instanceof Error ? error.message : 'ลบวัตถุดิบไม่สำเร็จ',
-      );
+      setNotice(error instanceof Error ? error.message : 'ลบวัตถุดิบไม่สำเร็จ');
     }
   };
   const submitOrder = async () => {
@@ -196,14 +197,23 @@ export function PosIngredientsPage() {
       );
       setOrderItems([]);
       setIsOrderDrawerOpen(false);
-      window.alert('ส่งคำขอสั่งวัตถุดิบไปยังสำนักงานกลางแล้ว');
+      setNotice('ส่งคำขอสั่งวัตถุดิบไปยังสำนักงานกลางแล้ว');
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'ส่งคำขอไม่สำเร็จ');
+      setNotice(error instanceof Error ? error.message : 'ส่งคำขอไม่สำเร็จ');
     }
   };
 
   return (
     <DashboardMain>
+      <Snackbar
+        open={Boolean(notice)}
+        autoHideDuration={4000}
+        onClose={() => setNotice('')}
+      >
+        <Alert severity="info" variant="filled" onClose={() => setNotice('')}>
+          {notice}
+        </Alert>
+      </Snackbar>
       <Box
         sx={{
           display: 'flex',

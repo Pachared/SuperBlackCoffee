@@ -5,6 +5,8 @@ import {
   Card,
   Chip,
   Divider,
+  Alert,
+  Snackbar,
   TextField,
   Typography,
 } from '@mui/material';
@@ -48,6 +50,7 @@ export function PosOverviewPage() {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(true);
   const [orderError, setOrderError] = useState('');
+  const [orderSuccess, setOrderSuccess] = useState('');
   const categories = useMemo(
     () => [
       'ทั้งหมด',
@@ -112,7 +115,7 @@ export function PosOverviewPage() {
         })),
       );
       setCart({});
-      window.alert('บันทึกคำสั่งซื้อเรียบร้อยแล้ว และตัดสต๊อกตามสูตรแล้ว');
+      setOrderSuccess('บันทึกคำสั่งซื้อเรียบร้อยแล้ว และตัดสต๊อกตามสูตรแล้ว');
     } catch (error) {
       setOrderError(
         error instanceof Error ? error.message : 'ไม่สามารถบันทึกคำสั่งซื้อได้',
@@ -130,6 +133,25 @@ export function PosOverviewPage() {
 
   return (
     <DashboardMain>
+      <Snackbar
+        open={Boolean(orderSuccess || orderError)}
+        autoHideDuration={4000}
+        onClose={() => {
+          setOrderSuccess('');
+          setOrderError('');
+        }}
+      >
+        <Alert
+          severity={orderError ? 'error' : 'success'}
+          variant="filled"
+          onClose={() => {
+            setOrderSuccess('');
+            setOrderError('');
+          }}
+        >
+          {orderError || orderSuccess}
+        </Alert>
+      </Snackbar>
       <Box
         sx={{
           display: 'grid',
