@@ -2,7 +2,15 @@ import { Box, Card, Divider, Skeleton, Stack } from '@mui/material';
 
 export function AdminOverviewSkeleton() {
   return (
-    <Stack spacing={2.25} aria-label="กำลังโหลดภาพรวม">
+    <Stack
+      spacing={2.25}
+      aria-label="กำลังโหลดภาพรวม"
+      sx={{
+        '& .MuiSkeleton-root:not(.skeleton-panel)': {
+          borderRadius: '3px',
+        },
+      }}
+    >
       <Box
         sx={{
           display: 'flex',
@@ -81,6 +89,7 @@ export function AdminOverviewSkeleton() {
             variant="rounded"
             width="100%"
             height={140}
+            className="skeleton-panel"
             sx={{ mt: 2.5, borderRadius: '14px', bgcolor: '#201914' }}
           />
           <Box
@@ -128,6 +137,7 @@ export function AdminOverviewSkeleton() {
                 variant="rounded"
                 width="100%"
                 height={54}
+                className="skeleton-panel"
                 sx={{ borderRadius: '12px' }}
               />
             ))}
