@@ -21,6 +21,7 @@ import {
   type XIconHandle,
 } from '@stackbuild/ui';
 import {
+  ingredientBranchCodes,
   ingredientBranches,
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
@@ -149,18 +150,50 @@ export function AdminProductsPage({
   useEffect(() => {
     let active = true;
     setIsLoading(true);
-    Promise.all([
-      listMenuItems(),
-      listInventory('ingredient'),
-      listInventory('stock'),
+    const branchCodes =
+      activeBranch === 'ทุกสาขา'
+        ? ingredientBranches
+            .slice(1)
+            .map(
+              (branch) =>
+                ingredientBranchCodes[
+                  branch as Exclude<IngredientBranch, 'ทุกสาขา'>
+                ],
+            )
+        : [
+            ingredientBranchCodes[
+              activeBranch as Exclude<IngredientBranch, 'ทุกสาขา'>
+            ],
+          ];
+    Promise.allSettled([
+      Promise.all(branchCodes.map((branchCode) => listMenuItems(branchCode))),
+      Promise.all(
+        branchCodes.map((branchCode) =>
+          listInventory('ingredient', branchCode),
+        ),
+      ),
+      Promise.all(
+        branchCodes.map((branchCode) => listInventory('stock', branchCode)),
+      ),
     ])
-      .then(([items, ingredients, stock]) => {
+      .then(([itemsResult, ingredientsResult, stockResult]) => {
         if (!active) return;
+        const items =
+          itemsResult.status === 'fulfilled' ? itemsResult.value : [];
+        const ingredients =
+          ingredientsResult.status === 'fulfilled'
+            ? ingredientsResult.value
+            : [];
+        const stock =
+          stockResult.status === 'fulfilled' ? stockResult.value : [];
         setAvailableIngredients(
-          [...ingredients, ...stock].map((item) => item.name),
+          [...ingredients.flat(), ...stock.flat()].map((item) => item.name),
+        );
+        const uniqueItems = Array.from(
+          new Map(items.flat().map((item) => [item.id, item])).values(),
         );
         setCatalogProducts(
-          items.map((item, index) => ({
+          uniqueItems.map((item, index) => ({
             name: item.name,
             storePrice: item.storePrice,
             lineManPrice: item.linemanPrice,
@@ -169,21 +202,20 @@ export function AdminProductsPage({
             status: item.status === 'soldout' ? 'หมดชั่วคราว' : 'พร้อมขาย',
             position: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
             imageUrl: item.imageUrl,
-            ingredients: item.ingredients.map((ingredient) => ({
+            ingredients: (item.ingredients ?? []).map((ingredient) => ({
               name: ingredient.name,
               quantity: `${ingredient.quantity} ${ingredient.unit}`,
             })),
           })),
         );
       })
-      .catch(() => undefined)
       .finally(() => {
         if (active) setIsLoading(false);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [activeBranch]);
 
   return (
     <DashboardMain>
@@ -324,8 +356,8 @@ export function AdminProductsPage({
                     gap: '16px',
                   }}
                 >
-                  {matches.map((item) => {
-                    const productKey = `${branch}-${item.name}`;
+                  {matches.map((item, itemIndex) => {
+                    const productKey = `${branch}-${item.name}-${itemIndex}`;
                     return (
                       <Card
                         key={productKey}
