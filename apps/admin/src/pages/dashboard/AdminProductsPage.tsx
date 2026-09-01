@@ -390,6 +390,7 @@ export function AdminProductsPage({
                             position: 'relative',
                             aspectRatio: '1 / 1',
                             bgcolor: imageSource ? 'transparent' : '#f7f1ed',
+                            overflow: 'hidden',
                           }}
                         >
                           {imageSource && (
@@ -407,13 +408,16 @@ export function AdminProductsPage({
                               }}
                               sx={{
                                 display: 'block',
+                                boxSizing: 'border-box',
+                                position: 'absolute',
+                                inset: 0,
                                 width: '100%',
                                 height: '100%',
                                 objectFit: isDefaultCoffeeImage
                                   ? 'contain'
                                   : 'cover',
                                 objectPosition: item.position,
-                                p: isDefaultCoffeeImage ? { xs: 4, md: 5 } : 0,
+                                p: isDefaultCoffeeImage ? { xs: 8, md: 10 } : 0,
                               }}
                             />
                           )}
