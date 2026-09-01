@@ -168,7 +168,7 @@ export function AdminOverviewSkeleton() {
                     variant="rounded"
                     width={128}
                     height={13}
-                    sx={{ mt: 0.1 }}
+                    sx={{ mt: 0.5 }}
                   />
                 </Box>
                 <Skeleton variant="rounded" width={88} height={14} />
@@ -296,7 +296,7 @@ export function AdminOverviewSkeleton() {
                     variant="rounded"
                     width="48%"
                     height={13}
-                    sx={{ mt: 0.1 }}
+                    sx={{ mt: 0.5 }}
                   />
                 </Box>
                 <Skeleton variant="rounded" width={18} height={22} />
