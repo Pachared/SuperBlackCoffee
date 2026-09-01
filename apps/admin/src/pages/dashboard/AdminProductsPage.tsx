@@ -15,7 +15,6 @@ import {
   PlusIcon,
   SearchIcon,
   XIcon,
-  coffeeIngredientsImage,
   type PlusIconHandle,
   type SearchIconHandle,
   type XIconHandle,
@@ -54,12 +53,9 @@ const filters = [
 ] as const;
 type ProductFilter = (typeof filters)[number];
 
-const beverageCategories = new Set(['กาแฟ', 'ชาและมัทฉะ', 'เครื่องดื่ม']);
-const isBeverageMenu = (category: string) => beverageCategories.has(category);
+const isCoffeeMenu = (category: string) => category === 'กาแฟ';
 const menuImageFallback = (product: Pick<Product, 'category'>) =>
-  isBeverageMenu(product.category)
-    ? coffeeMenuDefaultImage
-    : coffeeIngredientsImage;
+  isCoffeeMenu(product.category) ? coffeeMenuDefaultImage : undefined;
 
 export function AdminProductsPage({
   activeBranch,
@@ -372,6 +368,8 @@ export function AdminProductsPage({
                 >
                   {matches.map((item, itemIndex) => {
                     const productKey = `${branch}-${item.name}-${itemIndex}`;
+                    const imageSource =
+                      item.imageUrl || menuImageFallback(item);
                     return (
                       <Card
                         key={productKey}
@@ -385,24 +383,35 @@ export function AdminProductsPage({
                           borderColor: '#e8ddd5',
                         }}
                       >
-                        <Box sx={{ position: 'relative' }}>
-                          <Box
-                            component="img"
-                            src={item.imageUrl || menuImageFallback(item)}
-                            alt={item.name}
-                            loading="lazy"
-                            decoding="async"
-                            onError={(event) => {
-                              event.currentTarget.src = menuImageFallback(item);
-                            }}
-                            sx={{
-                              display: 'block',
-                              width: '100%',
-                              aspectRatio: { xs: '1 / 1', md: '4 / 3' },
-                              objectFit: 'cover',
-                              objectPosition: item.position,
-                            }}
-                          />
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            aspectRatio: { xs: '1 / 1', md: '4 / 3' },
+                            bgcolor: imageSource ? 'transparent' : '#f7f1ed',
+                          }}
+                        >
+                          {imageSource && (
+                            <Box
+                              component="img"
+                              src={imageSource}
+                              alt={item.name}
+                              loading="lazy"
+                              decoding="async"
+                              onError={(event) => {
+                                const fallback = menuImageFallback(item);
+                                if (fallback)
+                                  event.currentTarget.src = fallback;
+                                else event.currentTarget.remove();
+                              }}
+                              sx={{
+                                display: 'block',
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                objectPosition: item.position,
+                              }}
+                            />
+                          )}
                           <Chip
                             label={item.status}
                             size="small"
@@ -816,15 +825,15 @@ export function AdminProductsPage({
                 cursor: 'pointer',
               }}
             >
-              {preview || editing ? (
+              {preview ||
+              editing?.imageUrl ||
+              (editing && isCoffeeMenu(editing.category)) ? (
                 <Box
                   component="img"
                   src={
                     preview ??
                     editing?.imageUrl ??
-                    (editing
-                      ? menuImageFallback(editing)
-                      : coffeeIngredientsImage)
+                    (editing ? menuImageFallback(editing) : undefined)
                   }
                   alt="ตัวอย่างรูปสินค้า"
                   sx={{
