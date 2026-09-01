@@ -389,7 +389,7 @@ export function AdminProductsPage({
                           sx={{
                             position: 'relative',
                             aspectRatio: '1 / 1',
-                            bgcolor: imageSource ? 'transparent' : '#f7f1ed',
+                            bgcolor: '#f1e8de',
                             overflow: 'hidden',
                           }}
                         >
