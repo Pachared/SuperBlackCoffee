@@ -7,6 +7,14 @@ import {
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { AdminDashboardLayout } from '../../layouts/AdminDashboardLayout';
 import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
+import { AdminAuditSkeleton } from '../../components/skeletons/AdminAuditSkeleton';
+import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
+import { AdminCustomerChatSkeleton } from '../../components/skeletons/AdminCustomerChatSkeleton';
+import { AdminIngredientsSkeleton } from '../../components/skeletons/AdminIngredientsSkeleton';
+import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
+import { AdminProcurementSkeleton } from '../../components/skeletons/AdminProcurementSkeleton';
+import { AdminProductsSkeleton } from '../../components/skeletons/AdminProductsSkeleton';
+import { AdminStockSkeleton } from '../../components/skeletons/AdminStockSkeleton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   adminPageFromPath,
@@ -63,6 +71,32 @@ const AdminProcurementPage = lazy(() =>
     default: module.AdminProcurementPage,
   })),
 );
+
+function DashboardPageSkeleton({ page }: { page: AdminPage }) {
+  const skeleton =
+    page === 'ภาพรวม' ? (
+      <AdminOverviewSkeleton />
+    ) : page === 'สาขา SBC' ? (
+      <AdminBranchesSkeleton />
+    ) : page === 'คำสั่งซื้อ' ? (
+      <AdminOrdersSkeleton />
+    ) : page === 'ประวัติการทำรายการ' ? (
+      <AdminAuditSkeleton />
+    ) : page === 'สต๊อก' ? (
+      <AdminStockSkeleton />
+    ) : page === 'จัดซื้อ' ? (
+      <AdminProcurementSkeleton />
+    ) : page === 'เมนูและสินค้า' ? (
+      <AdminProductsSkeleton />
+    ) : page === 'วัตถุดิบ' ? (
+      <AdminIngredientsSkeleton />
+    ) : page === 'แชทลูกค้า' ? (
+      <AdminCustomerChatSkeleton />
+    ) : (
+      <AdminBranchesSkeleton />
+    );
+  return <DashboardMain>{skeleton}</DashboardMain>;
+}
 
 export function AdminDashboard({ logout }: { logout: () => void }) {
   const location = useLocation();
@@ -159,13 +193,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
         />
       }
     >
-      <Suspense
-        fallback={
-          <DashboardMain>
-            <AdminOverviewSkeleton />
-          </DashboardMain>
-        }
-      >
+      <Suspense fallback={<DashboardPageSkeleton page={activePage} />}>
         {pageContent}
       </Suspense>
     </AdminDashboardLayout>
