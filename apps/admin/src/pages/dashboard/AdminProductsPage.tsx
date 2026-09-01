@@ -27,6 +27,7 @@ import {
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { AdminProductsSkeleton } from '../../components/skeletons/AdminProductsSkeleton';
 import { listInventory, listMenuItems } from '../../api';
+import coffeeMenuDefaultImage from '../../assets/coffee.svg';
 
 type ProductIngredient = { name: string; quantity: string };
 type Product = {
@@ -52,6 +53,13 @@ const filters = [
   'เบเกอรี่',
 ] as const;
 type ProductFilter = (typeof filters)[number];
+
+const beverageCategories = new Set(['กาแฟ', 'ชาและมัทฉะ', 'เครื่องดื่ม']);
+const isBeverageMenu = (category: string) => beverageCategories.has(category);
+const menuImageFallback = (product: Pick<Product, 'category'>) =>
+  isBeverageMenu(product.category)
+    ? coffeeMenuDefaultImage
+    : coffeeIngredientsImage;
 
 export function AdminProductsPage({
   activeBranch,
@@ -380,10 +388,13 @@ export function AdminProductsPage({
                         <Box sx={{ position: 'relative' }}>
                           <Box
                             component="img"
-                            src={item.imageUrl || coffeeIngredientsImage}
+                            src={item.imageUrl || menuImageFallback(item)}
                             alt={item.name}
                             loading="lazy"
                             decoding="async"
+                            onError={(event) => {
+                              event.currentTarget.src = menuImageFallback(item);
+                            }}
                             sx={{
                               display: 'block',
                               width: '100%',
@@ -808,7 +819,13 @@ export function AdminProductsPage({
               {preview || editing ? (
                 <Box
                   component="img"
-                  src={preview ?? coffeeIngredientsImage}
+                  src={
+                    preview ??
+                    editing?.imageUrl ??
+                    (editing
+                      ? menuImageFallback(editing)
+                      : coffeeIngredientsImage)
+                  }
                   alt="ตัวอย่างรูปสินค้า"
                   sx={{
                     position: 'absolute',
