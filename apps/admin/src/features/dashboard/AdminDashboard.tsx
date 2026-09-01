@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { coffeeIngredientsImage } from '@stackbuild/ui';
+import { DashboardMain, coffeeIngredientsImage } from '@stackbuild/ui';
 import { adminSidebarNavigation } from '../../components/sidebar/adminSidebarNavigation';
 import {
   IngredientBranchesSidebar,
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { AdminDashboardLayout } from '../../layouts/AdminDashboardLayout';
+import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   adminPageFromPath,
@@ -158,7 +159,13 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
         />
       }
     >
-      <Suspense fallback={<div aria-live="polite">กำลังโหลดหน้า...</div>}>
+      <Suspense
+        fallback={
+          <DashboardMain>
+            <AdminOverviewSkeleton />
+          </DashboardMain>
+        }
+      >
         {pageContent}
       </Suspense>
     </AdminDashboardLayout>
