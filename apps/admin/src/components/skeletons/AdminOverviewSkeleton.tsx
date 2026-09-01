@@ -36,6 +36,17 @@ export function AdminOverviewSkeleton() {
         </Box>
         <Skeleton variant="rounded" width={170} height={14} />
       </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {Array.from({ length: 3 }, (_, i) => (
+          <Skeleton
+            key={i}
+            variant="rounded"
+            width={74}
+            height={34}
+            sx={{ borderRadius: '12px' }}
+          />
+        ))}
+      </Box>
       <Box
         sx={{
           display: 'grid',
@@ -74,6 +85,97 @@ export function AdminOverviewSkeleton() {
             />
           </Card>
         ))}
+      </Box>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            xl: 'minmax(0, 1.2fr) minmax(330px, .8fr)',
+          },
+          gap: 2,
+        }}
+      >
+        <Card
+          variant="outlined"
+          sx={{
+            p: { xs: 2, md: 2.75 },
+            borderRadius: '15px',
+            borderColor: '#e8ddd5',
+          }}
+        >
+          <Skeleton variant="rounded" width="42%" height={22} />
+          <Skeleton
+            variant="rounded"
+            width="58%"
+            height={13}
+            sx={{ mt: 0.35 }}
+          />
+          <Stack spacing={2} sx={{ mt: 2.5 }}>
+            {Array.from({ length: 2 }, (_, i) => (
+              <Box key={i}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Skeleton variant="rounded" width="24%" height={15} />
+                  <Skeleton variant="rounded" width="28%" height={14} />
+                </Box>
+                <Skeleton
+                  variant="rounded"
+                  width="100%"
+                  height={10}
+                  sx={{ mt: 0.7, borderRadius: 99 }}
+                />
+                <Skeleton
+                  variant="rounded"
+                  width="18%"
+                  height={13}
+                  sx={{ mt: 0.45 }}
+                />
+              </Box>
+            ))}
+          </Stack>
+        </Card>
+        <Card
+          variant="outlined"
+          sx={{
+            p: { xs: 2, md: 2.75 },
+            borderRadius: '15px',
+            borderColor: '#e8ddd5',
+          }}
+        >
+          <Skeleton variant="rounded" width="42%" height={22} />
+          <Skeleton
+            variant="rounded"
+            width="68%"
+            height={13}
+            sx={{ mt: 0.35 }}
+          />
+          <Stack spacing={1.25} sx={{ mt: 2.3 }}>
+            {Array.from({ length: 2 }, (_, i) => (
+              <Box
+                key={i}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 1.5,
+                  border: '1px solid #eee4dd',
+                  borderRadius: '12px',
+                }}
+              >
+                <Box>
+                  <Skeleton variant="rounded" width={86} height={15} />
+                  <Skeleton
+                    variant="rounded"
+                    width={128}
+                    height={13}
+                    sx={{ mt: 0.1 }}
+                  />
+                </Box>
+                <Skeleton variant="rounded" width={88} height={14} />
+              </Box>
+            ))}
+          </Stack>
+        </Card>
       </Box>
       <Box
         sx={{

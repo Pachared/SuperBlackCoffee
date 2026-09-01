@@ -1,18 +1,26 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   ButtonBase,
   Card,
   Divider,
   Stack,
   Typography,
 } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import { DashboardMain, formatCurrency } from '@stackbuild/ui';
 import { useDashboardSummary } from '../../hooks/useDashboardSummary';
 import { useStockRequests } from '../../hooks/useStockRequests';
 import { useWebsiteLeads } from '../../hooks/useWebsiteLeads';
 import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import type { AdminPage } from '../../routes/adminRoutes';
+import { listBranchSales, listInventory, type BranchSales } from '../../api';
+import {
+  ingredientBranchCodes,
+  ingredientBranches,
+  type IngredientBranch,
+} from '../../components/sidebar/IngredientBranchesSidebar';
 
 type OverviewAction = {
   title: string;
@@ -183,10 +191,41 @@ export function AdminOverviewPage({
   const dashboard = useDashboardSummary();
   const stockRequests = useStockRequests();
   const websiteLeads = useWebsiteLeads();
+  const [selectedBranch, setSelectedBranch] =
+    useState<IngredientBranch>('ทุกสาขา');
+  const branchSales = useQuery({
+    queryKey: ['overview-branch-sales'],
+    queryFn: () => listBranchSales('today'),
+  });
+  const branchStock = useQuery({
+    queryKey: ['overview-branch-stock'],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        ingredientBranches.slice(1).map(async (branch) => {
+          const items = await listInventory(
+            'stock',
+            ingredientBranchCodes[
+              branch as Exclude<IngredientBranch, 'ทุกสาขา'>
+            ],
+          );
+          return {
+            branch,
+            quantity: items.reduce((total, item) => total + item.quantity, 0),
+            low: items.filter((item) => item.status !== 'ready').length,
+          };
+        }),
+      );
+      return entries;
+    },
+  });
   const sales = dashboard.data?.todaySales ?? 0;
   const orders = dashboard.data?.todayOrders ?? 0;
   const isLoading =
-    dashboard.isLoading || stockRequests.isLoading || websiteLeads.isLoading;
+    dashboard.isLoading ||
+    stockRequests.isLoading ||
+    websiteLeads.isLoading ||
+    branchSales.isLoading ||
+    branchStock.isLoading;
   const followUps = useMemo(() => {
     const requests = stockRequests.data ?? [];
     const leads = websiteLeads.data ?? [];
@@ -202,7 +241,33 @@ export function AdminOverviewPage({
     };
   }, [stockRequests.data, websiteLeads.data]);
   const hasError =
-    dashboard.isError || stockRequests.isError || websiteLeads.isError;
+    dashboard.isError ||
+    stockRequests.isError ||
+    websiteLeads.isError ||
+    branchSales.isError ||
+    branchStock.isError;
+  const selectedBranchCode =
+    selectedBranch === 'ทุกสาขา' ? null : ingredientBranchCodes[selectedBranch];
+  const branchSalesRows = (branchSales.data ?? []).filter(
+    (branch) =>
+      selectedBranchCode === null || branch.code === selectedBranchCode,
+  );
+  const maxBranchSales = Math.max(
+    ...branchSalesRows.map((branch) => branch.sales),
+    1,
+  );
+  const branchStockRows = (branchStock.data ?? []).filter(
+    (branch) =>
+      selectedBranch === 'ทุกสาขา' || branch.branch === selectedBranch,
+  );
+  const overviewSales =
+    selectedBranch === 'ทุกสาขา'
+      ? sales
+      : branchSalesRows.reduce((total, branch) => total + branch.sales, 0);
+  const overviewOrders =
+    selectedBranch === 'ทุกสาขา'
+      ? orders
+      : branchSalesRows.reduce((total, branch) => total + branch.orders, 0);
   const updatedAt = new Intl.DateTimeFormat('th-TH', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -244,6 +309,28 @@ export function AdminOverviewPage({
               อัปเดตเมื่อ {updatedAt}
             </Typography>
           </Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {ingredientBranches.map((branch) => (
+              <Button
+                key={branch}
+                size="small"
+                variant={selectedBranch === branch ? 'contained' : 'outlined'}
+                onClick={() => setSelectedBranch(branch)}
+                sx={{
+                  minHeight: 34,
+                  borderRadius: '12px',
+                  borderColor: '#d8c8bd',
+                  bgcolor: selectedBranch === branch ? '#201914' : '#fff',
+                  color: selectedBranch === branch ? '#fff' : '#5f4b3d',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 12,
+                  boxShadow: 'none',
+                }}
+              >
+                {branch}
+              </Button>
+            ))}
+          </Box>
           {hasError ? (
             <Box
               role="alert"
@@ -272,22 +359,185 @@ export function AdminOverviewPage({
           >
             <MetricCard
               label="ยอดขายวันนี้"
-              value={formatCurrency(sales)}
+              value={formatCurrency(overviewSales)}
               helper="รวมเฉพาะรายการที่ชำระเงินแล้ว"
               accent="#805637"
             />
             <MetricCard
               label="คำสั่งซื้อที่ชำระแล้ว"
-              value={`${formatCount(orders)} รายการ`}
+              value={`${formatCount(overviewOrders)} รายการ`}
               helper="คำสั่งซื้อที่บันทึกสำเร็จในวันนี้"
               accent="#4c8f70"
             />
             <MetricCard
               label="ยอดเฉลี่ยต่อบิล"
-              value={formatCurrency(orders === 0 ? 0 : sales / orders)}
+              value={formatCurrency(
+                overviewOrders === 0 ? 0 : overviewSales / overviewOrders,
+              )}
               helper="ยอดขายเฉลี่ยต่อคำสั่งซื้อที่ชำระแล้ว"
               accent="#c38642"
             />
+          </Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                xl: 'minmax(0, 1.2fr) minmax(330px, .8fr)',
+              },
+              gap: 2,
+            }}
+          >
+            <Card variant="outlined" sx={cardSx}>
+              <Box sx={{ p: { xs: 2, md: 2.75 } }}>
+                <Typography
+                  sx={{
+                    color: '#201914',
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 19,
+                    fontWeight: 600,
+                  }}
+                >
+                  ยอดขายแยกตามสาขา
+                </Typography>
+                <Typography
+                  sx={{ mt: 0.35, color: 'text.secondary', fontSize: 13 }}
+                >
+                  เปรียบเทียบยอดขายที่ชำระแล้วของวันนี้
+                </Typography>
+                <Stack spacing={2} sx={{ mt: 2.5 }}>
+                  {branchSalesRows.map((branch: BranchSales) => (
+                    <Box key={branch.id}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: 2,
+                          mb: 0.7,
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 14,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {branch.name}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            color: '#805637',
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {formatCurrency(branch.sales)}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          height: 10,
+                          borderRadius: 99,
+                          bgcolor: '#f0e7e1',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: `${Math.max((branch.sales / maxBranchSales) * 100, branch.sales ? 4 : 0)}%`,
+                            height: '100%',
+                            borderRadius: 99,
+                            bgcolor: '#805637',
+                            transition: 'width .25s ease',
+                          }}
+                        />
+                      </Box>
+                      <Typography
+                        sx={{ mt: 0.45, color: 'text.secondary', fontSize: 12 }}
+                      >
+                        {branch.orders.toLocaleString('th-TH')} ออเดอร์
+                      </Typography>
+                    </Box>
+                  ))}
+                  {!branchSales.isLoading && branchSalesRows.length === 0 ? (
+                    <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
+                      ยังไม่มีข้อมูลยอดขายของสาขา
+                    </Typography>
+                  ) : null}
+                </Stack>
+              </Box>
+            </Card>
+            <Card variant="outlined" sx={cardSx}>
+              <Box sx={{ p: { xs: 2, md: 2.75 } }}>
+                <Typography
+                  sx={{
+                    color: '#201914',
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 19,
+                    fontWeight: 600,
+                  }}
+                >
+                  สต๊อกแยกตามสาขา
+                </Typography>
+                <Typography
+                  sx={{ mt: 0.35, color: 'text.secondary', fontSize: 13 }}
+                >
+                  จำนวนคงเหลือและรายการที่ต้องติดตาม
+                </Typography>
+                <Stack spacing={1.25} sx={{ mt: 2.3 }}>
+                  {branchStockRows.map((branch) => (
+                    <Box
+                      key={branch.branch}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 2,
+                        p: 1.5,
+                        border: '1px solid #eee4dd',
+                        borderRadius: '12px',
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          sx={{
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 15,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {branch.branch}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            mt: 0.1,
+                            color: 'text.secondary',
+                            fontSize: 12,
+                          }}
+                        >
+                          คงเหลือ {branch.quantity.toLocaleString('th-TH')}{' '}
+                          หน่วย
+                        </Typography>
+                      </Box>
+                      <Typography
+                        sx={{
+                          color: branch.low ? '#a76415' : '#3c5b47',
+                          fontFamily: 'Kanit, sans-serif',
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {branch.low
+                          ? `${branch.low} รายการใกล้หมด`
+                          : 'พร้อมใช้งาน'}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            </Card>
           </Box>
           <Box
             sx={{
@@ -342,12 +592,12 @@ export function AdminOverviewPage({
                       lineHeight: 1.1,
                     }}
                   >
-                    {formatCurrency(sales)}
+                    {formatCurrency(overviewSales)}
                   </Typography>
                   <Typography
                     sx={{ mt: 1, color: 'rgba(255,255,255,.7)', fontSize: 13 }}
                   >
-                    จาก {formatCount(orders)} คำสั่งซื้อที่ชำระเงินแล้ว
+                    จาก {formatCount(overviewOrders)} คำสั่งซื้อที่ชำระเงินแล้ว
                   </Typography>
                 </Box>
                 <Box
@@ -368,7 +618,7 @@ export function AdminOverviewPage({
                         fontWeight: 750,
                       }}
                     >
-                      {formatCount(orders)}{' '}
+                      {formatCount(overviewOrders)}{' '}
                       <Box
                         component="span"
                         sx={{ fontSize: 14, fontWeight: 500 }}
@@ -387,7 +637,11 @@ export function AdminOverviewPage({
                         fontWeight: 750,
                       }}
                     >
-                      {formatCurrency(orders === 0 ? 0 : sales / orders)}
+                      {formatCurrency(
+                        overviewOrders === 0
+                          ? 0
+                          : overviewSales / overviewOrders,
+                      )}
                     </Typography>
                   </Box>
                 </Box>
