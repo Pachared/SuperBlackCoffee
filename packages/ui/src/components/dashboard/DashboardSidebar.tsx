@@ -97,10 +97,6 @@ export function DashboardSidebar({
   return (
     <Drawer
       variant="permanent"
-      onWheelCapture={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
       sx={{
         width,
         transition: disableWidthTransition
@@ -115,6 +111,8 @@ export function DashboardSidebar({
           borderRadius: '0 12px 0 0',
           overflow: 'visible',
           p: 2,
+          display: 'flex',
+          flexDirection: 'column',
           transition: disableWidthTransition
             ? 'none'
             : 'width .28s cubic-bezier(.2,.8,.2,1), padding .28s cubic-bezier(.2,.8,.2,1)',
@@ -200,7 +198,25 @@ export function DashboardSidebar({
           COFFEE
         </Typography>
       </Box>
-      <List sx={{ py: 0, overflow: 'visible' }}>
+      <List
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          width: 'calc(100% + 32px)',
+          mr: -4,
+          py: 0,
+          pr: 4,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255,255,255,.26) transparent',
+          '&::-webkit-scrollbar': { width: 6 },
+          '&::-webkit-scrollbar-thumb': {
+            bgcolor: 'rgba(255,255,255,.26)',
+            borderRadius: 99,
+          },
+        }}
+      >
         {navigation.map(({ label, icon, badge, group }, index) => (
           <Box key={label}>
             {group &&
