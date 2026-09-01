@@ -205,6 +205,7 @@ export function DashboardSidebar({
           <Box key={label}>
             {group &&
               group !== navigation[index - 1]?.group &&
+              !collapsed &&
               renderExpandedContent && (
                 <Typography
                   sx={{
