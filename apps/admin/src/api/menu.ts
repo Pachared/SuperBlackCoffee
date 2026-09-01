@@ -5,7 +5,9 @@ export type MenuItem = {
   name: string;
   category: string;
   storePrice: number;
+  storePriceAvailable: boolean;
   linemanPrice: number;
+  linemanPriceAvailable: boolean;
   linemanCostPrice: number;
   costPrice: number;
   status: 'available' | 'soldout';

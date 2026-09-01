@@ -78,7 +78,7 @@ func (h *PlatformHandler) writeMenuItem(c *gin.Context) {
 		return
 	}
 	defer tx.Rollback()
-	result, err := tx.ExecContext(c, `UPDATE menu_items SET name=$1,category=$2,store_price=$3,lineman_price=$4,cost_price=$5,lineman_cost_price=$6,updated_at=now() WHERE id=$7 AND branch_id=$8`, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice, input.LinemanCostPrice, id, branchID)
+	result, err := tx.ExecContext(c, `UPDATE menu_items SET name=$1,category=$2,store_price=$3,store_price_available=true,lineman_price=$4,lineman_price_available=true,cost_price=$5,lineman_cost_price=$6,updated_at=now() WHERE id=$7 AND branch_id=$8`, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice, input.LinemanCostPrice, id, branchID)
 	if err != nil || rowsAffected(result) == 0 {
 		c.JSON(404, gin.H{"success": false, "message": "ไม่พบเมนู"})
 		return

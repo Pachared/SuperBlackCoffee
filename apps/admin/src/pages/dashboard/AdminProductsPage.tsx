@@ -32,7 +32,9 @@ type ProductIngredient = { name: string; quantity: string };
 type Product = {
   name: string;
   storePrice: number;
+  storePriceAvailable: boolean;
   lineManPrice: number;
+  lineManPriceAvailable: boolean;
   lineManCostPrice: number;
   costPrice: number;
   category: string;
@@ -197,7 +199,9 @@ export function AdminProductsPage({
           uniqueItems.map((item, index) => ({
             name: item.name,
             storePrice: item.storePrice,
+            storePriceAvailable: item.storePriceAvailable,
             lineManPrice: item.linemanPrice,
+            lineManPriceAvailable: item.linemanPriceAvailable,
             lineManCostPrice: item.linemanCostPrice ?? item.costPrice,
             costPrice: item.costPrice,
             category: item.category,
@@ -523,7 +527,9 @@ export function AdminProductsPage({
                                   lineHeight: 1,
                                 }}
                               >
-                                {item.storePrice} บาท
+                                {item.storePriceAvailable
+                                  ? `${item.storePrice} บาท`
+                                  : '-'}
                               </Box>
                             </Typography>
                             <Typography
@@ -549,7 +555,9 @@ export function AdminProductsPage({
                                   lineHeight: 1,
                                 }}
                               >
-                                {item.lineManPrice} บาท
+                                {item.lineManPriceAvailable
+                                  ? `${item.lineManPrice} บาท`
+                                  : '-'}
                               </Box>
                             </Typography>
                           </Box>
