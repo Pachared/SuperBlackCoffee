@@ -244,11 +244,6 @@ export function DashboardSidebar({
                 </Typography>
               )}
             <ListItemButton
-              className={
-                collapsed && index === 0
-                  ? 'sbc-first-collapsed-menu'
-                  : undefined
-              }
               selected={label === activePage}
               disableRipple
               disableTouchRipple
@@ -338,15 +333,6 @@ export function DashboardSidebar({
                         },
                       },
                 '&.Mui-selected:hover': { bgcolor: activeBackground },
-                '&.sbc-first-collapsed-menu.Mui-selected': {
-                  borderRadius: '12px',
-                  mr: 0,
-                  pr: 0,
-                },
-                '&.sbc-first-collapsed-menu.Mui-selected::before, &.sbc-first-collapsed-menu.Mui-selected::after':
-                  {
-                    display: 'none',
-                  },
                 '&:not(.Mui-selected):hover': {
                   bgcolor: selectedColor,
                   width: 'calc(100% + 12px)',
