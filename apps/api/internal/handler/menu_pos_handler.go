@@ -68,8 +68,8 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 		}
 		costPrice := item.CostPrice
 		var menuItemID int64
-		var storePrice, linemanPrice float64
-		menuErr := tx.QueryRowContext(c, `SELECT id,cost_price,store_price,lineman_price FROM menu_items WHERE branch_id=$1 AND name=$2`, branchID, item.ProductName).Scan(&menuItemID, &costPrice, &storePrice, &linemanPrice)
+		var storeCostPrice, linemanCostPrice, storePrice, linemanPrice float64
+		menuErr := tx.QueryRowContext(c, `SELECT id,cost_price,lineman_cost_price,store_price,lineman_price FROM menu_items WHERE branch_id=$1 AND name=$2`, branchID, item.ProductName).Scan(&menuItemID, &storeCostPrice, &linemanCostPrice, &storePrice, &linemanPrice)
 		if errors.Is(menuErr, sql.ErrNoRows) {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบเมนู " + item.ProductName})
 			return
@@ -78,8 +78,10 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 			err = menuErr
 			break
 		}
+		costPrice = storeCostPrice
 		unitPrice := storePrice
 		if input.Channel == "lineman" {
+			costPrice = linemanCostPrice
 			unitPrice = linemanPrice
 		}
 		total += float64(item.Quantity) * unitPrice

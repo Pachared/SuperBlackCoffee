@@ -454,7 +454,7 @@ export function AdminProductsPage({
                                 fontWeight: 600,
                               }}
                             >
-                              ราคาต้นทุน
+                              ราคาต้นทุนหน้าร้าน
                               <Box
                                 component="span"
                                 sx={{
@@ -480,7 +480,7 @@ export function AdminProductsPage({
                                 fontWeight: 600,
                               }}
                             >
-                              ต้นทุน LINE MAN
+                              ราคาต้นทุน LINE MAN
                               <Box
                                 component="span"
                                 sx={{
@@ -878,7 +878,7 @@ export function AdminProductsPage({
               <TextField
                 required
                 fullWidth
-                label="ต้นทุน LINE MAN"
+                label="ราคาต้นทุน LINE MAN"
                 type="number"
                 defaultValue={editing?.lineManCostPrice}
                 helperText="อ้างอิงต้นทุนจากสูตร LINE MAN"
@@ -886,10 +886,10 @@ export function AdminProductsPage({
               <TextField
                 required
                 fullWidth
-                label="ราคาต้นทุนต่อเมนู"
+                label="ราคาต้นทุนหน้าร้าน"
                 type="number"
                 defaultValue={editing?.costPrice}
-                helperText="ใช้คำนวณกำไร/ขาดทุน"
+                helperText="ใช้คำนวณกำไร/ขาดทุนสำหรับหน้าร้าน"
               />
               <TextField
                 required
