@@ -5,3 +5,4 @@ export * from './menu';
 export * from './stock-requests';
 export * from './audit';
 export * from './website-leads';
+export * from './procurement';

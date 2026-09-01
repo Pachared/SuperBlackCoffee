@@ -57,6 +57,11 @@ const AdminStockPage = lazy(() =>
     default: module.AdminStockPage,
   })),
 );
+const AdminProcurementPage = lazy(() =>
+  import('../../pages/dashboard/AdminProcurementPage').then((module) => ({
+    default: module.AdminProcurementPage,
+  })),
+);
 
 export function AdminDashboard({ logout }: { logout: () => void }) {
   const location = useLocation();
@@ -108,6 +113,8 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminAuditPage />
   ) : isStockPage ? (
     <AdminStockPage activeBranch={activeIngredientBranch} />
+  ) : activePage === 'จัดซื้อ' ? (
+    <AdminProcurementPage />
   ) : activePage === 'เมนูและสินค้า' ? (
     <AdminProductsPage activeBranch={activeIngredientBranch} />
   ) : activePage === 'แชทลูกค้า' ? (

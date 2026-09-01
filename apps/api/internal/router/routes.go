@@ -38,7 +38,9 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 	protected.DELETE("/menu-items/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.DeleteMenuItem)
 	protected.POST("/inventory", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.CreateInventory)
 	protected.PATCH("/inventory/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.UpdateInventory)
+	protected.POST("/inventory/:id/adjust", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.AdjustInventory)
 	protected.DELETE("/inventory/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.DeleteInventory)
+	protected.GET("/stock-movements", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.ListStockMovements)
 	protected.POST("/stock-requests", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.CreateStockRequest)
 	protected.GET("/stock-requests", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.ListStockRequests)
 	protected.GET("/audit-events", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListAuditEvents)
@@ -50,6 +52,13 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 }
 
 func registerAdminRoutes(protected *gin.RouterGroup, deps routeDependencies) {
+	protected.GET("/suppliers", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListSuppliers)
+	protected.POST("/suppliers", middleware.RequireAuth(deps.secret, "admin"), deps.platform.CreateSupplier)
+	protected.PATCH("/suppliers/:id", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdateSupplier)
+	protected.GET("/purchase-orders", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListPurchaseOrders)
+	protected.POST("/purchase-orders", middleware.RequireAuth(deps.secret, "admin"), deps.platform.CreatePurchaseOrder)
+	protected.PATCH("/purchase-orders/:id/status", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdatePurchaseOrderStatus)
+	protected.POST("/purchase-orders/:id/receive", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ReceivePurchaseOrder)
 	admin := protected.Group("/franchisees")
 	admin.Use(middleware.RequireAuth(deps.secret, "admin"))
 	admin.GET("", deps.platform.ListFranchisees)

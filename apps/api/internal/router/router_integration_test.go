@@ -233,6 +233,47 @@ func TestPOSOrderDeductsInventoryOnlyWhenStockIsSufficient(t *testing.T) {
 	}
 }
 
+func TestPurchaseOrderReceiptAddsStockAndCreatesMovement(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("กำหนด TEST_DATABASE_URL เพื่อทดสอบ PostgreSQL integration")
+	}
+	db := openRouterTestDB(t, url)
+	branchID := seedBranch(t, db, "PURCHASE-001")
+	seedUser(t, db, 7, "admin-purchase", "admin", branchID, nil)
+	inventoryID := seedInventory(t, db, branchID, "นมสด", 2)
+	var supplierID int64
+	if err := db.QueryRow(`INSERT INTO suppliers(name) VALUES('ผู้ขายทดสอบ') RETURNING id`).Scan(&supplierID); err != nil {
+		t.Fatalf("สร้างผู้ขาย: %v", err)
+	}
+	r := New(db, nil)
+	token := testToken(t, "admin")
+	order := requestJSON(r, http.MethodPost, "/api/v1/purchase-orders", `{"branchId":`+strconv.FormatInt(branchID, 10)+`,"supplierId":`+strconv.FormatInt(supplierID, 10)+`,"items":[{"inventoryItemId":`+strconv.FormatInt(inventoryID, 10)+`,"quantity":5,"unitCost":42}]}`, token)
+	if order.Code != http.StatusCreated {
+		t.Fatalf("create purchase order = %d: %s", order.Code, order.Body.String())
+	}
+	orderID := responseID(t, order)
+	for _, status := range []string{"submitted", "approved", "ordered"} {
+		res := requestJSON(r, http.MethodPatch, "/api/v1/purchase-orders/"+strconv.FormatInt(orderID, 10)+"/status", `{"status":"`+status+`"}`, token)
+		if res.Code != http.StatusOK {
+			t.Fatalf("set purchase status %s = %d: %s", status, res.Code, res.Body.String())
+		}
+	}
+	var itemID int64
+	if err := db.QueryRow(`SELECT id FROM purchase_order_items WHERE purchase_order_id=$1`, orderID).Scan(&itemID); err != nil {
+		t.Fatalf("อ่านรายการใบสั่งซื้อ: %v", err)
+	}
+	receive := requestJSON(r, http.MethodPost, "/api/v1/purchase-orders/"+strconv.FormatInt(orderID, 10)+"/receive", `{"note":"รับสินค้าครบ","items":[{"itemId":`+strconv.FormatInt(itemID, 10)+`,"quantity":5}]}`, token)
+	if receive.Code != http.StatusOK || !strings.Contains(receive.Body.String(), `"received"`) {
+		t.Fatalf("receive purchase order = %d: %s", receive.Code, receive.Body.String())
+	}
+	assertInventoryQuantity(t, db, inventoryID, 7)
+	var movements int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM stock_movements WHERE inventory_item_id=$1 AND movement_type='purchase_receipt'`, inventoryID).Scan(&movements); err != nil || movements != 1 {
+		t.Fatalf("purchase stock movements = %d, err = %v", movements, err)
+	}
+}
+
 func TestPOSOrderRollsBackAllItemsWhenOneItemIsOutOfStock(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
@@ -462,7 +503,7 @@ func openRouterTestDB(t *testing.T, url string) *sql.DB {
 		t.Fatalf("เปิดฐานข้อมูลทดสอบ: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if _, err := db.Exec(`TRUNCATE TABLE website_leads, audit_events, pos_order_items, pos_orders, stock_request_items, stock_requests, users, menu_item_ingredients, menu_items, inventory_items, branches, franchisees RESTART IDENTITY CASCADE`); err != nil {
+	if _, err := db.Exec(`TRUNCATE TABLE website_leads, audit_events, stock_movements, purchase_order_items, purchase_orders, suppliers, pos_order_items, pos_orders, stock_request_items, stock_requests, users, menu_item_ingredients, menu_items, inventory_items, branches, franchisees RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("ล้างฐานข้อมูลทดสอบ: %v", err)
 	}
 	return db

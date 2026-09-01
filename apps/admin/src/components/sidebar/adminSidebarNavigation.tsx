@@ -16,6 +16,7 @@ export const adminSidebarNavigation = [
   { label: 'เมนูและสินค้า', icon: <ReceiptTextIcon /> },
   { label: 'วัตถุดิบ', icon: <BoxesIcon /> },
   { label: 'สต๊อก', icon: <BoxIcon /> },
+  { label: 'จัดซื้อ', icon: <ReceiptTextIcon /> },
   { label: 'สาขา SBC', icon: <MapPinHouseIcon /> },
   { label: 'สาขาแฟรนไชส์', icon: <MapPinPlusIcon /> },
   { label: 'แชทลูกค้า', icon: <MessageSquareIcon />, badge: 2 },

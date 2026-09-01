@@ -90,14 +90,42 @@ func (h *PlatformHandler) CreatePOSOrder(c *gin.Context) {
 		}
 		_, err = tx.ExecContext(c, `INSERT INTO pos_order_items(order_id,product_name,quantity,unit_price,cost_price) VALUES($1,$2,$3,$4,$5)`, orderID, item.ProductName, item.Quantity, unitPrice, costPrice)
 		if err == nil {
-			var deductedCount int
-			err = tx.QueryRowContext(c, `WITH updated AS (
-				UPDATE inventory_items i SET quantity=i.quantity-(mi.quantity*$1),updated_at=now()
-				FROM menu_item_ingredients mi
-				WHERE mi.menu_item_id=$2 AND i.id=mi.inventory_item_id AND i.quantity >= mi.quantity*$1
-				RETURNING i.id
-			) SELECT COUNT(*) FROM updated`, item.Quantity, menuItemID).Scan(&deductedCount)
-			if err == nil && deductedCount != requiredCount {
+			recipeRows, queryErr := tx.QueryContext(c, `SELECT inventory_item_id,quantity FROM menu_item_ingredients WHERE menu_item_id=$1 ORDER BY inventory_item_id`, menuItemID)
+			if queryErr != nil {
+				err = queryErr
+				continue
+			}
+			type recipeItem struct {
+				inventoryItemID int64
+				quantity        float64
+			}
+			recipe := make([]recipeItem, 0, requiredCount)
+			for recipeRows.Next() {
+				var ingredient recipeItem
+				if err = recipeRows.Scan(&ingredient.inventoryItemID, &ingredient.quantity); err != nil {
+					break
+				}
+				recipe = append(recipe, ingredient)
+			}
+			if closeErr := recipeRows.Close(); err == nil && closeErr != nil {
+				err = closeErr
+			}
+			for _, ingredient := range recipe {
+				if err != nil {
+					break
+				}
+				deducted := ingredient.quantity * float64(item.Quantity)
+				var quantityAfter float64
+				err = tx.QueryRowContext(c, `UPDATE inventory_items SET quantity=quantity-$1,updated_at=now() WHERE id=$2 AND branch_id=$3 AND quantity >= $1 RETURNING quantity`, deducted, ingredient.inventoryItemID, branchID).Scan(&quantityAfter)
+				if errors.Is(err, sql.ErrNoRows) {
+					c.JSON(http.StatusConflict, gin.H{"success": false, "message": "วัตถุดิบหรือสต๊อกคงเหลือไม่เพียงพอสำหรับเมนู " + item.ProductName})
+					return
+				}
+				if err == nil {
+					err = recordStockMovementTx(c, tx, branchID, ingredient.inventoryItemID, "pos_sale", -deducted, quantityAfter+deducted, quantityAfter, "pos_order", &orderID, "ตัดสต๊อกตามการขายเมนู "+item.ProductName, claims.UserID)
+				}
+			}
+			if err == nil && len(recipe) != requiredCount {
 				c.JSON(http.StatusConflict, gin.H{"success": false, "message": "วัตถุดิบหรือสต๊อกคงเหลือไม่เพียงพอสำหรับเมนู " + item.ProductName})
 				return
 			}

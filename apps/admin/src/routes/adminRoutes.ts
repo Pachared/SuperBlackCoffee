@@ -5,6 +5,7 @@ export const adminPagePaths = {
   เมนูและสินค้า: '/products',
   วัตถุดิบ: '/ingredients',
   สต๊อก: '/stock',
+  จัดซื้อ: '/procurement',
   'สาขา SBC': '/branches',
   สาขาแฟรนไชส์: '/franchise-branches',
   แชทลูกค้า: '/customer-chat',
