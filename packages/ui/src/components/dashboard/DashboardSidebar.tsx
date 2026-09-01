@@ -341,6 +341,9 @@ export function DashboardSidebar({
                 '&.sbc-first-collapsed-menu.Mui-selected::before': {
                   display: 'none',
                 },
+                '&.sbc-first-collapsed-menu.Mui-selected::after': {
+                  display: 'none',
+                },
                 '&:not(.Mui-selected):hover': {
                   bgcolor: selectedColor,
                   width: 'calc(100% + 12px)',
