@@ -27,7 +27,12 @@ import {
 } from '../icons/PanelLeftOpenIcon';
 import superBlackLogo from '../../assets/superblack-logo.png';
 
-type NavigationItem = { label: string; icon: ReactNode; badge?: number };
+type NavigationItem = {
+  label: string;
+  icon: ReactNode;
+  badge?: number;
+  group?: string;
+};
 
 export function DashboardSidebar({
   activePage,
@@ -195,173 +200,212 @@ export function DashboardSidebar({
           COFFEE
         </Typography>
       </Box>
-      <List>
-        {navigation.map(({ label, icon, badge }) => (
-          <ListItemButton
-            key={label}
-            selected={label === activePage}
-            disableRipple
-            disableTouchRipple
-            onClick={() => {
-              setClickedMenu(label);
-              window.setTimeout(() => setClickedMenu(null), 350);
-              onNavigate(label);
-            }}
-            onMouseEnter={() => {
-              window.clearTimeout(hoverTimerRef.current);
-              setHoveredMenu(label);
-            }}
-            onMouseLeave={() => {
-              hoverTimerRef.current = window.setTimeout(
-                () => setHoveredMenu(null),
-                350,
-              );
-            }}
-            sx={{
-              minHeight: 48,
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              position: 'relative',
-              transition: 'none',
-              borderRadius: '12px',
-              mb: 0.5,
-              '&.Mui-selected': disableActiveConnection
-                ? {
-                    bgcolor: activeBackground,
-                    color: '#171411',
-                    borderRadius: '12px 0 0 12px',
-                    mr: 0,
-                  }
-                : collapsed
+      <List
+        sx={{
+          py: 0,
+          overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': { width: 5 },
+          '&::-webkit-scrollbar-thumb': {
+            bgcolor: 'rgba(255,255,255,.18)',
+            borderRadius: 99,
+          },
+        }}
+      >
+        {navigation.map(({ label, icon, badge, group }, index) => (
+          <Box key={label}>
+            {group &&
+              group !== navigation[index - 1]?.group &&
+              renderExpandedContent && (
+                <Typography
+                  sx={{
+                    mt: index === 0 ? 0 : 1.25,
+                    mb: 0.5,
+                    px: 1,
+                    color: 'rgba(255,255,255,.46)',
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: '.08em',
+                    lineHeight: 1.5,
+                    opacity: expandedContentVisible ? 1 : 0,
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    transition: 'opacity .14s ease',
+                  }}
+                >
+                  {group}
+                </Typography>
+              )}
+            <ListItemButton
+              selected={label === activePage}
+              disableRipple
+              disableTouchRipple
+              onClick={() => {
+                setClickedMenu(label);
+                window.setTimeout(() => setClickedMenu(null), 350);
+                onNavigate(label);
+              }}
+              onMouseEnter={() => {
+                window.clearTimeout(hoverTimerRef.current);
+                setHoveredMenu(label);
+              }}
+              onMouseLeave={() => {
+                hoverTimerRef.current = window.setTimeout(
+                  () => setHoveredMenu(null),
+                  350,
+                );
+              }}
+              sx={{
+                minHeight: 48,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                position: 'relative',
+                transition: 'none',
+                borderRadius: '12px',
+                mb: 0.5,
+                '&.Mui-selected': disableActiveConnection
                   ? {
                       bgcolor: activeBackground,
                       color: '#171411',
                       borderRadius: '12px 0 0 12px',
-                      mr: -2,
-                      position: 'relative',
-                      zIndex: 1,
-                      '&::before, &::after': {
-                        content: '""',
-                        position: 'absolute',
-                        right: 0,
-                        width: 14,
-                        height: 14,
-                        bgcolor: '#171411',
-                        pointerEvents: 'none',
-                      },
-                      '&::before': {
-                        top: -14,
-                        borderRadius: '0 0 14px 0',
-                        boxShadow: '7px 7px 0 7px ' + activeBackground,
-                      },
-                      '&::after': {
-                        bottom: -14,
-                        borderRadius: '0 14px 0 0',
-                        boxShadow: '7px -7px 0 7px ' + activeBackground,
-                      },
+                      mr: 0,
                     }
-                  : {
-                      bgcolor: activeBackground,
-                      color: '#171411',
-                      borderRadius: '12px 0 0 12px',
-                      mr: -2,
-                      pr: 2,
-                      position: 'relative',
-                      zIndex: 1,
-                      '&::before, &::after': {
-                        content: '""',
-                        position: 'absolute',
-                        right: 0,
-                        width: 14,
-                        height: 14,
-                        bgcolor: '#171411',
-                        pointerEvents: 'none',
+                  : collapsed
+                    ? {
+                        bgcolor: activeBackground,
+                        color: '#171411',
+                        borderRadius: '12px 0 0 12px',
+                        mr: -2,
+                        position: 'relative',
+                        zIndex: 1,
+                        '&::before, &::after': {
+                          content: '""',
+                          position: 'absolute',
+                          right: 0,
+                          width: 14,
+                          height: 14,
+                          bgcolor: '#171411',
+                          pointerEvents: 'none',
+                        },
+                        '&::before': {
+                          top: -14,
+                          borderRadius: '0 0 14px 0',
+                          boxShadow: '7px 7px 0 7px ' + activeBackground,
+                        },
+                        '&::after': {
+                          bottom: -14,
+                          borderRadius: '0 14px 0 0',
+                          boxShadow: '7px -7px 0 7px ' + activeBackground,
+                        },
+                      }
+                    : {
+                        bgcolor: activeBackground,
+                        color: '#171411',
+                        borderRadius: '12px 0 0 12px',
+                        mr: -2,
+                        pr: 2,
+                        position: 'relative',
+                        zIndex: 1,
+                        '&::before, &::after': {
+                          content: '""',
+                          position: 'absolute',
+                          right: 0,
+                          width: 14,
+                          height: 14,
+                          bgcolor: '#171411',
+                          pointerEvents: 'none',
+                        },
+                        '&::before': {
+                          top: -14,
+                          borderRadius: '0 0 14px 0',
+                          boxShadow: '7px 7px 0 7px ' + activeBackground,
+                        },
+                        '&::after': {
+                          bottom: -14,
+                          borderRadius: '0 14px 0 0',
+                          boxShadow: '7px -7px 0 7px ' + activeBackground,
+                        },
                       },
-                      '&::before': {
-                        top: -14,
-                        borderRadius: '0 0 14px 0',
-                        boxShadow: '7px 7px 0 7px ' + activeBackground,
-                      },
-                      '&::after': {
-                        bottom: -14,
-                        borderRadius: '0 14px 0 0',
-                        boxShadow: '7px -7px 0 7px ' + activeBackground,
-                      },
-                    },
-              '&.Mui-selected:hover': { bgcolor: activeBackground },
-              '&:not(.Mui-selected):hover': {
-                bgcolor: selectedColor,
-                width: 'calc(100% + 12px)',
-                position: 'relative',
-                zIndex: 2,
-              },
-            }}
-          >
-            <ListItemIcon
-              sx={{
-                color: 'inherit',
-                position: 'absolute',
-                left: 0,
-                width: 64,
-                minWidth: 64,
-                display: 'flex',
-                justifyContent: 'center',
-                transition: 'color .2s ease',
+                '&.Mui-selected:hover': { bgcolor: activeBackground },
+                '&:not(.Mui-selected):hover': {
+                  bgcolor: selectedColor,
+                  width: 'calc(100% + 12px)',
+                  position: 'relative',
+                  zIndex: 2,
+                },
               }}
             >
-              {isValidElement(icon)
-                ? cloneElement(icon as ReactElement<{ animate?: boolean }>, {
-                    animate: hoveredMenu === label || clickedMenu === label,
-                  })
-                : icon}
-            </ListItemIcon>
-            {renderExpandedContent && (
-              <ListItemText
+              <ListItemIcon
                 sx={{
-                  m: 0,
-                  ml: '44px',
-                  whiteSpace: 'nowrap',
-                  opacity: expandedContentVisible ? 1 : 0,
-                  transform: expandedContentVisible
-                    ? 'translateX(0)'
-                    : 'translateX(-10px)',
-                  transition: 'opacity .14s ease, transform .14s ease',
-                }}
-                primary={
-                  <Typography
-                    sx={{ fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap' }}
-                  >
-                    {label}
-                  </Typography>
-                }
-              />
-            )}
-            {!!badge && (
-              <Box
-                className="sbc-nav-badge"
-                sx={{
+                  color: 'inherit',
                   position: 'absolute',
-                  top: '50%',
-                  left: collapsed ? 48 : 172,
-                  zIndex: 3,
-                  display: 'grid',
-                  placeItems: 'center',
-                  minWidth: 22,
-                  height: 22,
-                  px: 0.5,
-                  borderRadius: 99,
-                  bgcolor: '#e5291d',
-                  color: '#fff',
-                  transform: 'translateY(-50%)',
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  lineHeight: 1,
+                  left: 0,
+                  width: 64,
+                  minWidth: 64,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  transition: 'color .2s ease',
                 }}
               >
-                {badge > 99 ? '99+' : badge}
-              </Box>
-            )}
-          </ListItemButton>
+                {isValidElement(icon)
+                  ? cloneElement(icon as ReactElement<{ animate?: boolean }>, {
+                      animate: hoveredMenu === label || clickedMenu === label,
+                    })
+                  : icon}
+              </ListItemIcon>
+              {renderExpandedContent && (
+                <ListItemText
+                  sx={{
+                    m: 0,
+                    ml: '44px',
+                    whiteSpace: 'nowrap',
+                    opacity: expandedContentVisible ? 1 : 0,
+                    transform: expandedContentVisible
+                      ? 'translateX(0)'
+                      : 'translateX(-10px)',
+                    transition: 'opacity .14s ease, transform .14s ease',
+                  }}
+                  primary={
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 400,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </Typography>
+                  }
+                />
+              )}
+              {!!badge && (
+                <Box
+                  className="sbc-nav-badge"
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: collapsed ? 48 : 172,
+                    zIndex: 3,
+                    display: 'grid',
+                    placeItems: 'center',
+                    minWidth: 22,
+                    height: 22,
+                    px: 0.5,
+                    borderRadius: 99,
+                    bgcolor: '#e5291d',
+                    color: '#fff',
+                    transform: 'translateY(-50%)',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  {badge > 99 ? '99+' : badge}
+                </Box>
+              )}
+            </ListItemButton>
+          </Box>
         ))}
       </List>
       <Box
