@@ -31,7 +31,7 @@ export function AdminOverviewSkeleton() {
             variant="rounded"
             width="84%"
             height={14}
-            sx={{ mt: 1, maxWidth: 360 }}
+            sx={{ mt: 0.35, maxWidth: 360 }}
           />
         </Box>
         <Skeleton variant="rounded" width={170} height={14} />
@@ -49,12 +49,22 @@ export function AdminOverviewSkeleton() {
             variant="outlined"
             sx={{ p: 2.5, borderRadius: '15px', borderColor: '#e8ddd5' }}
           >
-            <Skeleton variant="rounded" width="42%" height={14} />
+            <Box
+              sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}
+            >
+              <Skeleton variant="rounded" width="42%" height={14} />
+              <Skeleton
+                variant="circular"
+                width={9}
+                height={9}
+                sx={{ mt: 0.6 }}
+              />
+            </Box>
             <Skeleton
               variant="rounded"
               width="58%"
               height={34}
-              sx={{ mt: 1 }}
+              sx={{ mt: 1.25 }}
             />
             <Skeleton
               variant="rounded"
@@ -84,14 +94,42 @@ export function AdminOverviewSkeleton() {
           }}
         >
           <Skeleton variant="rounded" width="28%" height={22} />
-          <Skeleton variant="rounded" width="38%" height={13} sx={{ mt: 1 }} />
           <Skeleton
             variant="rounded"
-            width="100%"
-            height={140}
-            className="skeleton-panel"
-            sx={{ mt: 2.5, borderRadius: '14px', bgcolor: '#201914' }}
+            width="38%"
+            height={13}
+            sx={{ mt: 0.35 }}
           />
+          <Box
+            className="skeleton-panel"
+            sx={{
+              mt: 2.5,
+              p: { xs: 2, md: 2.5 },
+              minHeight: 140,
+              boxSizing: 'border-box',
+              borderRadius: '14px',
+              bgcolor: '#201914',
+            }}
+          >
+            <Skeleton
+              variant="rounded"
+              width="24%"
+              height={13}
+              sx={{ bgcolor: '#6b5141' }}
+            />
+            <Skeleton
+              variant="rounded"
+              width="46%"
+              height={34}
+              sx={{ mt: 0.7, bgcolor: '#6b5141' }}
+            />
+            <Skeleton
+              variant="rounded"
+              width="58%"
+              height={13}
+              sx={{ mt: 1, bgcolor: '#6b5141' }}
+            />
+          </Box>
           <Box
             sx={{
               display: 'grid',
@@ -106,7 +144,7 @@ export function AdminOverviewSkeleton() {
                 variant="rounded"
                 width="62%"
                 height={28}
-                sx={{ mt: 1 }}
+                sx={{ mt: 0.4 }}
               />
             </Box>
             <Box sx={{ borderLeft: '1px solid #ece3dc', pl: 2 }}>
@@ -115,7 +153,7 @@ export function AdminOverviewSkeleton() {
                 variant="rounded"
                 width="62%"
                 height={28}
-                sx={{ mt: 1 }}
+                sx={{ mt: 0.4 }}
               />
             </Box>
           </Box>
@@ -129,17 +167,39 @@ export function AdminOverviewSkeleton() {
           }}
         >
           <Skeleton variant="rounded" width="32%" height={22} />
-          <Skeleton variant="rounded" width="48%" height={13} sx={{ mt: 1 }} />
+          <Skeleton
+            variant="rounded"
+            width="48%"
+            height={13}
+            sx={{ mt: 0.35 }}
+          />
           <Stack spacing={1.25} sx={{ mt: 2.3 }}>
             {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton
+              <Box
                 key={i}
-                variant="rounded"
-                width="100%"
-                height={54}
                 className="skeleton-panel"
-                sx={{ borderRadius: '12px' }}
-              />
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  p: 1.5,
+                  border: '1px solid #eee4dd',
+                  borderRadius: '12px',
+                }}
+              >
+                <Skeleton variant="circular" width={10} height={10} />
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Skeleton variant="rounded" width="62%" height={15} />
+                  <Skeleton
+                    variant="rounded"
+                    width="48%"
+                    height={13}
+                    sx={{ mt: 0.1 }}
+                  />
+                </Box>
+                <Skeleton variant="rounded" width={18} height={22} />
+                <Skeleton variant="rounded" width={9} height={22} />
+              </Box>
             ))}
           </Stack>
         </Card>
@@ -153,7 +213,7 @@ export function AdminOverviewSkeleton() {
         }}
       >
         <Skeleton variant="rounded" width="18%" height={22} />
-        <Skeleton variant="rounded" width="38%" height={13} sx={{ mt: 1 }} />
+        <Skeleton variant="rounded" width="38%" height={13} sx={{ mt: 0.35 }} />
         <Divider sx={{ my: 2.2, borderColor: '#eee4dd' }} />
         <Box
           sx={{
@@ -180,13 +240,13 @@ export function AdminOverviewSkeleton() {
                 variant="rounded"
                 width="74%"
                 height={19}
-                sx={{ mt: 1 }}
+                sx={{ mt: 0.8 }}
               />
               <Skeleton
                 variant="rounded"
                 width="92%"
                 height={14}
-                sx={{ mt: 1 }}
+                sx={{ mt: 0.35 }}
               />
             </Box>
           ))}
