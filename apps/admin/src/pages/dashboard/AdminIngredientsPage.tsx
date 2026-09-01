@@ -27,7 +27,7 @@ import {
   ingredientBranches,
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
-import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
+import { AdminIngredientsSkeleton } from '../../components/skeletons/AdminIngredientsSkeleton';
 import { listInventory } from '../../api';
 
 type Ingredient = {
@@ -328,7 +328,7 @@ export function AdminIngredientsPage({
               {!isBranchVisible ? (
                 <Box sx={{ minHeight: 420 }} />
               ) : isLoading || !isBranchLoaded ? (
-                <IngredientCardsSkeleton count={4} />
+                <AdminIngredientsSkeleton />
               ) : (
                 <>
                   <Box

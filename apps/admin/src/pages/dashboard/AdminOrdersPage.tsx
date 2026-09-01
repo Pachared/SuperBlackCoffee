@@ -19,7 +19,7 @@ import {
   useStockRequests,
   useUpdateStockRequestStatus,
 } from '../../hooks/useStockRequests';
-import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
+import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
 
 type RequestStatus =
   'pending' | 'approved' | 'preparing' | 'completed' | 'rejected';
@@ -308,7 +308,7 @@ export function AdminOrdersPage({
           </Button>
         </Box>
       )}
-      {isLoading && <AdminPageSkeleton variant="cards" count={6} />}
+      {isLoading && <AdminOrdersSkeleton />}
       <Box
         sx={{
           display: 'grid',

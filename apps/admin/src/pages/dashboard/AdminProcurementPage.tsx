@@ -29,7 +29,7 @@ import {
   type InventoryItem,
   type PurchaseOrder,
 } from '../../api';
-import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
+import { AdminProcurementSkeleton } from '../../components/skeletons/AdminProcurementSkeleton';
 
 const statusLabel: Record<PurchaseOrder['status'], string> = {
   draft: 'ฉบับร่าง',
@@ -269,7 +269,7 @@ export function AdminProcurementPage() {
         </Box>
         <Divider />
         {orders.isLoading ? (
-          <AdminPageSkeleton variant="table" count={5} />
+          <AdminProcurementSkeleton />
         ) : orders.data?.length ? (
           orders.data.map((order) => {
             const next = nextStatus[order.status];

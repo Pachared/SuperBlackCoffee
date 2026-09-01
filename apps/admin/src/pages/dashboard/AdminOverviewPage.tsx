@@ -11,7 +11,7 @@ import { DashboardMain, formatCurrency } from '@stackbuild/ui';
 import { useDashboardSummary } from '../../hooks/useDashboardSummary';
 import { useStockRequests } from '../../hooks/useStockRequests';
 import { useWebsiteLeads } from '../../hooks/useWebsiteLeads';
-import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
+import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import type { AdminPage } from '../../routes/adminRoutes';
 
 type OverviewAction = {
@@ -211,7 +211,7 @@ export function AdminOverviewPage({
   return (
     <DashboardMain>
       {isLoading ? (
-        <AdminPageSkeleton variant="overview" />
+        <AdminOverviewSkeleton />
       ) : (
         <Stack spacing={2.25}>
           <Box

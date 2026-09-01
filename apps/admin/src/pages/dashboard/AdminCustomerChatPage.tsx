@@ -17,7 +17,7 @@ import {
 } from '@stackbuild/ui';
 import { useRef } from 'react';
 import { useWebsiteLeads } from '../../hooks/useWebsiteLeads';
-import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
+import { AdminCustomerChatSkeleton } from '../../components/skeletons/AdminCustomerChatSkeleton';
 import { updateWebsiteLeadStatus } from '../../api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -389,7 +389,7 @@ export function AdminCustomerChatPage() {
 
   return (
     <DashboardMain>
-      {isLeadsLoading ? <AdminPageSkeleton variant="chat" /> : null}
+      {isLeadsLoading ? <AdminCustomerChatSkeleton /> : null}
       <Card
         variant="outlined"
         sx={{

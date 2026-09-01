@@ -24,7 +24,7 @@ import {
   ingredientBranches,
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
-import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
+import { AdminProductsSkeleton } from '../../components/skeletons/AdminProductsSkeleton';
 import { listInventory, listMenuItems } from '../../api';
 
 type ProductIngredient = { name: string; quantity: string };
@@ -311,7 +311,7 @@ export function AdminProductsPage({
               {!visible ? (
                 <Box sx={{ minHeight: 420 }} />
               ) : isLoading || !loaded ? (
-                <IngredientCardsSkeleton count={4} />
+                <AdminProductsSkeleton />
               ) : (
                 <Box
                   sx={{

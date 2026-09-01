@@ -16,7 +16,7 @@ import {
   type SearchIconHandle,
 } from '@stackbuild/ui';
 import { listBranchSales } from '../../api';
-import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
+import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
 
 const periods = ['วันนี้', 'เดือนนี้', 'ปีนี้'] as const;
 type Period = (typeof periods)[number];
@@ -207,7 +207,7 @@ export function AdminBranchesPage() {
           ออเดอร์ที่ชำระเงินแล้วของทุกสาขา
         </Typography>
       </Card>
-      {isLoading ? <AdminPageSkeleton variant="cards" count={4} /> : null}
+      {isLoading ? <AdminBranchesSkeleton /> : null}
 
       <Box
         sx={{

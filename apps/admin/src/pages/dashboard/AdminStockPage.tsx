@@ -28,7 +28,7 @@ import {
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { listInventory } from '../../api';
-import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
+import { AdminStockSkeleton } from '../../components/skeletons/AdminStockSkeleton';
 
 type StockItem = {
   name: string;
@@ -257,7 +257,7 @@ export function AdminStockPage({
                 </Typography>
               )}
               {isLoading ? (
-                <IngredientCardsSkeleton count={4} />
+                <AdminStockSkeleton />
               ) : (
                 <Box
                   sx={{
