@@ -28,6 +28,7 @@ import {
   type IngredientBranch,
 } from '../../components/sidebar/IngredientBranchesSidebar';
 import { listInventory } from '../../api';
+import { IngredientCardsSkeleton } from '../../components/skeletons/IngredientCardsSkeleton';
 
 type StockItem = {
   name: string;
@@ -57,6 +58,7 @@ export function AdminStockPage({
   const [catalogStockItemsByBranch, setCatalogStockItemsByBranch] = useState<
     Record<string, StockItem[]>
   >({});
+  const [isLoading, setIsLoading] = useState(true);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
   const filterItems = (items: StockItem[]) =>
     items.filter(
@@ -81,6 +83,7 @@ export function AdminStockPage({
   );
   useEffect(() => {
     let active = true;
+    setIsLoading(true);
     const branchNames: InventoryBranch[] =
       activeBranch === 'ทุกสาขา'
         ? ingredientBranches.filter(
@@ -116,6 +119,9 @@ export function AdminStockPage({
       })
       .catch(() => {
         if (active) setCatalogStockItemsByBranch({});
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
       });
     return () => {
       active = false;
@@ -250,203 +256,209 @@ export function AdminStockPage({
                   สาขา {branch}
                 </Typography>
               )}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr',
-                    sm: 'repeat(2, minmax(0, 1fr))',
-                    md: 'repeat(4, minmax(0, 1fr))',
-                  },
-                  gap: '16px',
-                }}
-              >
-                {filteredItems.map((item) => {
-                  const badge = INGREDIENT_STATUS_BADGES[item.status];
-                  const itemKey = `${branch}-${item.name}`;
-                  return (
-                    <Card
-                      key={itemKey}
-                      variant="outlined"
-                      sx={{
-                        position: 'relative',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                        borderRadius: '15px',
-                        borderColor: '#e8ddd5',
-                      }}
-                    >
-                      <Box sx={{ position: 'relative' }}>
-                        <Box
-                          component="img"
-                          src={coffeeIngredientsImage}
-                          alt={item.name}
-                          loading="lazy"
-                          decoding="async"
-                          sx={{
-                            display: 'block',
-                            width: '100%',
-                            aspectRatio: { xs: '1 / 1', md: '4 / 3' },
-                            objectFit: 'cover',
-                            objectPosition: item.position,
-                          }}
-                        />
-                        <Chip
-                          label={item.status}
-                          size="small"
-                          sx={{
-                            position: 'absolute',
-                            top: 12,
-                            right: 12,
-                            height: 25,
-                            borderRadius: '12px',
-                            bgcolor: badge.main,
-                            color: badge.contrastText,
-                            fontFamily: 'Kanit, sans-serif',
-                            fontSize: 11,
-                          }}
-                        />
-                      </Box>
-                      <Box
+              {isLoading ? (
+                <IngredientCardsSkeleton count={4} />
+              ) : (
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      sm: 'repeat(2, minmax(0, 1fr))',
+                      md: 'repeat(4, minmax(0, 1fr))',
+                    },
+                    gap: '16px',
+                  }}
+                >
+                  {filteredItems.map((item) => {
+                    const badge = INGREDIENT_STATUS_BADGES[item.status];
+                    const itemKey = `${branch}-${item.name}`;
+                    return (
+                      <Card
+                        key={itemKey}
+                        variant="outlined"
                         sx={{
+                          position: 'relative',
                           display: 'flex',
                           flexDirection: 'column',
-                          flex: 1,
-                          p: 2.5,
+                          overflow: 'hidden',
+                          borderRadius: '15px',
+                          borderColor: '#e8ddd5',
                         }}
                       >
-                        <Typography
-                          sx={{
-                            fontFamily: 'Kanit, sans-serif',
-                            fontSize: 18,
-                            fontWeight: 500,
-                          }}
-                        >
-                          {item.name}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            mt: 0.6,
-                            color: 'text.secondary',
-                            fontFamily: 'Kanit, sans-serif',
-                            fontSize: 13,
-                          }}
-                        >
-                          {item.amount}
-                        </Typography>
-                        <Box
-                          sx={{ display: 'flex', gap: 1, mt: 'auto', pt: 2 }}
-                        >
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => openEdit(item)}
+                        <Box sx={{ position: 'relative' }}>
+                          <Box
+                            component="img"
+                            src={coffeeIngredientsImage}
+                            alt={item.name}
+                            loading="lazy"
+                            decoding="async"
                             sx={{
-                              flex: 1,
-                              minHeight: 34,
-                              borderRadius: '10px',
-                              bgcolor: '#5f4030',
-                              fontFamily: 'Kanit, sans-serif',
-                              fontSize: 12,
-                              boxShadow: 'none',
-                              '&:hover': {
-                                bgcolor: '#3c2d24',
-                                boxShadow: 'none',
-                              },
+                              display: 'block',
+                              width: '100%',
+                              aspectRatio: { xs: '1 / 1', md: '4 / 3' },
+                              objectFit: 'cover',
+                              objectPosition: item.position,
                             }}
-                          >
-                            แก้ไขสต๊อก
-                          </Button>
-                          <Button
+                          />
+                          <Chip
+                            label={item.status}
                             size="small"
-                            variant="contained"
-                            color="error"
-                            onClick={() => setDeleteTargetKey(itemKey)}
                             sx={{
-                              flex: 1,
-                              minHeight: 34,
-                              borderRadius: '10px',
+                              position: 'absolute',
+                              top: 12,
+                              right: 12,
+                              height: 25,
+                              borderRadius: '12px',
+                              bgcolor: badge.main,
+                              color: badge.contrastText,
                               fontFamily: 'Kanit, sans-serif',
-                              fontSize: 12,
-                              boxShadow: 'none',
-                              '&:hover': { boxShadow: 'none' },
+                              fontSize: 11,
                             }}
-                          >
-                            ลบสต๊อก
-                          </Button>
+                          />
                         </Box>
-                      </Box>
-                      {deleteTargetKey === itemKey && (
                         <Box
                           sx={{
-                            position: 'absolute',
-                            inset: 0,
-                            zIndex: 2,
                             display: 'flex',
                             flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 2,
+                            flex: 1,
                             p: 2.5,
-                            bgcolor: 'rgba(32, 25, 20, .94)',
-                            color: '#fff',
-                            textAlign: 'center',
                           }}
                         >
                           <Typography
                             sx={{
                               fontFamily: 'Kanit, sans-serif',
                               fontSize: 18,
-                              fontWeight: 600,
+                              fontWeight: 500,
                             }}
                           >
-                            ยืนยันการลบสต๊อก?
+                            {item.name}
                           </Typography>
                           <Typography
                             sx={{
-                              color: 'rgba(255,255,255,.75)',
+                              mt: 0.6,
+                              color: 'text.secondary',
                               fontFamily: 'Kanit, sans-serif',
                               fontSize: 13,
                             }}
                           >
-                            รายการนี้จะถูกลบออกจากสต๊อก
+                            {item.amount}
                           </Typography>
-                          <Box sx={{ display: 'flex', width: '100%', gap: 1 }}>
+                          <Box
+                            sx={{ display: 'flex', gap: 1, mt: 'auto', pt: 2 }}
+                          >
                             <Button
-                              fullWidth
-                              onClick={() => setDeleteTargetKey(null)}
+                              size="small"
+                              variant="contained"
+                              onClick={() => openEdit(item)}
                               sx={{
-                                minHeight: 38,
+                                flex: 1,
+                                minHeight: 34,
                                 borderRadius: '10px',
-                                color: '#fff',
-                                border: '1px solid rgba(255,255,255,.45)',
+                                bgcolor: '#5f4030',
                                 fontFamily: 'Kanit, sans-serif',
+                                fontSize: 12,
+                                boxShadow: 'none',
+                                '&:hover': {
+                                  bgcolor: '#3c2d24',
+                                  boxShadow: 'none',
+                                },
                               }}
                             >
-                              ยกเลิก
+                              แก้ไขสต๊อก
                             </Button>
                             <Button
-                              fullWidth
+                              size="small"
                               variant="contained"
                               color="error"
-                              onClick={() => setDeleteTargetKey(null)}
+                              onClick={() => setDeleteTargetKey(itemKey)}
                               sx={{
-                                minHeight: 38,
+                                flex: 1,
+                                minHeight: 34,
                                 borderRadius: '10px',
                                 fontFamily: 'Kanit, sans-serif',
+                                fontSize: 12,
                                 boxShadow: 'none',
+                                '&:hover': { boxShadow: 'none' },
                               }}
                             >
-                              ยืนยันลบ
+                              ลบสต๊อก
                             </Button>
                           </Box>
                         </Box>
-                      )}
-                    </Card>
-                  );
-                })}
-              </Box>
+                        {deleteTargetKey === itemKey && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              inset: 0,
+                              zIndex: 2,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 2,
+                              p: 2.5,
+                              bgcolor: 'rgba(32, 25, 20, .94)',
+                              color: '#fff',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontFamily: 'Kanit, sans-serif',
+                                fontSize: 18,
+                                fontWeight: 600,
+                              }}
+                            >
+                              ยืนยันการลบสต๊อก?
+                            </Typography>
+                            <Typography
+                              sx={{
+                                color: 'rgba(255,255,255,.75)',
+                                fontFamily: 'Kanit, sans-serif',
+                                fontSize: 13,
+                              }}
+                            >
+                              รายการนี้จะถูกลบออกจากสต๊อก
+                            </Typography>
+                            <Box
+                              sx={{ display: 'flex', width: '100%', gap: 1 }}
+                            >
+                              <Button
+                                fullWidth
+                                onClick={() => setDeleteTargetKey(null)}
+                                sx={{
+                                  minHeight: 38,
+                                  borderRadius: '10px',
+                                  color: '#fff',
+                                  border: '1px solid rgba(255,255,255,.45)',
+                                  fontFamily: 'Kanit, sans-serif',
+                                }}
+                              >
+                                ยกเลิก
+                              </Button>
+                              <Button
+                                fullWidth
+                                variant="contained"
+                                color="error"
+                                onClick={() => setDeleteTargetKey(null)}
+                                sx={{
+                                  minHeight: 38,
+                                  borderRadius: '10px',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  boxShadow: 'none',
+                                }}
+                              >
+                                ยืนยันลบ
+                              </Button>
+                            </Box>
+                          </Box>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </Box>
+              )}
             </Box>
           );
         })}

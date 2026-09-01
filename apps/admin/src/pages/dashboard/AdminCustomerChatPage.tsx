@@ -17,6 +17,7 @@ import {
 } from '@stackbuild/ui';
 import { useRef } from 'react';
 import { useWebsiteLeads } from '../../hooks/useWebsiteLeads';
+import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
 import { updateWebsiteLeadStatus } from '../../api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -314,6 +315,7 @@ export function AdminCustomerChatPage() {
   >({ customers: undefined, messages: undefined });
   const {
     data: websiteLeads = [],
+    isLoading: isLeadsLoading,
     isError: leadsError,
     refetch: refetchLeads,
   } = useWebsiteLeads();
@@ -387,10 +389,11 @@ export function AdminCustomerChatPage() {
 
   return (
     <DashboardMain>
+      {isLeadsLoading ? <AdminPageSkeleton variant="chat" /> : null}
       <Card
         variant="outlined"
         sx={{
-          display: 'grid',
+          display: isLeadsLoading ? 'none' : 'grid',
           gridTemplateColumns: { xs: '1fr', md: '300px minmax(0, 1fr)' },
           height: { xs: 'calc(100dvh - 112px)', md: 'calc(100dvh - 128px)' },
           minHeight: { xs: 520, md: 590 },

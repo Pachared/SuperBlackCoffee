@@ -66,6 +66,7 @@ export function AdminIngredientsPage({
   const [catalogIngredientsByBranch, setCatalogIngredientsByBranch] = useState<
     Record<string, Ingredient[]>
   >({});
+  const [isLoading, setIsLoading] = useState(true);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
   const [visibleBranchNames, setVisibleBranchNames] = useState<Set<string>>(
     () => new Set(),
@@ -85,6 +86,7 @@ export function AdminIngredientsPage({
     });
   useEffect(() => {
     let active = true;
+    setIsLoading(true);
     const branchNames: InventoryBranch[] =
       activeBranch === 'ทุกสาขา'
         ? ingredientBranches.filter(
@@ -121,6 +123,9 @@ export function AdminIngredientsPage({
       })
       .catch(() => {
         if (active) setCatalogIngredientsByBranch({});
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
       });
     return () => {
       active = false;
@@ -322,10 +327,8 @@ export function AdminIngredientsPage({
               )}
               {!isBranchVisible ? (
                 <Box sx={{ minHeight: 420 }} />
-              ) : !isBranchLoaded ? (
-                <IngredientCardsSkeleton
-                  count={Math.min(filteredIngredients.length, 4)}
-                />
+              ) : isLoading || !isBranchLoaded ? (
+                <IngredientCardsSkeleton count={4} />
               ) : (
                 <>
                   <Box

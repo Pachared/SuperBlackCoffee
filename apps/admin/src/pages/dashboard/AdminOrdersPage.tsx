@@ -19,6 +19,7 @@ import {
   useStockRequests,
   useUpdateStockRequestStatus,
 } from '../../hooks/useStockRequests';
+import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
 
 type RequestStatus =
   'pending' | 'approved' | 'preparing' | 'completed' | 'rejected';
@@ -307,13 +308,7 @@ export function AdminOrdersPage({
           </Button>
         </Box>
       )}
-      {isLoading && (
-        <Typography
-          sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}
-        >
-          กำลังโหลดคำขอ...
-        </Typography>
-      )}
+      {isLoading && <AdminPageSkeleton variant="cards" count={6} />}
       <Box
         sx={{
           display: 'grid',
@@ -325,194 +320,199 @@ export function AdminOrdersPage({
           gap: '16px',
         }}
       >
-        {filteredRequests.map((request) => {
-          const color = statusColors[request.status];
-          const canAdvance = Boolean(nextStatus[request.status]);
-          return (
-            <Card
-              key={request.id}
-              variant="outlined"
-              sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}
-            >
-              <Box sx={{ p: 2.5 }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  <Box>
+        {!isLoading &&
+          filteredRequests.map((request) => {
+            const color = statusColors[request.status];
+            const canAdvance = Boolean(nextStatus[request.status]);
+            return (
+              <Card
+                key={request.id}
+                variant="outlined"
+                sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}
+              >
+                <Box sx={{ p: 2.5 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        sx={{
+                          color: '#3c2d24',
+                          fontFamily: 'Kanit, sans-serif',
+                          fontSize: 19,
+                          fontWeight: 600,
+                        }}
+                      >
+                        สาขา {request.branch}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 0.15,
+                          color: 'text.secondary',
+                          fontFamily: 'Kanit, sans-serif',
+                          fontSize: 12,
+                        }}
+                      >
+                        {request.id}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={statusLabels[request.status]}
+                      size="small"
+                      sx={{
+                        height: 25,
+                        borderRadius: '12px',
+                        bgcolor: color.main,
+                        color: color.text,
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 11,
+                      }}
+                    />
+                  </Box>
+                  <Chip
+                    label={request.type}
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      mt: 1.5,
+                      height: 24,
+                      borderRadius: '9px',
+                      borderColor:
+                        request.type === 'วัตถุดิบ' ? '#b8a296' : '#a8b6c1',
+                      color:
+                        request.type === 'วัตถุดิบ' ? '#805637' : '#276a9c',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 11,
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      p: 1.25,
+                      borderRadius: '10px',
+                      bgcolor: '#f8f0eb',
+                      border: '1px solid #eadbd2',
+                    }}
+                  >
                     <Typography
                       sx={{
-                        color: '#3c2d24',
+                        mb: 0.75,
+                        color: '#5f4030',
                         fontFamily: 'Kanit, sans-serif',
-                        fontSize: 19,
+                        fontSize: 13,
                         fontWeight: 600,
                       }}
                     >
-                      สาขา {request.branch}
+                      รายการที่ขอ{' '}
+                      <Box
+                        component="span"
+                        sx={{ color: '#8a6b58', fontWeight: 500 }}
+                      >
+                        · {request.items.length} รายการ
+                      </Box>
                     </Typography>
+                    {request.items.map((item) => (
+                      <Box
+                        key={item.name}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 1,
+                          py: 0.5,
+                          '& + &': { borderTop: '1px solid #eadbd2' },
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 13,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {item.name}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            flexShrink: 0,
+                            color: '#805637',
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 13,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {item.quantity}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                      mt: 2,
+                    }}
+                  >
                     <Typography
                       sx={{
-                        mt: 0.15,
                         color: 'text.secondary',
                         fontFamily: 'Kanit, sans-serif',
                         fontSize: 12,
                       }}
                     >
-                      {request.id}
+                      {request.requestedAt}
                     </Typography>
-                  </Box>
-                  <Chip
-                    label={statusLabels[request.status]}
-                    size="small"
-                    sx={{
-                      height: 25,
-                      borderRadius: '12px',
-                      bgcolor: color.main,
-                      color: color.text,
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 11,
-                    }}
-                  />
-                </Box>
-                <Chip
-                  label={request.type}
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    mt: 1.5,
-                    height: 24,
-                    borderRadius: '9px',
-                    borderColor:
-                      request.type === 'วัตถุดิบ' ? '#b8a296' : '#a8b6c1',
-                    color: request.type === 'วัตถุดิบ' ? '#805637' : '#276a9c',
-                    fontFamily: 'Kanit, sans-serif',
-                    fontSize: 11,
-                  }}
-                />
-                <Box
-                  sx={{
-                    mt: 1.5,
-                    p: 1.25,
-                    borderRadius: '10px',
-                    bgcolor: '#f8f0eb',
-                    border: '1px solid #eadbd2',
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      mb: 0.75,
-                      color: '#5f4030',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 13,
-                      fontWeight: 600,
-                    }}
-                  >
-                    รายการที่ขอ{' '}
-                    <Box
-                      component="span"
-                      sx={{ color: '#8a6b58', fontWeight: 500 }}
-                    >
-                      · {request.items.length} รายการ
+                    <Box sx={{ display: 'flex', gap: 0.75 }}>
+                      {canAdvance ? (
+                        <Button
+                          onClick={() => advanceRequest(request.id)}
+                          variant="contained"
+                          size="small"
+                          sx={{
+                            minHeight: 34,
+                            borderRadius: '10px',
+                            bgcolor: '#201914',
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 12,
+                            boxShadow: 'none',
+                            '&:hover': {
+                              bgcolor: '#3c2d24',
+                              boxShadow: 'none',
+                            },
+                          }}
+                        >
+                          {actionLabel[request.status]}
+                        </Button>
+                      ) : null}
+                      {request.status === 'pending' ? (
+                        <Button
+                          onClick={() => rejectRequest(request.id)}
+                          color="error"
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            minHeight: 34,
+                            borderRadius: '10px',
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 12,
+                          }}
+                        >
+                          ปฏิเสธ
+                        </Button>
+                      ) : null}
                     </Box>
-                  </Typography>
-                  {request.items.map((item) => (
-                    <Box
-                      key={item.name}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 1,
-                        py: 0.5,
-                        '& + &': { borderTop: '1px solid #eadbd2' },
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          fontFamily: 'Kanit, sans-serif',
-                          fontSize: 13,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {item.name}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          flexShrink: 0,
-                          color: '#805637',
-                          fontFamily: 'Kanit, sans-serif',
-                          fontSize: 13,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {item.quantity}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                    mt: 2,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      color: 'text.secondary',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 12,
-                    }}
-                  >
-                    {request.requestedAt}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.75 }}>
-                    {canAdvance ? (
-                      <Button
-                        onClick={() => advanceRequest(request.id)}
-                        variant="contained"
-                        size="small"
-                        sx={{
-                          minHeight: 34,
-                          borderRadius: '10px',
-                          bgcolor: '#201914',
-                          fontFamily: 'Kanit, sans-serif',
-                          fontSize: 12,
-                          boxShadow: 'none',
-                          '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
-                        }}
-                      >
-                        {actionLabel[request.status]}
-                      </Button>
-                    ) : null}
-                    {request.status === 'pending' ? (
-                      <Button
-                        onClick={() => rejectRequest(request.id)}
-                        color="error"
-                        variant="outlined"
-                        size="small"
-                        sx={{
-                          minHeight: 34,
-                          borderRadius: '10px',
-                          fontFamily: 'Kanit, sans-serif',
-                          fontSize: 12,
-                        }}
-                      >
-                        ปฏิเสธ
-                      </Button>
-                    ) : null}
                   </Box>
                 </Box>
-              </Box>
-            </Card>
-          );
-        })}
+              </Card>
+            );
+          })}
       </Box>
       {filteredRequests.length === 0 && (
         <Typography

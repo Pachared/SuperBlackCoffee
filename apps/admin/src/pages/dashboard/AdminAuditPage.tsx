@@ -3,6 +3,7 @@ import { Box, Button, Card, Chip, Typography } from '@mui/material';
 import { DashboardMain, formatDate } from '@stackbuild/ui';
 import type { AuditEvent } from '../../api';
 import { useAuditEvents } from '../../hooks/useAuditEvents';
+import { AdminPageSkeleton } from '../../components/skeletons/AdminPageSkeleton';
 
 const actionLabels: Record<string, string> = {
   created: 'สร้างรายการ',
@@ -81,14 +82,8 @@ export function AdminAuditPage() {
           </Button>
         </Card>
       ) : null}
-      {isLoading ? (
-        <Typography
-          sx={{ py: 3, textAlign: 'center', color: 'text.secondary' }}
-        >
-          กำลังโหลดประวัติ...
-        </Typography>
-      ) : null}
-      <Box sx={{ display: 'grid', gap: 1.25 }}>
+      {isLoading ? <AdminPageSkeleton variant="list" count={5} /> : null}
+      <Box sx={{ display: isLoading ? 'none' : 'grid', gap: 1.25 }}>
         {groupedEvents.map((event) => (
           <Card
             key={event.id}

@@ -66,6 +66,7 @@ export function AdminProductsPage({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [availableIngredients, setAvailableIngredients] = useState<string[]>(
     [],
   );
@@ -147,6 +148,7 @@ export function AdminProductsPage({
 
   useEffect(() => {
     let active = true;
+    setIsLoading(true);
     Promise.all([
       listMenuItems(),
       listInventory('ingredient'),
@@ -174,7 +176,10 @@ export function AdminProductsPage({
           })),
         );
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -305,8 +310,8 @@ export function AdminProductsPage({
               )}
               {!visible ? (
                 <Box sx={{ minHeight: 420 }} />
-              ) : !loaded ? (
-                <IngredientCardsSkeleton count={Math.min(matches.length, 4)} />
+              ) : isLoading || !loaded ? (
+                <IngredientCardsSkeleton count={4} />
               ) : (
                 <Box
                   sx={{
