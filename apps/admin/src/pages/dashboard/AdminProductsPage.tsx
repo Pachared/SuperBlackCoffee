@@ -370,6 +370,8 @@ export function AdminProductsPage({
                     const productKey = `${branch}-${item.name}-${itemIndex}`;
                     const imageSource =
                       item.imageUrl || menuImageFallback(item);
+                    const isDefaultCoffeeImage =
+                      !item.imageUrl && isCoffeeMenu(item.category);
                     return (
                       <Card
                         key={productKey}
@@ -386,7 +388,7 @@ export function AdminProductsPage({
                         <Box
                           sx={{
                             position: 'relative',
-                            aspectRatio: { xs: '1 / 1', md: '4 / 3' },
+                            aspectRatio: '1 / 1',
                             bgcolor: imageSource ? 'transparent' : '#f7f1ed',
                           }}
                         >
@@ -407,8 +409,11 @@ export function AdminProductsPage({
                                 display: 'block',
                                 width: '100%',
                                 height: '100%',
-                                objectFit: 'cover',
+                                objectFit: isDefaultCoffeeImage
+                                  ? 'contain'
+                                  : 'cover',
                                 objectPosition: item.position,
+                                p: isDefaultCoffeeImage ? { xs: 4, md: 5 } : 0,
                               }}
                             />
                           )}
