@@ -280,7 +280,7 @@ export function DashboardSidebar({
                     ? {
                         bgcolor: activeBackground,
                         color: '#171411',
-                        borderRadius: '12px 0 0 12px',
+                        borderRadius: '16px 0 0 16px',
                         mr: -2,
                         position: 'relative',
                         zIndex: 1,
@@ -288,20 +288,20 @@ export function DashboardSidebar({
                           content: '""',
                           position: 'absolute',
                           right: 0,
-                          width: 14,
-                          height: 14,
+                          width: 16,
+                          height: 16,
                           bgcolor: '#171411',
                           pointerEvents: 'none',
                         },
                         '&::before': {
-                          top: -14,
-                          borderRadius: '0 0 14px 0',
-                          boxShadow: '7px 7px 0 7px ' + activeBackground,
+                          top: -16,
+                          borderRadius: '0 0 16px 0',
+                          boxShadow: '8px 8px 0 8px ' + activeBackground,
                         },
                         '&::after': {
-                          bottom: -14,
-                          borderRadius: '0 14px 0 0',
-                          boxShadow: '7px -7px 0 7px ' + activeBackground,
+                          bottom: -16,
+                          borderRadius: '0 16px 0 0',
+                          boxShadow: '8px -8px 0 8px ' + activeBackground,
                         },
                       }
                     : {
