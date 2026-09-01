@@ -33,6 +33,7 @@ type Product = {
   name: string;
   storePrice: number;
   lineManPrice: number;
+  lineManCostPrice: number;
   costPrice: number;
   category: string;
   status: 'พร้อมขาย' | 'หมดชั่วคราว';
@@ -197,6 +198,7 @@ export function AdminProductsPage({
             name: item.name,
             storePrice: item.storePrice,
             lineManPrice: item.linemanPrice,
+            lineManCostPrice: item.linemanCostPrice ?? item.costPrice,
             costPrice: item.costPrice,
             category: item.category,
             status: item.status === 'soldout' ? 'หมดชั่วคราว' : 'พร้อมขาย',
@@ -462,6 +464,32 @@ export function AdminProductsPage({
                                 }}
                               >
                                 {item.costPrice} บาท
+                              </Box>
+                            </Typography>
+                            <Typography
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                px: 1,
+                                py: 0.45,
+                                borderRadius: '8px',
+                                color: '#8a5a24',
+                                fontFamily: 'Kanit, sans-serif',
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              ต้นทุน LINE MAN
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontSize: 18,
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {item.lineManCostPrice} บาท
                               </Box>
                             </Typography>
                             <Typography
@@ -846,6 +874,14 @@ export function AdminProductsPage({
                 label="ราคา LINE MAN"
                 type="number"
                 defaultValue={editing?.lineManPrice}
+              />
+              <TextField
+                required
+                fullWidth
+                label="ต้นทุน LINE MAN"
+                type="number"
+                defaultValue={editing?.lineManCostPrice}
+                helperText="อ้างอิงต้นทุนจากสูตร LINE MAN"
               />
               <TextField
                 required

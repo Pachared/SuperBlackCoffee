@@ -30,7 +30,7 @@ func (h *PlatformHandler) CreateMenuItem(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	var id int64
-	err = tx.QueryRowContext(c, `INSERT INTO menu_items(branch_id,name,category,store_price,lineman_price,cost_price,status) VALUES($1,$2,$3,$4,$5,$6,'available') RETURNING id`, branchID, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice).Scan(&id)
+	err = tx.QueryRowContext(c, `INSERT INTO menu_items(branch_id,name,category,store_price,lineman_price,cost_price,lineman_cost_price,status) VALUES($1,$2,$3,$4,$5,$6,$7,'available') RETURNING id`, branchID, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice, input.LinemanCostPrice).Scan(&id)
 	for _, ingredient := range input.Ingredients {
 		if err != nil {
 			break
@@ -78,7 +78,7 @@ func (h *PlatformHandler) writeMenuItem(c *gin.Context) {
 		return
 	}
 	defer tx.Rollback()
-	result, err := tx.ExecContext(c, `UPDATE menu_items SET name=$1,category=$2,store_price=$3,lineman_price=$4,cost_price=$5,updated_at=now() WHERE id=$6 AND branch_id=$7`, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice, id, branchID)
+	result, err := tx.ExecContext(c, `UPDATE menu_items SET name=$1,category=$2,store_price=$3,lineman_price=$4,cost_price=$5,lineman_cost_price=$6,updated_at=now() WHERE id=$7 AND branch_id=$8`, input.Name, input.Category, input.StorePrice, input.LinemanPrice, input.CostPrice, input.LinemanCostPrice, id, branchID)
 	if err != nil || rowsAffected(result) == 0 {
 		c.JSON(404, gin.H{"success": false, "message": "ไม่พบเมนู"})
 		return

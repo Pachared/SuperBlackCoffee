@@ -6,6 +6,7 @@ export type MenuItem = {
   category: string;
   storePrice: number;
   linemanPrice: number;
+  linemanCostPrice: number;
   costPrice: number;
   status: 'available' | 'soldout';
   ingredients: {
@@ -22,6 +23,7 @@ export type MenuInput = {
   category: string;
   storePrice: number;
   linemanPrice: number;
+  linemanCostPrice: number;
   costPrice: number;
   ingredients: { inventoryItemId: number; quantity: number; unit: string }[];
 };

@@ -6,10 +6,11 @@ type MenuIngredientRequest struct {
 	Unit            string  `json:"unit"`
 }
 type MenuRequest struct {
-	Name         string                  `json:"name"`
-	Category     string                  `json:"category"`
-	StorePrice   float64                 `json:"storePrice"`
-	LinemanPrice float64                 `json:"linemanPrice"`
-	CostPrice    float64                 `json:"costPrice"`
-	Ingredients  []MenuIngredientRequest `json:"ingredients"`
+	Name             string                  `json:"name"`
+	Category         string                  `json:"category"`
+	StorePrice       float64                 `json:"storePrice"`
+	LinemanPrice     float64                 `json:"linemanPrice"`
+	LinemanCostPrice float64                 `json:"linemanCostPrice"`
+	CostPrice        float64                 `json:"costPrice"`
+	Ingredients      []MenuIngredientRequest `json:"ingredients"`
 }
