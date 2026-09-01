@@ -507,7 +507,7 @@ export function AdminProductsPage({
                                 px: 1,
                                 py: 0.45,
                                 borderRadius: '8px',
-                                color: '#8a5a24',
+                                color: '#06C755',
                                 fontFamily: 'Kanit, sans-serif',
                                 fontSize: 12,
                                 fontWeight: 600,
