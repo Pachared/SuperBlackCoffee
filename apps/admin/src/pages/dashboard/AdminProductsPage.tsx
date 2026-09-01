@@ -492,6 +492,14 @@ export function AdminProductsPage({
                                 {item.lineManCostPrice} บาท
                               </Box>
                             </Typography>
+                            <Box
+                              aria-hidden="true"
+                              sx={{
+                                mx: 1,
+                                my: 0.45,
+                                borderTop: '1px solid rgba(95, 64, 48, 0.16)',
+                              }}
+                            />
                             <Typography
                               sx={{
                                 display: 'flex',
