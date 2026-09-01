@@ -200,18 +200,7 @@ export function DashboardSidebar({
           COFFEE
         </Typography>
       </Box>
-      <List
-        sx={{
-          py: 0,
-          overflowY: 'auto',
-          scrollbarWidth: 'thin',
-          '&::-webkit-scrollbar': { width: 5 },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'rgba(255,255,255,.18)',
-            borderRadius: 99,
-          },
-        }}
-      >
+      <List sx={{ py: 0, overflow: 'visible' }}>
         {navigation.map(({ label, icon, badge, group }, index) => (
           <Box key={label}>
             {group &&
