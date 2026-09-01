@@ -17,8 +17,8 @@ export const adminSidebarNavigation = [
     icon: <ReceiptTextIcon />,
     group: 'สินค้าและสต๊อก',
   },
-  { label: 'วัตถุดิบ', icon: <BoxesIcon />, group: 'สินค้าและสต๊อก' },
   { label: 'สต๊อก', icon: <BoxIcon />, group: 'สินค้าและสต๊อก' },
+  { label: 'วัตถุดิบ', icon: <BoxesIcon />, group: 'สินค้าและสต๊อก' },
   { label: 'จัดซื้อ', icon: <ReceiptTextIcon />, group: 'สินค้าและสต๊อก' },
   {
     label: 'สาขา SBC',
@@ -31,14 +31,14 @@ export const adminSidebarNavigation = [
     group: 'สาขาและแฟรนไชส์',
   },
   {
-    label: 'ประวัติการทำรายการ',
-    icon: <ReceiptTextIcon />,
-    group: 'การติดตาม',
-  },
-  {
     label: 'แชทลูกค้า',
     icon: <MessageSquareIcon />,
     badge: 2,
+    group: 'การติดตาม',
+  },
+  {
+    label: 'ประวัติการทำรายการ',
+    icon: <ReceiptTextIcon />,
     group: 'การติดตาม',
   },
 ];
