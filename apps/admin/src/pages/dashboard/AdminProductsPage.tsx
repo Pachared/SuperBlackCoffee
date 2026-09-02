@@ -45,15 +45,19 @@ type Product = {
 };
 const filters = [
   'ทั้งหมด',
-  'กาแฟ',
-  'ชาและมัทฉะ',
-  'เครื่องดื่ม',
+  'เมนูร้อน',
+  'เมนูกาแฟเย็น',
+  'เมนูชา',
+  'โซดา',
+  'เมนูอโวคาโด',
+  'เมนูชาร้อน',
   'อาหาร',
   'เบเกอรี่',
 ] as const;
 type ProductFilter = (typeof filters)[number];
 
-const isCoffeeMenu = (category: string) => category === 'กาแฟ';
+const isCoffeeMenu = (category: string) =>
+  category === 'เมนูร้อน' || category === 'เมนูกาแฟเย็น';
 const menuImageFallback = (product: Pick<Product, 'category'>) =>
   isCoffeeMenu(product.category) ? coffeeMenuDefaultImage : undefined;
 
@@ -906,11 +910,16 @@ export function AdminProductsPage({
                 select
                 fullWidth
                 label="หมวดหมู่"
-                defaultValue="coffee"
+                defaultValue="เมนูร้อน"
               >
-                <MenuItem value="coffee">กาแฟ</MenuItem>
-                <MenuItem value="tea">ชาและมัทฉะ</MenuItem>
-                <MenuItem value="bakery">เบเกอรี่</MenuItem>
+                <MenuItem value="เมนูร้อน">เมนูร้อน</MenuItem>
+                <MenuItem value="เมนูกาแฟเย็น">เมนูกาแฟเย็น</MenuItem>
+                <MenuItem value="เมนูชา">เมนูชา</MenuItem>
+                <MenuItem value="โซดา">โซดา</MenuItem>
+                <MenuItem value="เมนูอโวคาโด">เมนูอโวคาโด</MenuItem>
+                <MenuItem value="เมนูชาร้อน">เมนูชาร้อน</MenuItem>
+                <MenuItem value="อาหาร">อาหาร</MenuItem>
+                <MenuItem value="เบเกอรี่">เบเกอรี่</MenuItem>
               </TextField>
               <TextField
                 required
