@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   Chip,
-  Divider,
   Drawer,
   MenuItem,
   TextField,
@@ -87,134 +86,13 @@ export function AdminFranchiseBranchesPage() {
           เพิ่มบัญชีแฟรนไชส์
         </Button>
       </Box>
-      <Typography
-        sx={{
-          mb: 1.25,
-          color: '#3c2d24',
-          fontFamily: 'Kanit, sans-serif',
-          fontSize: 18,
-          fontWeight: 600,
-        }}
-      >
-        เลือกรูปแบบแฟรนไชส์
-      </Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-          gap: '16px',
-        }}
-      >
-        {(Object.keys(plans) as FranchisePlan[]).map((planKey) => {
-          const plan = plans[planKey];
-          const selected = selectedPlan === planKey;
-          return (
-            <Card
-              key={planKey}
-              variant="outlined"
-              onClick={() => setSelectedPlan(planKey)}
-              sx={{
-                cursor: 'pointer',
-                p: 2.5,
-                borderRadius: '16px',
-                border: `2px solid ${selected ? plan.color : '#e8ddd5'}`,
-                bgcolor: selected ? '#fffaf7' : '#fff',
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 1.5,
-                }}
-              >
-                <Box>
-                  <Typography
-                    sx={{
-                      color: plan.color,
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 28,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {planKey}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      mt: 0.25,
-                      color: '#201914',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 18,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {plan.title}
-                  </Typography>
-                </Box>
-                {selected && (
-                  <Chip
-                    label="เลือกอยู่"
-                    size="small"
-                    sx={{
-                      borderRadius: '10px',
-                      bgcolor: plan.color,
-                      color: '#fff',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontWeight: 600,
-                    }}
-                  />
-                )}
-              </Box>
-              <Typography
-                sx={{
-                  minHeight: 46,
-                  mt: 1,
-                  color: 'text.secondary',
-                  fontFamily: 'Kanit, sans-serif',
-                  fontSize: 13,
-                }}
-              >
-                {plan.subtitle}
-              </Typography>
-              <Typography
-                sx={{
-                  mt: 1.25,
-                  color: '#5f4030',
-                  fontFamily: 'Kanit, sans-serif',
-                  fontWeight: 600,
-                }}
-              >
-                {plan.investment}
-              </Typography>
-              <Divider sx={{ my: 1.75, borderColor: '#eee4de' }} />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                {plan.services.map((service) => (
-                  <Chip
-                    key={service}
-                    label={service}
-                    size="small"
-                    sx={{
-                      borderRadius: '9px',
-                      bgcolor: '#f7eee8',
-                      color: '#5f4b3d',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 11,
-                    }}
-                  />
-                ))}
-              </Box>
-            </Card>
-          );
-        })}
-      </Box>
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 2,
-          mt: 4,
+          mt: 1.5,
           mb: 1.25,
         }}
       >
