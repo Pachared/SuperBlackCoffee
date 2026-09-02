@@ -1,8 +1,28 @@
 import { useMemo, useState } from 'react';
-import { Box, Button, Card, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardMain } from '@stackbuild/ui';
-import { generateStaffSchedules, listStaffSchedules } from '../../api';
+import {
+  generateStaffSchedules,
+  listBranches,
+  listStaffSchedules,
+  updateStaffShift,
+  type StaffShift,
+} from '../../api';
 import { AdminEmployeesSkeleton } from '../../components/skeletons/AdminEmployeesSkeleton';
 import { useEmployees } from '../../hooks/useEmployees';
 
@@ -11,6 +31,15 @@ const thaiMonth = new Intl.DateTimeFormat('th-TH', {
   year: 'numeric',
 });
 const thaiWeekday = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
+
+const shiftColors = ['#e8f0ff', '#efe5ff', '#e1f5ea', '#fff0d7', '#ffe3e3'];
+const leaveLabels: Record<StaffShift['status'], string> = {
+  scheduled: 'ทำงานตามกะ',
+  day_off: 'วันหยุด',
+  leave: 'ลางาน',
+  sick_leave: 'ลาป่วย',
+  personal_leave: 'ลาอื่น ๆ',
+};
 
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -42,6 +71,12 @@ function dateKey(date: Date) {
 
 export function AdminEmployeesPage() {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+  const [selectedShift, setSelectedShift] = useState<StaffShift | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editBranchId, setEditBranchId] = useState('');
+  const [editStatus, setEditStatus] =
+    useState<StaffShift['status']>('scheduled');
   const { data: employees = [], error, isLoading, refetch } = useEmployees();
   const calendarDays = useMemo(() => getCalendarDays(month), [month]);
   const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
@@ -50,6 +85,7 @@ export function AdminEmployeesPage() {
     queryKey: ['staff-schedules', monthKey],
     queryFn: () => listStaffSchedules(monthKey),
   });
+  const branches = useQuery({ queryKey: ['branches'], queryFn: listBranches });
   const generate = useMutation({
     mutationFn: () => generateStaffSchedules(monthKey),
     onSuccess: () =>
@@ -57,12 +93,33 @@ export function AdminEmployeesPage() {
         queryKey: ['staff-schedules', monthKey],
       }),
   });
+  const updateShift = useMutation({
+    mutationFn: () =>
+      updateStaffShift(selectedShift!.id, {
+        shiftDate: editDate,
+        branchId: Number(editBranchId),
+        status: editStatus,
+        leaveType: editStatus === 'scheduled' ? '' : leaveLabels[editStatus],
+      }),
+    onSuccess: () => {
+      setSelectedShift(null);
+      void queryClient.invalidateQueries({
+        queryKey: ['staff-schedules', monthKey],
+      });
+    },
+  });
+  const activeBranchId = selectedBranchId ?? branches.data?.[0]?.id ?? null;
+  const activeBranch = branches.data?.find(
+    (branch) => branch.id === activeBranchId,
+  );
   const shiftsByDate = useMemo(() => {
     const result = new Map<string, NonNullable<typeof schedules.data>>();
-    for (const shift of schedules.data ?? [])
+    for (const shift of schedules.data ?? []) {
+      if (shift.branchId !== activeBranchId) continue;
       result.set(shift.date, [...(result.get(shift.date) ?? []), shift]);
+    }
     return result;
-  }, [schedules.data]);
+  }, [activeBranchId, schedules.data]);
   const staffCount = employees.filter(
     (employee) =>
       employee.role === 'cashier' || employee.role === 'branch_manager',
@@ -74,6 +131,13 @@ export function AdminEmployeesPage() {
       (current) =>
         new Date(current.getFullYear(), current.getMonth() + offset, 1),
     );
+  };
+
+  const openShiftEditor = (shift: StaffShift) => {
+    setSelectedShift(shift);
+    setEditDate(shift.date);
+    setEditBranchId(String(shift.branchId));
+    setEditStatus(shift.status);
   };
 
   return (
@@ -213,6 +277,32 @@ export function AdminEmployeesPage() {
             </Card>
           </Box>
 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              mb: 2,
+            }}
+          >
+            <Typography color="text.secondary" sx={{ fontSize: 14, mr: 0.5 }}>
+              แสดงตารางของสาขา
+            </Typography>
+            {(branches.data ?? []).map((branch) => (
+              <Button
+                key={branch.id}
+                size="small"
+                variant={
+                  activeBranchId === branch.id ? 'contained' : 'outlined'
+                }
+                onClick={() => setSelectedBranchId(branch.id)}
+              >
+                {branch.name}
+              </Button>
+            ))}
+          </Box>
+
           <Card
             variant="outlined"
             sx={{
@@ -232,6 +322,7 @@ export function AdminEmployeesPage() {
               <Typography
                 sx={{ color: '#201914', fontSize: 19, fontWeight: 700 }}
               >
+                {activeBranch?.name ?? 'ยังไม่พบสาขา'} ·{' '}
                 {thaiMonth.format(month)}
               </Typography>
               <Typography color="text.secondary" sx={{ fontSize: 13 }}>
@@ -316,12 +407,24 @@ export function AdminEmployeesPage() {
                         {shifts.slice(0, 2).map((shift) => (
                           <Box
                             key={shift.id}
+                            component="button"
+                            type="button"
+                            onClick={() => openShiftEditor(shift)}
                             sx={{
+                              width: '100%',
+                              border: 0,
+                              cursor: 'pointer',
+                              textAlign: 'left',
                               mt: 0.75,
                               px: 0.65,
                               py: 0.35,
                               borderRadius: 1,
-                              bgcolor: '#f5ece5',
+                              bgcolor:
+                                shift.status === 'scheduled'
+                                  ? shiftColors[
+                                      shift.userId % shiftColors.length
+                                    ]
+                                  : '#ffe4e4',
                               color: '#60493b',
                               fontSize: 10,
                               lineHeight: 1.25,
@@ -329,7 +432,9 @@ export function AdminEmployeesPage() {
                           >
                             {shift.name}
                             <br />
-                            {shift.startsAt}–{shift.endsAt}
+                            {shift.status === 'scheduled'
+                              ? `${shift.startsAt}–${shift.endsAt}`
+                              : leaveLabels[shift.status]}
                           </Box>
                         ))}
                         {shifts.length > 2 ? (
@@ -348,6 +453,72 @@ export function AdminEmployeesPage() {
           </Card>
         </>
       ) : null}
+      <Dialog
+        open={Boolean(selectedShift)}
+        onClose={() => setSelectedShift(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>จัดการกะงาน {selectedShift?.name}</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2, pt: '16px !important' }}>
+          <TextField
+            label="ย้ายไปวันที่"
+            type="date"
+            value={editDate}
+            onChange={(event) => setEditDate(event.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <FormControl>
+            <InputLabel id="schedule-branch-label">สาขา</InputLabel>
+            <Select
+              labelId="schedule-branch-label"
+              label="สาขา"
+              value={editBranchId}
+              onChange={(event) => setEditBranchId(event.target.value)}
+            >
+              {(branches.data ?? []).map((branch) => (
+                <MenuItem key={branch.id} value={String(branch.id)}>
+                  {branch.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl>
+            <InputLabel id="schedule-status-label">สถานะ</InputLabel>
+            <Select
+              labelId="schedule-status-label"
+              label="สถานะ"
+              value={editStatus}
+              onChange={(event) =>
+                setEditStatus(event.target.value as StaffShift['status'])
+              }
+            >
+              {(Object.keys(leaveLabels) as StaffShift['status'][]).map(
+                (status) => (
+                  <MenuItem key={status} value={status}>
+                    {leaveLabels[status]}
+                  </MenuItem>
+                ),
+              )}
+            </Select>
+          </FormControl>
+          {updateShift.error ? (
+            <Typography color="error" sx={{ fontSize: 13 }}>
+              {updateShift.error.message}
+            </Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedShift(null)}>ยกเลิก</Button>
+          <Button
+            variant="contained"
+            onClick={() => updateShift.mutate()}
+            disabled={updateShift.isPending}
+          >
+            {updateShift.isPending ? 'กำลังบันทึก...' : 'บันทึกกะงาน'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardMain>
   );
 }
