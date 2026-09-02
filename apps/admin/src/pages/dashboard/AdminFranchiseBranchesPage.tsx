@@ -64,7 +64,7 @@ const franchisees = [
     name: 'คุณกฤตภาส จันทร์ดี',
     branch: 'สาขารัชดา',
     plan: 'S' as FranchisePlan,
-    email: 'kritapas@superblackcoffee.co.th',
+    username: 'kritapas',
     status: 'ใช้งานแล้ว',
   },
 ];
@@ -78,7 +78,7 @@ export function AdminFranchiseBranchesPage() {
     const normalizedQuery = query.trim().toLocaleLowerCase('th-TH');
     if (!normalizedQuery) return franchisees;
     return franchisees.filter((franchisee) =>
-      `${franchisee.name} ${franchisee.branch} ${franchisee.email}`
+      `${franchisee.name} ${franchisee.branch} ${franchisee.username}`
         .toLocaleLowerCase('th-TH')
         .includes(normalizedQuery),
     );
@@ -187,7 +187,7 @@ export function AdminFranchiseBranchesPage() {
       >
         {visibleFranchisees.map((franchisee) => (
           <Card
-            key={franchisee.email}
+            key={franchisee.username}
             variant="outlined"
             sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}
           >
@@ -266,7 +266,7 @@ export function AdminFranchiseBranchesPage() {
                     overflowWrap: 'anywhere',
                   }}
                 >
-                  {franchisee.email}
+                  ชื่อผู้ใช้: {franchisee.username}
                 </Typography>
               </Box>
             </Box>
@@ -359,7 +359,7 @@ export function AdminFranchiseBranchesPage() {
                   fontSize: 14,
                 }}
               >
-                ระบบจะส่งลิงก์ตั้งรหัสผ่านไปยังอีเมลผู้ซื้อแฟรนไชส์
+                กำหนดข้อมูลสำหรับเข้าสู่ระบบของผู้ซื้อแฟรนไชส์
               </Typography>
             </Box>
             <Button
@@ -398,8 +398,17 @@ export function AdminFranchiseBranchesPage() {
             <TextField required label="ชื่อสาขา" fullWidth />
             <TextField
               required
-              label="อีเมลสำหรับเข้าใช้ระบบ"
-              type="email"
+              label="ชื่อผู้ใช้สำหรับเข้าใช้ระบบ"
+              name="username"
+              autoComplete="username"
+              fullWidth
+            />
+            <TextField
+              required
+              label="รหัสผ่านสำหรับเข้าใช้ระบบ"
+              type="password"
+              name="password"
+              autoComplete="new-password"
               fullWidth
             />
             <TextField

@@ -31,6 +31,11 @@ export const adminSidebarNavigation = [
     group: 'สาขาและแฟรนไชส์',
   },
   {
+    label: 'จัดการแฟรนไชส์',
+    icon: <MapPinPlusIcon />,
+    group: 'สาขาและแฟรนไชส์',
+  },
+  {
     label: 'แชทลูกค้า',
     icon: <MessageSquareIcon />,
     badge: 2,

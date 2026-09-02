@@ -36,6 +36,13 @@ const AdminFranchiseBranchesPage = lazy(() =>
     default: module.AdminFranchiseBranchesPage,
   })),
 );
+const AdminFranchiseManagementPage = lazy(() =>
+  import('../../pages/dashboard/AdminFranchiseManagementPage').then(
+    (module) => ({
+      default: module.AdminFranchiseManagementPage,
+    }),
+  ),
+);
 const AdminIngredientsPage = lazy(() =>
   import('../../pages/dashboard/AdminIngredientsPage').then((module) => ({
     default: module.AdminIngredientsPage,
@@ -156,6 +163,8 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminCustomerChatPage />
   ) : activePage === 'สาขาแฟรนไชส์' ? (
     <AdminFranchiseBranchesPage />
+  ) : activePage === 'จัดการแฟรนไชส์' ? (
+    <AdminFranchiseManagementPage />
   ) : (
     <AdminBranchesPage />
   );

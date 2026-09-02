@@ -8,6 +8,7 @@ export const adminPagePaths = {
   จัดซื้อ: '/procurement',
   'สาขา SBC': '/branches',
   สาขาแฟรนไชส์: '/franchise-branches',
+  จัดการแฟรนไชส์: '/franchise-management',
   แชทลูกค้า: '/customer-chat',
 } as const;
 
