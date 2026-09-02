@@ -204,7 +204,10 @@ export function DashboardSidebar({
           minHeight: 0,
           width: 'calc(100% + 32px)',
           mr: -4,
-          py: 0,
+          // Keep room above and below the scrollable navigation so the curved
+          // active-item connector is never clipped at either edge.
+          pt: 2,
+          pb: 2,
           pr: 4,
           overflowY: 'auto',
           overflowX: 'hidden',
