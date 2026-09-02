@@ -237,6 +237,20 @@ export function DashboardSidebar({
                     opacity: expandedContentVisible ? 1 : 0,
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
+                    // When the previously selected item is the last item in a
+                    // group, draw this heading above its lower connector. This
+                    // keeps the connector identical to selected items followed
+                    // by another menu row.
+                    position:
+                      navigation[index - 1]?.label === activePage
+                        ? 'relative'
+                        : 'static',
+                    zIndex:
+                      navigation[index - 1]?.label === activePage ? 2 : 'auto',
+                    bgcolor:
+                      navigation[index - 1]?.label === activePage
+                        ? '#171411'
+                        : 'transparent',
                     transition: 'opacity .14s ease',
                   }}
                 >
