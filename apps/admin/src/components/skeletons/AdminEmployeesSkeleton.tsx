@@ -23,14 +23,25 @@ export function AdminEmployeesSkeleton() {
         ))}
       </Box>
       <Skeleton variant="rounded" height={68} sx={{ borderRadius: '15px' }} />
-      {[1, 2, 3, 4, 5].map((item) => (
-        <Skeleton
-          key={item}
-          variant="rounded"
-          height={66}
-          sx={{ borderRadius: item === 1 ? '0 0 15px 15px' : '10px' }}
-        />
-      ))}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, minmax(110px, 1fr))',
+          overflow: 'hidden',
+          borderRadius: '15px',
+          gap: '1px',
+          bgcolor: '#eee4dd',
+        }}
+      >
+        {Array.from({ length: 35 }, (_, index) => (
+          <Skeleton
+            key={index}
+            variant="rectangular"
+            height={105}
+            sx={{ bgcolor: '#f7f1ed' }}
+          />
+        ))}
+      </Box>
     </Box>
   );
 }

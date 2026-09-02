@@ -148,6 +148,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
   };
   const isIngredientPage = activePage === 'วัตถุดิบ';
   const isStockPage = activePage === 'สต๊อก';
+  const isEmployeesPage = activePage === 'พนักงาน';
   const hasBranchSidebar =
     isIngredientPage ||
     isStockPage ||
@@ -204,7 +205,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
       navigation={adminSidebarNavigation}
       onNavigate={navigate}
       onLogout={logout}
-      forceSidebarCollapsed={hasBranchSidebar}
+      forceSidebarCollapsed={hasBranchSidebar || isEmployeesPage}
       secondarySidebarVisible={hasBranchSidebar}
       secondarySidebar={
         <IngredientBranchesSidebar
