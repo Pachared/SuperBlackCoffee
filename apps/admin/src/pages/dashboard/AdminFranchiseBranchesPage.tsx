@@ -116,90 +116,105 @@ export function AdminFranchiseBranchesPage() {
           แสดงเฉพาะข้อมูลสำหรับเข้าใช้ระบบ
         </Typography>
       </Box>
-      <Card
-        variant="outlined"
+      <Box
         sx={{
-          overflow: 'hidden',
-          borderRadius: '15px',
-          borderColor: '#e8ddd5',
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(4, minmax(0, 1fr))',
+          },
+          gap: '16px',
         }}
       >
-        {franchisees.map((franchisee, index) => (
-          <Box
+        {franchisees.map((franchisee) => (
+          <Card
             key={franchisee.email}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                md: 'minmax(220px, 1.2fr) minmax(160px, .9fr) minmax(200px, 1fr) auto',
-              },
-              alignItems: 'center',
-              gap: { xs: 1, md: 2 },
-              px: { xs: 2, md: 2.5 },
-              py: 2.1,
-              borderTop: index ? '1px solid #eee4de' : 'none',
-            }}
+            variant="outlined"
+            sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}
           >
-            <Box>
-              <Typography
+            <Box sx={{ p: { xs: 2.25, md: 2.5 } }}>
+              <Box
                 sx={{
-                  color: '#201914',
-                  fontFamily: 'Kanit, sans-serif',
-                  fontSize: 17,
-                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 1,
                 }}
               >
-                {franchisee.name}
-              </Typography>
-              <Typography
-                sx={{
-                  mt: 0.15,
-                  color: 'text.secondary',
-                  fontFamily: 'Kanit, sans-serif',
-                  fontSize: 13,
-                }}
-              >
-                {franchisee.branch}
-              </Typography>
+                <Box>
+                  <Typography
+                    sx={{
+                      color: '#201914',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 19,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {franchisee.name}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.35,
+                      color: '#805637',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {franchisee.branch}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={franchisee.status}
+                  size="small"
+                  sx={{
+                    height: 25,
+                    borderRadius: '12px',
+                    bgcolor:
+                      franchisee.status === 'ใช้งานแล้ว'
+                        ? '#def4e7'
+                        : '#f8edd8',
+                    color:
+                      franchisee.status === 'ใช้งานแล้ว'
+                        ? '#177245'
+                        : '#a76415',
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                />
+              </Box>
+              <Box sx={{ mt: 2, pt: 1.75, borderTop: '1px solid #eee6e0' }}>
+                <Chip
+                  label={`แพ็กเกจ ${franchisee.plan}`}
+                  size="small"
+                  sx={{
+                    height: 25,
+                    borderRadius: '12px',
+                    bgcolor: `${plans[franchisee.plan].color}16`,
+                    color: plans[franchisee.plan].color,
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                />
+                <Typography
+                  sx={{
+                    mt: 1.1,
+                    color: 'text.secondary',
+                    fontFamily: 'Inter, Kanit, sans-serif',
+                    fontSize: 12,
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {franchisee.email}
+                </Typography>
+              </Box>
             </Box>
-            <Chip
-              label={`แพ็กเกจ ${franchisee.plan}`}
-              size="small"
-              sx={{
-                width: 'fit-content',
-                borderRadius: '10px',
-                bgcolor: `${plans[franchisee.plan].color}16`,
-                color: plans[franchisee.plan].color,
-                fontFamily: 'Kanit, sans-serif',
-                fontWeight: 700,
-              }}
-            />
-            <Typography
-              sx={{
-                color: '#5f4b3d',
-                fontFamily: 'Inter, Kanit, sans-serif',
-                fontSize: 13,
-              }}
-            >
-              {franchisee.email}
-            </Typography>
-            <Chip
-              label={franchisee.status}
-              size="small"
-              sx={{
-                width: 'fit-content',
-                borderRadius: '10px',
-                bgcolor:
-                  franchisee.status === 'ใช้งานแล้ว' ? '#def4e7' : '#f8edd8',
-                color:
-                  franchisee.status === 'ใช้งานแล้ว' ? '#177245' : '#a76415',
-                fontFamily: 'Kanit, sans-serif',
-                fontWeight: 600,
-              }}
-            />
-          </Box>
+          </Card>
         ))}
-      </Card>
+      </Box>
       <Drawer
         anchor="bottom"
         open={isDrawerOpen}
