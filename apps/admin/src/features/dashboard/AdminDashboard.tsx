@@ -10,6 +10,7 @@ import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewS
 import { AdminAuditSkeleton } from '../../components/skeletons/AdminAuditSkeleton';
 import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
 import { AdminCustomerChatSkeleton } from '../../components/skeletons/AdminCustomerChatSkeleton';
+import { AdminEmployeesSkeleton } from '../../components/skeletons/AdminEmployeesSkeleton';
 import { AdminIngredientsSkeleton } from '../../components/skeletons/AdminIngredientsSkeleton';
 import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
 import { AdminProcurementSkeleton } from '../../components/skeletons/AdminProcurementSkeleton';
@@ -42,6 +43,11 @@ const AdminFranchiseManagementPage = lazy(() =>
       default: module.AdminFranchiseManagementPage,
     }),
   ),
+);
+const AdminEmployeesPage = lazy(() =>
+  import('../../pages/dashboard/AdminEmployeesPage').then((module) => ({
+    default: module.AdminEmployeesPage,
+  })),
 );
 const AdminIngredientsPage = lazy(() =>
   import('../../pages/dashboard/AdminIngredientsPage').then((module) => ({
@@ -99,6 +105,8 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
       <AdminIngredientsSkeleton />
     ) : page === 'แชทลูกค้า' ? (
       <AdminCustomerChatSkeleton />
+    ) : page === 'พนักงาน' ? (
+      <AdminEmployeesSkeleton />
     ) : (
       <AdminBranchesSkeleton />
     );
@@ -165,6 +173,8 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminFranchiseBranchesPage />
   ) : activePage === 'จัดการแฟรนไชส์' ? (
     <AdminFranchiseManagementPage />
+  ) : activePage === 'พนักงาน' ? (
+    <AdminEmployeesPage />
   ) : (
     <AdminBranchesPage />
   );

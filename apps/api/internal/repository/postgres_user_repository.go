@@ -16,7 +16,7 @@ func (r *postgresUserRepository) List() ([]model.User, error) {
 	if r.db == nil {
 		return []model.User{}, nil
 	}
-	rows, err := r.db.Query(`SELECT id, name, username, email FROM users ORDER BY id`)
+	rows, err := r.db.Query(`SELECT id, name, username, email, role, franchisee_id, branch_id FROM users ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func (r *postgresUserRepository) List() ([]model.User, error) {
 	users := make([]model.User, 0)
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Username, &user.Email); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.Role, &user.FranchiseeID, &user.BranchID); err != nil {
 			return nil, err
 		}
 		users = append(users, user)

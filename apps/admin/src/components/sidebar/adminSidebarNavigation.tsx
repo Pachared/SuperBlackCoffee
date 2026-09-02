@@ -7,6 +7,7 @@ import {
   MessageSquareIcon,
   ReceiptIcon,
   ReceiptTextIcon,
+  UsersIcon,
 } from '@stackbuild/ui';
 
 export const adminSidebarNavigation = [
@@ -35,6 +36,7 @@ export const adminSidebarNavigation = [
     icon: <MapPinPlusIcon />,
     group: 'สาขาและแฟรนไชส์',
   },
+  { label: 'พนักงาน', icon: <UsersIcon />, group: 'สาขาและแฟรนไชส์' },
   {
     label: 'แชทลูกค้า',
     icon: <MessageSquareIcon />,

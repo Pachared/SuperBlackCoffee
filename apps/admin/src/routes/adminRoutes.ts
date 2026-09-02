@@ -9,6 +9,7 @@ export const adminPagePaths = {
   'สาขา SBC': '/branches',
   สาขาแฟรนไชส์: '/franchise-branches',
   จัดการแฟรนไชส์: '/franchise-management',
+  พนักงาน: '/employees',
   แชทลูกค้า: '/customer-chat',
 } as const;
 
