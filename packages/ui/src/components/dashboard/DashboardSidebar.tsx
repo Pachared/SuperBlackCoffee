@@ -237,20 +237,6 @@ export function DashboardSidebar({
                     opacity: expandedContentVisible ? 1 : 0,
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
-                    // When the previously selected item is the last item in a
-                    // group, draw this heading above its lower connector. This
-                    // keeps the connector identical to selected items followed
-                    // by another menu row.
-                    position:
-                      navigation[index - 1]?.label === activePage
-                        ? 'relative'
-                        : 'static',
-                    zIndex:
-                      navigation[index - 1]?.label === activePage ? 2 : 'auto',
-                    bgcolor:
-                      navigation[index - 1]?.label === activePage
-                        ? '#171411'
-                        : 'transparent',
                     transition: 'opacity .14s ease',
                   }}
                 >
@@ -307,18 +293,17 @@ export function DashboardSidebar({
                           right: 0,
                           width: 16,
                           height: 16,
-                          bgcolor: '#171411',
                           pointerEvents: 'none',
                         },
                         '&::before': {
                           top: -16,
                           borderRadius: '0 0 16px 0',
-                          boxShadow: '8px 8px 0 8px ' + activeBackground,
+                          boxShadow: '0 8px 0 0 ' + activeBackground,
                         },
                         '&::after': {
                           bottom: -16,
                           borderRadius: '0 16px 0 0',
-                          boxShadow: '8px -8px 0 8px ' + activeBackground,
+                          boxShadow: '0 -8px 0 0 ' + activeBackground,
                         },
                       }
                     : {
@@ -335,18 +320,17 @@ export function DashboardSidebar({
                           right: 0,
                           width: 14,
                           height: 14,
-                          bgcolor: '#171411',
                           pointerEvents: 'none',
                         },
                         '&::before': {
                           top: -14,
                           borderRadius: '0 0 14px 0',
-                          boxShadow: '7px 7px 0 7px ' + activeBackground,
+                          boxShadow: '0 7px 0 0 ' + activeBackground,
                         },
                         '&::after': {
                           bottom: -14,
                           borderRadius: '0 14px 0 0',
-                          boxShadow: '7px -7px 0 7px ' + activeBackground,
+                          boxShadow: '0 -7px 0 0 ' + activeBackground,
                         },
                       },
                 '&.Mui-selected:hover': { bgcolor: activeBackground },
