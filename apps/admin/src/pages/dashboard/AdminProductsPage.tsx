@@ -49,6 +49,7 @@ const filters = [
   'เมนูกาแฟเย็น',
   'เมนูชา',
   'โซดา',
+  'เมนูปั่น',
   'เมนูอโวคาโด',
   'เมนูชาร้อน',
   'อาหาร',
@@ -68,6 +69,7 @@ const normalizeMenuCategory = (category: string, name: string) => {
     'เมนูกาแฟเย็น',
     'เมนูชา',
     'โซดา',
+    'เมนูปั่น',
     'เมนูอโวคาโด',
     'เมนูชาร้อน',
     'อาหาร',
@@ -75,9 +77,9 @@ const normalizeMenuCategory = (category: string, name: string) => {
   ]);
   if (knownCategories.has(category)) return category;
   if (normalizedName.includes('อโวคาโด')) return 'เมนูอโวคาโด';
+  if (normalizedName.includes('ปั่น')) return 'เมนูปั่น';
   if (
     normalizedName.includes('โซดา') ||
-    normalizedName.includes('ปั่น') ||
     ['บลูเบอร์รี่น้ำผึ้งมะนาว', 'เลม่อนผสมน้ำผึ้ง'].includes(name)
   )
     return 'โซดา';
@@ -980,6 +982,7 @@ export function AdminProductsPage({
                 <MenuItem value="เมนูกาแฟเย็น">เมนูกาแฟเย็น</MenuItem>
                 <MenuItem value="เมนูชา">เมนูชา</MenuItem>
                 <MenuItem value="โซดา">โซดา</MenuItem>
+                <MenuItem value="เมนูปั่น">เมนูปั่น</MenuItem>
                 <MenuItem value="เมนูอโวคาโด">เมนูอโวคาโด</MenuItem>
                 <MenuItem value="เมนูชาร้อน">เมนูชาร้อน</MenuItem>
                 <MenuItem value="อาหาร">อาหาร</MenuItem>
