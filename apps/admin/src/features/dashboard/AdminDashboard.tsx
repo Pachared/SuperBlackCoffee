@@ -76,7 +76,7 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
   const skeleton =
     page === 'ภาพรวม' ? (
       <AdminOverviewSkeleton />
-    ) : page === 'สาขา Super Black Coffee' ? (
+    ) : page === 'สาขา SBC' ? (
       <AdminBranchesSkeleton />
     ) : page === 'คำสั่งซื้อ' ? (
       <AdminOrdersSkeleton />
@@ -175,7 +175,9 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
           ? activeIngredientBranch === 'ทุกสาขา'
             ? 'คำสั่งซื้อ ทุกสาขา'
             : `คำสั่งซื้อ สาขา${activeIngredientBranch}`
-          : activePage;
+          : activePage === 'สาขา SBC'
+            ? 'สาขา Super Black Coffee'
+            : activePage;
   return (
     <AdminDashboardLayout
       activePage={activePage}

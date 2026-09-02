@@ -6,7 +6,7 @@ export const adminPagePaths = {
   วัตถุดิบ: '/ingredients',
   สต๊อก: '/stock',
   จัดซื้อ: '/procurement',
-  'สาขา Super Black Coffee': '/branches',
+  'สาขา SBC': '/branches',
   สาขาแฟรนไชส์: '/franchise-branches',
   แชทลูกค้า: '/customer-chat',
 } as const;

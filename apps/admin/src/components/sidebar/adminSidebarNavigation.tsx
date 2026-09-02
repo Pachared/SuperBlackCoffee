@@ -21,7 +21,7 @@ export const adminSidebarNavigation = [
   { label: 'วัตถุดิบ', icon: <BoxesIcon />, group: 'สินค้าและคลัง' },
   { label: 'จัดซื้อ', icon: <ReceiptTextIcon />, group: 'สินค้าและคลัง' },
   {
-    label: 'สาขา Super Black Coffee',
+    label: 'สาขา SBC',
     icon: <MapPinHouseIcon />,
     group: 'สาขาและแฟรนไชส์',
   },
