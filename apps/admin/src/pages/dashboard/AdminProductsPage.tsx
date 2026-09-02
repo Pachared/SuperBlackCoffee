@@ -61,6 +61,70 @@ const isCoffeeMenu = (category: string) =>
 const menuImageFallback = (product: Pick<Product, 'category'>) =>
   isCoffeeMenu(product.category) ? coffeeMenuDefaultImage : undefined;
 
+const normalizeMenuCategory = (category: string, name: string) => {
+  const normalizedName = name.toLocaleLowerCase('th-TH');
+  const knownCategories = new Set([
+    'เมนูร้อน',
+    'เมนูกาแฟเย็น',
+    'เมนูชา',
+    'โซดา',
+    'เมนูอโวคาโด',
+    'เมนูชาร้อน',
+    'อาหาร',
+    'เบเกอรี่',
+  ]);
+  if (knownCategories.has(category)) return category;
+  if (normalizedName.includes('อโวคาโด')) return 'เมนูอโวคาโด';
+  if (
+    normalizedName.includes('โซดา') ||
+    normalizedName.includes('ปั่น') ||
+    ['บลูเบอร์รี่น้ำผึ้งมะนาว', 'เลม่อนผสมน้ำผึ้ง'].includes(name)
+  )
+    return 'โซดา';
+  if (
+    normalizedName.includes('ร้อน') &&
+    ['ชา', 'มัทฉะ', 'มัฉฉะ', 'โกโก้', 'นมสด'].some((keyword) =>
+      normalizedName.includes(keyword),
+    )
+  )
+    return 'เมนูชาร้อน';
+  if (normalizedName.includes('ร้อน')) return 'เมนูร้อน';
+  if (
+    !normalizedName.includes('cocoa') &&
+    !normalizedName.includes('โกโก้') &&
+    [
+      'กาแฟ',
+      'อเมริกาโน่',
+      'เอสเปรสโซ่',
+      'คาปูชิโน่',
+      'คาราเมลมัคคีอาโต้',
+      'ลาเต้',
+      'มอคค่า',
+      'แอโร',
+      'ซุปเปอร์แบล็ค',
+      'ซุปเปอร์เเบล็ค',
+      'super black',
+    ].some((keyword) => normalizedName.includes(keyword))
+  )
+    return 'เมนูกาแฟเย็น';
+  if (
+    category === 'ชาและมัทฉะ' ||
+    [
+      'ชา',
+      'มัทฉะ',
+      'มัฉฉะ',
+      'โกโก้',
+      'ช็อกโก',
+      'ช็อกกาแลต',
+      'cocoa',
+      'นมสด',
+      'นมชมพู',
+    ].some((keyword) => normalizedName.includes(keyword))
+  )
+    return 'เมนูชา';
+  return category;
+};
+
 export function AdminProductsPage({
   activeBranch,
 }: {
@@ -212,7 +276,7 @@ export function AdminProductsPage({
             lineManPriceAvailable: item.linemanPriceAvailable,
             lineManCostPrice: item.linemanCostPrice ?? item.costPrice,
             costPrice: item.costPrice,
-            category: item.category,
+            category: normalizeMenuCategory(item.category, item.name),
             status: item.status === 'soldout' ? 'หมดชั่วคราว' : 'พร้อมขาย',
             position: `${12 + ((index * 21) % 76)}% ${24 + ((index * 17) % 64)}%`,
             imageUrl: item.imageUrl,
