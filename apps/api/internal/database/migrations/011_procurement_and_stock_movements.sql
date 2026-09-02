@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   id BIGSERIAL PRIMARY KEY,
   branch_id BIGINT NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
   inventory_item_id BIGINT NOT NULL REFERENCES inventory_items(id) ON DELETE RESTRICT,
-  movement_type TEXT NOT NULL CHECK (movement_type IN ('initial', 'purchase_receipt', 'stock_request_receipt', 'adjustment')),
+  movement_type TEXT NOT NULL CHECK (movement_type IN ('initial', 'purchase_receipt', 'stock_request_receipt', 'pos_sale', 'adjustment')),
   quantity_delta NUMERIC(12,4) NOT NULL CHECK (quantity_delta <> 0),
   quantity_before NUMERIC(12,4) NOT NULL,
   quantity_after NUMERIC(12,4) NOT NULL,

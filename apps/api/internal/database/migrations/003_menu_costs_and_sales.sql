@@ -11,3 +11,6 @@ CREATE TABLE IF NOT EXISTS menu_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (branch_id, name)
 );
+
+ALTER TABLE pos_order_items ADD COLUMN IF NOT EXISTS cost_price NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cost_price >= 0);
+CREATE INDEX IF NOT EXISTS pos_orders_branch_created_idx ON pos_orders (branch_id, created_at DESC);

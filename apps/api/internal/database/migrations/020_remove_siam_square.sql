@@ -10,6 +10,14 @@ USING _siam_square_targets AS t
 WHERE u.branch_id = t.id OR u.franchisee_id = t.franchisee_id;
 
 -- ลบตารางลูกที่อ้างอิงสาขาแบบ RESTRICT ก่อนลบสาขา
+DELETE FROM pos_order_items AS i
+USING pos_orders AS o, _siam_square_targets AS t
+WHERE i.order_id = o.id AND o.branch_id = t.id;
+
+DELETE FROM pos_orders AS o
+USING _siam_square_targets AS t
+WHERE o.branch_id = t.id;
+
 DELETE FROM stock_request_items AS i
 USING stock_requests AS r, _siam_square_targets AS t
 WHERE i.stock_request_id = r.id AND r.branch_id = t.id;
