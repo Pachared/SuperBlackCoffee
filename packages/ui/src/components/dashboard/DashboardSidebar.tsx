@@ -268,7 +268,10 @@ export function DashboardSidebar({
                 position: 'relative',
                 transition: 'none',
                 borderRadius: '12px',
-                mb: 0.5,
+                // The selected final item has curved pseudo-elements below it.
+                // Reserve that space only for the final row so it renders the
+                // same as selected items in the middle of the menu.
+                mb: index === navigation.length - 1 ? 2 : 0.5,
                 '&.Mui-selected': disableActiveConnection
                   ? {
                       bgcolor: activeBackground,
