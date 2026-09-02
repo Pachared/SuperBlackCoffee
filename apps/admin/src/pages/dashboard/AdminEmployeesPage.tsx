@@ -3,10 +3,7 @@ import {
   Box,
   Button,
   Card,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  Drawer,
   FormControl,
   InputLabel,
   MenuItem,
@@ -15,11 +12,13 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DashboardMain } from '@stackbuild/ui';
+import { DashboardMain, XIcon } from '@stackbuild/ui';
 import {
+  createEmployee,
   generateStaffSchedules,
   listBranches,
   listStaffSchedules,
+  replaceStaffShift,
   updateStaffShift,
   type StaffShift,
 } from '../../api';
@@ -30,9 +29,24 @@ const thaiMonth = new Intl.DateTimeFormat('th-TH', {
   month: 'long',
   year: 'numeric',
 });
-const thaiWeekday = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
+const thaiWeekday = [
+  'วันจันทร์',
+  'วันอังคาร',
+  'วันพุธ',
+  'วันพฤหัสบดี',
+  'วันศุกร์',
+  'วันเสาร์',
+  'วันอาทิตย์',
+];
 
-const shiftColors = ['#e8f0ff', '#efe5ff', '#e1f5ea', '#fff0d7', '#ffe3e3'];
+const shiftColors = [
+  '#dceeff',
+  '#eee1ff',
+  '#dff4e7',
+  '#fff0cd',
+  '#ffe0e8',
+  '#dff1f1',
+];
 const leaveLabels: Record<StaffShift['status'], string> = {
   scheduled: 'ทำงานตามกะ',
   day_off: 'วันหยุด',
@@ -77,6 +91,15 @@ export function AdminEmployeesPage() {
   const [editBranchId, setEditBranchId] = useState('');
   const [editStatus, setEditStatus] =
     useState<StaffShift['status']>('scheduled');
+  const [draggedShiftId, setDraggedShiftId] = useState<number | null>(null);
+  const [isEmployeeDrawerOpen, setIsEmployeeDrawerOpen] = useState(false);
+  const [newEmployeeName, setNewEmployeeName] = useState('');
+  const [newEmployeeUsername, setNewEmployeeUsername] = useState('');
+  const [newEmployeePassword, setNewEmployeePassword] = useState('');
+  const [newEmployeeRole, setNewEmployeeRole] = useState<
+    'branch_manager' | 'cashier'
+  >('cashier');
+  const [newEmployeeBranchId, setNewEmployeeBranchId] = useState('');
   const { data: employees = [], error, isLoading, refetch } = useEmployees();
   const calendarDays = useMemo(() => getCalendarDays(month), [month]);
   const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
@@ -86,8 +109,12 @@ export function AdminEmployeesPage() {
     queryFn: () => listStaffSchedules(monthKey),
   });
   const branches = useQuery({ queryKey: ['branches'], queryFn: listBranches });
+  const activeBranchId = selectedBranchId ?? branches.data?.[0]?.id ?? null;
+  const activeBranch = branches.data?.find(
+    (branch) => branch.id === activeBranchId,
+  );
   const generate = useMutation({
-    mutationFn: () => generateStaffSchedules(monthKey),
+    mutationFn: () => generateStaffSchedules(monthKey, activeBranchId!),
     onSuccess: () =>
       void queryClient.invalidateQueries({
         queryKey: ['staff-schedules', monthKey],
@@ -108,10 +135,38 @@ export function AdminEmployeesPage() {
       });
     },
   });
-  const activeBranchId = selectedBranchId ?? branches.data?.[0]?.id ?? null;
-  const activeBranch = branches.data?.find(
-    (branch) => branch.id === activeBranchId,
-  );
+  const replaceShift = useMutation({
+    mutationFn: ({
+      targetShiftId,
+      sourceShiftId,
+    }: {
+      targetShiftId: number;
+      sourceShiftId: number;
+    }) => replaceStaffShift(targetShiftId, sourceShiftId),
+    onSuccess: () => {
+      setDraggedShiftId(null);
+      void queryClient.invalidateQueries({
+        queryKey: ['staff-schedules', monthKey],
+      });
+    },
+  });
+  const createEmployeeMutation = useMutation({
+    mutationFn: () =>
+      createEmployee({
+        name: newEmployeeName,
+        username: newEmployeeUsername,
+        password: newEmployeePassword,
+        role: newEmployeeRole,
+        branchId: Number(newEmployeeBranchId),
+      }),
+    onSuccess: () => {
+      setIsEmployeeDrawerOpen(false);
+      setNewEmployeeName('');
+      setNewEmployeeUsername('');
+      setNewEmployeePassword('');
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
   const shiftsByDate = useMemo(() => {
     const result = new Map<string, NonNullable<typeof schedules.data>>();
     for (const shift of schedules.data ?? []) {
@@ -119,6 +174,21 @@ export function AdminEmployeesPage() {
       result.set(shift.date, [...(result.get(shift.date) ?? []), shift]);
     }
     return result;
+  }, [activeBranchId, schedules.data]);
+  const shiftColorsByUser = useMemo(() => {
+    const userIds = [
+      ...new Set(
+        (schedules.data ?? [])
+          .filter((shift) => shift.branchId === activeBranchId)
+          .map((shift) => shift.userId),
+      ),
+    ].sort((first, second) => first - second);
+    return new Map(
+      userIds.map((userId, index) => [
+        userId,
+        shiftColors[index % shiftColors.length],
+      ]),
+    );
   }, [activeBranchId, schedules.data]);
   const staffCount = employees.filter(
     (employee) =>
@@ -199,9 +269,20 @@ export function AdminEmployeesPage() {
             variant="contained"
             size="small"
             onClick={() => generate.mutate()}
-            disabled={generate.isPending}
+            disabled={generate.isPending || activeBranchId === null}
           >
             {generate.isPending ? 'กำลังจัดตาราง...' : 'จัดตารางอัตโนมัติ'}
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => {
+              setNewEmployeeBranchId(String(activeBranchId ?? ''));
+              setIsEmployeeDrawerOpen(true);
+            }}
+            sx={{ bgcolor: '#805637', '&:hover': { bgcolor: '#60412a' } }}
+          >
+            เพิ่มพนักงาน
           </Button>
         </Box>
       </Box>
@@ -319,16 +400,32 @@ export function AdminEmployeesPage() {
                 bgcolor: '#fbf7f4',
               }}
             >
-              <Typography
-                sx={{ color: '#201914', fontSize: 19, fontWeight: 700 }}
-              >
-                {activeBranch?.name ?? 'ยังไม่พบสาขา'} ·{' '}
-                {thaiMonth.format(month)}
-              </Typography>
-              <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-                ระบบจัดกะวันจันทร์–ศุกร์ 08:00–17:00
-                ให้ผู้จัดการสาขาและแคชเชียร์
-              </Typography>
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography
+                    sx={{ color: '#8b7161', fontSize: 12, fontWeight: 700 }}
+                  >
+                    สาขา
+                  </Typography>
+                  <Typography
+                    sx={{ color: '#201914', fontSize: 21, fontWeight: 800 }}
+                  >
+                    {activeBranch?.name ?? 'ยังไม่พบสาขา'}
+                  </Typography>
+                </Box>
+                <Box sx={{ pl: 3, borderLeft: '1px solid #dfd1c8' }}>
+                  <Typography
+                    sx={{ color: '#8b7161', fontSize: 12, fontWeight: 700 }}
+                  >
+                    เดือน
+                  </Typography>
+                  <Typography
+                    sx={{ color: '#201914', fontSize: 21, fontWeight: 800 }}
+                  >
+                    {thaiMonth.format(month)}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
             <Box sx={{ overflowX: 'auto' }}>
               <Box sx={{ minWidth: 780 }}>
@@ -404,27 +501,53 @@ export function AdminEmployeesPage() {
                             ยังไม่มีตารางกะ
                           </Typography>
                         ) : null}
-                        {shifts.slice(0, 2).map((shift) => (
+                        {shifts.map((shift) => (
                           <Box
                             key={shift.id}
                             component="button"
                             type="button"
+                            draggable={shift.status === 'scheduled'}
                             onClick={() => openShiftEditor(shift)}
+                            onDragStart={() => setDraggedShiftId(shift.id)}
+                            onDragEnd={() => setDraggedShiftId(null)}
+                            onDragOver={(event) => {
+                              if (shift.status !== 'scheduled')
+                                event.preventDefault();
+                            }}
+                            onDrop={() => {
+                              if (
+                                draggedShiftId !== null &&
+                                draggedShiftId !== shift.id &&
+                                shift.status !== 'scheduled'
+                              )
+                                replaceShift.mutate({
+                                  targetShiftId: shift.id,
+                                  sourceShiftId: draggedShiftId,
+                                });
+                            }}
                             sx={{
                               width: '100%',
                               border: 0,
                               cursor: 'pointer',
+                              opacity:
+                                draggedShiftId === shift.id ? 0.55 : undefined,
+                              outline:
+                                draggedShiftId !== null &&
+                                shift.status !== 'scheduled'
+                                  ? '2px dashed #b94136'
+                                  : 'none',
+                              outlineOffset: 2,
                               textAlign: 'left',
                               mt: 0.75,
                               px: 0.65,
                               py: 0.35,
-                              borderRadius: 1,
+                              borderRadius: '6px',
                               bgcolor:
                                 shift.status === 'scheduled'
-                                  ? shiftColors[
-                                      shift.userId % shiftColors.length
-                                    ]
-                                  : '#ffe4e4',
+                                  ? shiftColorsByUser.get(shift.userId)
+                                  : shift.status === 'day_off'
+                                    ? '#ebe8e5'
+                                    : '#ffe4e4',
                               color: '#60493b',
                               fontSize: 10,
                               lineHeight: 1.25,
@@ -437,13 +560,6 @@ export function AdminEmployeesPage() {
                               : leaveLabels[shift.status]}
                           </Box>
                         ))}
-                        {shifts.length > 2 ? (
-                          <Typography
-                            sx={{ mt: 0.5, color: '#805637', fontSize: 10 }}
-                          >
-                            +{shifts.length - 2} คน
-                          </Typography>
-                        ) : null}
                       </Box>
                     );
                   })}
@@ -453,72 +569,331 @@ export function AdminEmployeesPage() {
           </Card>
         </>
       ) : null}
-      <Dialog
+      <Drawer
+        anchor="bottom"
         open={Boolean(selectedShift)}
         onClose={() => setSelectedShift(null)}
-        fullWidth
-        maxWidth="xs"
+        transitionDuration={{ enter: 360, exit: 280 }}
+        sx={{ zIndex: 1300 }}
+        slotProps={{
+          paper: {
+            sx: {
+              left: { md: '280px' },
+              width: { md: 'calc(100% - 304px)' },
+              minHeight: { sm: 440 },
+              maxHeight: '82vh',
+              overflowY: 'auto',
+              borderRadius: '24px 24px 0 0',
+              bgcolor: '#fffaf7',
+              boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
+            },
+          },
+        }}
       >
-        <DialogTitle>จัดการกะงาน {selectedShift?.name}</DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label="ย้ายไปวันที่"
-            type="date"
-            value={editDate}
-            onChange={(event) => setEditDate(event.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
+        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+          <Box
+            sx={{
+              width: 44,
+              height: 5,
+              mx: 'auto',
+              mb: 2.5,
+              borderRadius: 99,
+              bgcolor: '#d8c8bd',
+            }}
           />
-          <FormControl>
-            <InputLabel id="schedule-branch-label">สาขา</InputLabel>
-            <Select
-              labelId="schedule-branch-label"
-              label="สาขา"
-              value={editBranchId}
-              onChange={(event) => setEditBranchId(event.target.value)}
-            >
-              {(branches.data ?? []).map((branch) => (
-                <MenuItem key={branch.id} value={String(branch.id)}>
-                  {branch.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <InputLabel id="schedule-status-label">สถานะ</InputLabel>
-            <Select
-              labelId="schedule-status-label"
-              label="สถานะ"
-              value={editStatus}
-              onChange={(event) =>
-                setEditStatus(event.target.value as StaffShift['status'])
-              }
-            >
-              {(Object.keys(leaveLabels) as StaffShift['status'][]).map(
-                (status) => (
-                  <MenuItem key={status} value={status}>
-                    {leaveLabels[status]}
-                  </MenuItem>
-                ),
-              )}
-            </Select>
-          </FormControl>
-          {updateShift.error ? (
-            <Typography color="error" sx={{ fontSize: 13 }}>
-              {updateShift.error.message}
-            </Typography>
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedShift(null)}>ยกเลิก</Button>
-          <Button
-            variant="contained"
-            onClick={() => updateShift.mutate()}
-            disabled={updateShift.isPending}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
           >
-            {updateShift.isPending ? 'กำลังบันทึก...' : 'บันทึกกะงาน'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <Box>
+              <Typography
+                sx={{
+                  color: '#201914',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 22,
+                  fontWeight: 600,
+                }}
+              >
+                จัดการกะงาน
+              </Typography>
+              <Typography color="text.secondary" sx={{ fontSize: 14 }}>
+                {selectedShift?.name}
+              </Typography>
+            </Box>
+            <Button
+              aria-label="ปิด"
+              onClick={() => setSelectedShift(null)}
+              sx={{
+                minWidth: 40,
+                width: 40,
+                height: 40,
+                p: 0,
+                borderRadius: '12px',
+                bgcolor: '#f7eee8',
+                color: '#5f4b3d',
+                '&:hover': { bgcolor: '#f1e4da' },
+              }}
+            >
+              <XIcon size={20} />
+            </Button>
+          </Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(3, minmax(0, 1fr))',
+              },
+              gap: 2,
+              mt: 3,
+              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+            }}
+          >
+            <TextField
+              label="ย้ายไปวันที่"
+              type="date"
+              value={editDate}
+              onChange={(event) => setEditDate(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <FormControl>
+              <InputLabel id="schedule-branch-label">สาขา</InputLabel>
+              <Select
+                labelId="schedule-branch-label"
+                label="สาขา"
+                value={editBranchId}
+                onChange={(event) => setEditBranchId(event.target.value)}
+              >
+                {(branches.data ?? []).map((branch) => (
+                  <MenuItem key={branch.id} value={String(branch.id)}>
+                    {branch.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl>
+              <InputLabel id="schedule-status-label">สถานะ</InputLabel>
+              <Select
+                labelId="schedule-status-label"
+                label="สถานะ"
+                value={editStatus}
+                onChange={(event) =>
+                  setEditStatus(event.target.value as StaffShift['status'])
+                }
+              >
+                {(Object.keys(leaveLabels) as StaffShift['status'][]).map(
+                  (status) => (
+                    <MenuItem key={status} value={status}>
+                      {leaveLabels[status]}
+                    </MenuItem>
+                  ),
+                )}
+              </Select>
+            </FormControl>
+            {updateShift.error ? (
+              <Typography
+                color="error"
+                sx={{ fontSize: 13, gridColumn: '1 / -1' }}
+              >
+                {updateShift.error.message}
+              </Typography>
+            ) : null}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 1.25,
+                gridColumn: '1 / -1',
+              }}
+            >
+              <Button onClick={() => setSelectedShift(null)}>ยกเลิก</Button>
+              <Button
+                variant="contained"
+                onClick={() => updateShift.mutate()}
+                disabled={updateShift.isPending}
+                sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
+              >
+                {updateShift.isPending ? 'กำลังบันทึก...' : 'บันทึกกะงาน'}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Drawer>
+      <Drawer
+        anchor="bottom"
+        open={isEmployeeDrawerOpen}
+        onClose={() => setIsEmployeeDrawerOpen(false)}
+        transitionDuration={{ enter: 360, exit: 280 }}
+        sx={{ zIndex: 1300 }}
+        slotProps={{
+          paper: {
+            sx: {
+              left: { md: '280px' },
+              width: { md: 'calc(100% - 304px)' },
+              maxHeight: '82vh',
+              overflowY: 'auto',
+              borderRadius: '24px 24px 0 0',
+              bgcolor: '#fffaf7',
+              boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
+            },
+          },
+        }}
+      >
+        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+          <Box
+            sx={{
+              width: 44,
+              height: 5,
+              mx: 'auto',
+              mb: 2.5,
+              borderRadius: 99,
+              bgcolor: '#d8c8bd',
+            }}
+          />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{
+                  color: '#201914',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 22,
+                  fontWeight: 600,
+                }}
+              >
+                เพิ่มพนักงาน
+              </Typography>
+              <Typography color="text.secondary" sx={{ fontSize: 14 }}>
+                สร้างบัญชีเพื่อเข้าสู่ระบบและจัดตารางกะ
+              </Typography>
+            </Box>
+            <Button
+              aria-label="ปิด"
+              onClick={() => setIsEmployeeDrawerOpen(false)}
+              sx={{
+                minWidth: 40,
+                width: 40,
+                height: 40,
+                p: 0,
+                borderRadius: '12px',
+                bgcolor: '#f7eee8',
+                color: '#5f4b3d',
+              }}
+            >
+              <XIcon size={20} />
+            </Button>
+          </Box>
+          <Box
+            component="form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createEmployeeMutation.mutate();
+            }}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, minmax(0, 1fr))',
+              },
+              gap: 2,
+              mt: 3,
+              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+            }}
+          >
+            <TextField
+              required
+              label="ชื่อ-นามสกุล"
+              value={newEmployeeName}
+              onChange={(event) => setNewEmployeeName(event.target.value)}
+            />
+            <TextField
+              required
+              label="Username"
+              value={newEmployeeUsername}
+              onChange={(event) => setNewEmployeeUsername(event.target.value)}
+            />
+            <TextField
+              required
+              label="Password"
+              type="password"
+              helperText="อย่างน้อย 8 ตัวอักษร"
+              value={newEmployeePassword}
+              onChange={(event) => setNewEmployeePassword(event.target.value)}
+            />
+            <FormControl required>
+              <InputLabel id="new-employee-branch-label">สาขา</InputLabel>
+              <Select
+                labelId="new-employee-branch-label"
+                label="สาขา"
+                value={newEmployeeBranchId}
+                onChange={(event) => setNewEmployeeBranchId(event.target.value)}
+              >
+                {(branches.data ?? []).map((branch) => (
+                  <MenuItem key={branch.id} value={String(branch.id)}>
+                    {branch.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl required>
+              <InputLabel id="new-employee-role-label">ตำแหน่ง</InputLabel>
+              <Select
+                labelId="new-employee-role-label"
+                label="ตำแหน่ง"
+                value={newEmployeeRole}
+                onChange={(event) =>
+                  setNewEmployeeRole(
+                    event.target.value as 'branch_manager' | 'cashier',
+                  )
+                }
+              >
+                <MenuItem value="cashier">แคชเชียร์</MenuItem>
+                <MenuItem value="branch_manager">ผู้จัดการสาขา</MenuItem>
+              </Select>
+            </FormControl>
+            {createEmployeeMutation.error ? (
+              <Typography
+                color="error"
+                sx={{ fontSize: 13, gridColumn: '1 / -1' }}
+              >
+                {createEmployeeMutation.error.message}
+              </Typography>
+            ) : null}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 1.25,
+                gridColumn: '1 / -1',
+              }}
+            >
+              <Button onClick={() => setIsEmployeeDrawerOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={createEmployeeMutation.isPending}
+                sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
+              >
+                {createEmployeeMutation.isPending
+                  ? 'กำลังเพิ่ม...'
+                  : 'เพิ่มพนักงาน'}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Drawer>
     </DashboardMain>
   );
 }

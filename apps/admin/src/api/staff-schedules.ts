@@ -13,10 +13,10 @@ export type StaffShift = {
 };
 export const listStaffSchedules = (month: string) =>
   secured<StaffShift[]>(`/staff-schedules?month=${month}`);
-export const generateStaffSchedules = (month: string) =>
+export const generateStaffSchedules = (month: string, branchId: number) =>
   secured<{ created: number; month: string }>('/staff-schedules/generate', {
     method: 'POST',
-    data: { month },
+    data: { month, branchId },
   });
 export const updateStaffShift = (
   id: number,
@@ -29,3 +29,9 @@ export const updateStaffShift = (
   },
 ) =>
   secured<{ id: string }>(`/staff-schedules/${id}`, { method: 'PATCH', data });
+
+export const replaceStaffShift = (id: number, sourceShiftId: number) =>
+  secured<{ id: string }>(`/staff-schedules/${id}/replace`, {
+    method: 'POST',
+    data: { sourceShiftId },
+  });

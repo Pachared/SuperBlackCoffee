@@ -14,7 +14,7 @@ SELECT mock_staff.name, mock_staff.username, mock_staff.email, admin.password_ha
 FROM mock_staff
 JOIN branches ON branches.code = mock_staff.branch_code
 CROSS JOIN (SELECT password_hash FROM users WHERE username = 'admin' LIMIT 1) admin
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT (lower(username)) DO NOTHING;
 
 INSERT INTO staff_shifts(user_id, branch_id, shift_date, starts_at, ends_at, status)
 SELECT users.id, users.branch_id, day::date, '08:00', '17:00', 'scheduled'

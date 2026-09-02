@@ -11,3 +11,10 @@ export type Employee = {
 };
 
 export const listEmployees = () => secured<Employee[]>('/users');
+export const createEmployee = (data: {
+  name: string;
+  username: string;
+  password: string;
+  role: 'branch_manager' | 'cashier';
+  branchId: number;
+}) => secured<{ id: number }>('/users', { method: 'POST', data });
