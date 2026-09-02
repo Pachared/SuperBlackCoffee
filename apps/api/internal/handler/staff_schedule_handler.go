@@ -24,14 +24,13 @@ func (h *PlatformHandler) ListStaffSchedules(c *gin.Context) {
 	for rows.Next() {
 		var id, userID int64
 		var branchID *int64
-		var name, status string
+		var name, status, start, end string
 		var date time.Time
-		var start, end time.Time
 		if err := rows.Scan(&id, &userID, &name, &branchID, &date, &start, &end, &status); err != nil {
 			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านตารางงานได้"})
 			return
 		}
-		items = append(items, gin.H{"id": id, "userId": userID, "name": name, "branchId": branchID, "date": date.Format("2006-01-02"), "startsAt": start.Format("15:04"), "endsAt": end.Format("15:04"), "status": status})
+		items = append(items, gin.H{"id": id, "userId": userID, "name": name, "branchId": branchID, "date": date.Format("2006-01-02"), "startsAt": start, "endsAt": end, "status": status})
 	}
 	c.JSON(200, gin.H{"success": true, "data": items})
 }

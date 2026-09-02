@@ -154,6 +154,17 @@ export function AdminEmployeesPage() {
           </Button>
         </Card>
       ) : null}
+      {schedules.error ? (
+        <Card
+          variant="outlined"
+          sx={{ mb: 2, p: 2, borderColor: '#edc7c3', color: '#a22e2a' }}
+        >
+          {schedules.error.message}{' '}
+          <Button size="small" onClick={() => void schedules.refetch()}>
+            ลองโหลดตารางอีกครั้ง
+          </Button>
+        </Card>
+      ) : null}
       {!isLoading && !error ? (
         <>
           <Box
