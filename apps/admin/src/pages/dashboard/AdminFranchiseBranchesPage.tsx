@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
   Card,
   Chip,
   Drawer,
+  InputAdornment,
   MenuItem,
   TextField,
   Typography,
 } from '@mui/material';
-import { DashboardMain, PlusIcon, XIcon } from '@stackbuild/ui';
+import {
+  DashboardMain,
+  PlusIcon,
+  SearchIcon,
+  XIcon,
+  type SearchIconHandle,
+} from '@stackbuild/ui';
 
 type FranchisePlan = 'S' | 'M' | 'L';
 
@@ -63,12 +70,63 @@ const franchisees = [
 ];
 
 export function AdminFranchiseBranchesPage() {
+  const searchIconRef = useRef<SearchIconHandle>(null);
   const [selectedPlan, setSelectedPlan] = useState<FranchisePlan>('S');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const visibleFranchisees = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase('th-TH');
+    if (!normalizedQuery) return franchisees;
+    return franchisees.filter((franchisee) =>
+      `${franchisee.name} ${franchisee.branch} ${franchisee.email}`
+        .toLocaleLowerCase('th-TH')
+        .includes(normalizedQuery),
+    );
+  }, [query]);
 
   return (
     <DashboardMain>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2.5 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          justifyContent: 'space-between',
+          gap: 1.5,
+          mb: 2.5,
+        }}
+      >
+        <TextField
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onFocus={() => searchIconRef.current?.startAnimation()}
+          onBlur={() => searchIconRef.current?.stopAnimation()}
+          placeholder="ค้นหาสาขาแฟรนไชส์"
+          size="small"
+          name="franchise-branch-search"
+          autoComplete="off"
+          sx={{
+            width: { xs: '100%', sm: 310 },
+            '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment
+                  position="start"
+                  sx={{
+                    alignSelf: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: 18,
+                  }}
+                >
+                  <SearchIcon ref={searchIconRef} size={18} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
         <Button
           variant="contained"
           startIcon={<PlusIcon size={16} />}
@@ -127,7 +185,7 @@ export function AdminFranchiseBranchesPage() {
           gap: '16px',
         }}
       >
-        {franchisees.map((franchisee) => (
+        {visibleFranchisees.map((franchisee) => (
           <Card
             key={franchisee.email}
             variant="outlined"
@@ -215,6 +273,18 @@ export function AdminFranchiseBranchesPage() {
           </Card>
         ))}
       </Box>
+      {visibleFranchisees.length === 0 && (
+        <Typography
+          sx={{
+            pt: 4,
+            textAlign: 'center',
+            color: 'text.secondary',
+            fontFamily: 'Kanit, sans-serif',
+          }}
+        >
+          ไม่พบข้อมูลสาขาแฟรนไชส์
+        </Typography>
+      )}
       <Drawer
         anchor="bottom"
         open={isDrawerOpen}
