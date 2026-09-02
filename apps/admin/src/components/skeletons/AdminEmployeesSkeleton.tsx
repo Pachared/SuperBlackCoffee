@@ -8,12 +8,12 @@ export function AdminEmployeesSkeleton() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
           gap: 1.5,
           mt: 1,
         }}
       >
-        {[1, 2, 3].map((item) => (
+        {[1, 2].map((item) => (
           <Skeleton
             key={item}
             variant="rounded"
@@ -22,12 +22,13 @@ export function AdminEmployeesSkeleton() {
           />
         ))}
       </Box>
-      {[1, 2, 3, 4].map((item) => (
+      <Skeleton variant="rounded" height={68} sx={{ borderRadius: '15px' }} />
+      {[1, 2, 3, 4, 5].map((item) => (
         <Skeleton
           key={item}
           variant="rounded"
-          height={78}
-          sx={{ borderRadius: '15px' }}
+          height={66}
+          sx={{ borderRadius: item === 1 ? '0 0 15px 15px' : '10px' }}
         />
       ))}
     </Box>
