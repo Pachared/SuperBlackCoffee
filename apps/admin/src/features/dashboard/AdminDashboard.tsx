@@ -76,7 +76,7 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
   const skeleton =
     page === 'ภาพรวม' ? (
       <AdminOverviewSkeleton />
-    ) : page === 'สาขา SBC' ? (
+    ) : page === 'สาขา Super Black Coffee' ? (
       <AdminBranchesSkeleton />
     ) : page === 'คำสั่งซื้อ' ? (
       <AdminOrdersSkeleton />
