@@ -3,11 +3,36 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"y/internal/dto"
 	"y/internal/middleware"
+	"y/internal/model"
 )
+
+func (h *PlatformHandler) ListMenuItems(c *gin.Context) {
+	if h.unavailable(c) {
+		return
+	}
+	branchID, ok := h.branchScope(c)
+	if !ok {
+		return
+	}
+	cacheKey := "sbc:menu:" + strconv.FormatInt(branchID, 10)
+	var cached []model.MenuItem
+	if h.cache.GetJSON(c, cacheKey, &cached) {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": cached})
+		return
+	}
+	result, err := h.menu.List(c, branchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "ไม่สามารถดึงรายการเมนูได้"})
+		return
+	}
+	h.cache.SetJSON(c, cacheKey, result, 30*time.Second)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+}
 
 // CreateMenuItem creates a menu item and its recipe atomically for the selected branch.
 func (h *PlatformHandler) CreateMenuItem(c *gin.Context) {

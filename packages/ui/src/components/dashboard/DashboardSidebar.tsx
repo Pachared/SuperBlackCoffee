@@ -285,6 +285,7 @@ export function DashboardSidebar({
                         color: '#171411',
                         borderRadius: '16px 0 0 16px',
                         mr: -2,
+                        width: 'calc(100% + 16px)',
                         position: 'relative',
                         zIndex: 1,
                         '&::before, &::after': {
@@ -311,6 +312,7 @@ export function DashboardSidebar({
                         color: '#171411',
                         borderRadius: '12px 0 0 12px',
                         mr: -2,
+                        width: 'calc(100% + 16px)',
                         pr: 2,
                         position: 'relative',
                         zIndex: 1,

@@ -48,11 +48,7 @@ export type StockMovement = {
   inventoryItemId: number;
   inventoryItemName: string;
   movementType:
-    | 'initial'
-    | 'purchase_receipt'
-    | 'stock_request_receipt'
-    | 'pos_sale'
-    | 'adjustment';
+    'initial' | 'purchase_receipt' | 'stock_request_receipt' | 'adjustment';
   quantityDelta: number;
   quantityBefore: number;
   quantityAfter: number;

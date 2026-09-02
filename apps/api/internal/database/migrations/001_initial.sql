@@ -63,21 +63,3 @@ CREATE TABLE IF NOT EXISTS stock_request_items (
   quantity NUMERIC(12,2) NOT NULL CHECK (quantity > 0),
   unit TEXT NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS pos_orders (
-  id BIGSERIAL PRIMARY KEY,
-  branch_id BIGINT NOT NULL REFERENCES branches(id),
-  channel TEXT NOT NULL CHECK (channel IN ('storefront','lineman')),
-  status TEXT NOT NULL DEFAULT 'paid' CHECK (status IN ('paid','voided')),
-  total NUMERIC(12,2) NOT NULL,
-  cashier_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS pos_order_items (
-  id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES pos_orders(id) ON DELETE CASCADE,
-  product_name TEXT NOT NULL,
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  unit_price NUMERIC(12,2) NOT NULL
-);

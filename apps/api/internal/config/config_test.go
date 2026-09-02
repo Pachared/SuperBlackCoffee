@@ -48,7 +48,7 @@ func TestValidateRuntimeRejectsUnsafeProductionOrigins(t *testing.T) {
 func TestValidateRuntimeAllowsSecureProductionOrigins(t *testing.T) {
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("JWT_SECRET", "a-long-production-secret")
-	t.Setenv("CORS_ORIGINS", "https://admin.example.com,https://pos.example.com")
+	t.Setenv("CORS_ORIGINS", "https://admin.example.com,https://franchise.example.com")
 	if err := ValidateRuntime(); err != nil {
 		t.Fatalf("expected secure origins to be valid: %v", err)
 	}

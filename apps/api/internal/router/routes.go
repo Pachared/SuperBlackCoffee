@@ -28,7 +28,6 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 	protected.Use(middleware.RequireAuth(deps.secret))
 	protected.GET("/dashboard", deps.platform.Dashboard)
 	protected.GET("/metrics", middleware.RequireAuth(deps.secret, "admin"), middleware.Metrics)
-	protected.GET("/reports/daily-sales", deps.platform.DailySalesReport)
 	protected.GET("/branches", deps.platform.ListBranches)
 	protected.GET("/branches/sales", middleware.RequireAuth(deps.secret, "admin"), deps.platform.BranchSales)
 	protected.GET("/inventory", deps.platform.ListInventory)
@@ -47,7 +46,6 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 	protected.GET("/website/leads", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListWebsiteLeads)
 	protected.PATCH("/website/leads/:id/status", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdateWebsiteLeadStatus)
 	protected.PATCH("/stock-requests/:id/status", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdateStockRequestStatus)
-	protected.POST("/pos/orders", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager", "cashier"), deps.platform.CreatePOSOrder)
 	registerAdminRoutes(protected, deps)
 }
 

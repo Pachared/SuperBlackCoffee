@@ -2,7 +2,6 @@ package handler
 
 import (
 	"database/sql"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -106,31 +105,14 @@ func (h *PlatformHandler) ListBranches(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "data": result})
 }
 
+// BranchSales preserves the Admin branch overview until a future sales provider is connected.
 func (h *PlatformHandler) BranchSales(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
-	period := c.DefaultQuery("period", "today")
-	var start string
-	switch period {
-	case "today":
-		start = "date_trunc('day', now())"
-	case "month":
-		start = "date_trunc('month', now())"
-	case "year":
-		start = "date_trunc('year', now())"
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "period ต้องเป็น today, month หรือ year"})
-		return
-	}
-	query := `SELECT b.id,b.name,b.code,b.status,
-		COALESCE(SUM(o.total) FILTER (WHERE o.status='paid'), 0),
-		COUNT(o.id) FILTER (WHERE o.status='paid')
-		FROM branches b LEFT JOIN pos_orders o ON o.branch_id=b.id AND o.created_at >= ` + start + `
-		GROUP BY b.id,b.name,b.code,b.status ORDER BY b.name`
-	rows, err := h.db.QueryContext(c, query)
+	rows, err := h.db.QueryContext(c, `SELECT id,name,code,status FROM branches ORDER BY name`)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดยอดขายสาขาได้"})
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดข้อมูลสาขาได้"})
 		return
 	}
 	defer rows.Close()
@@ -138,17 +120,11 @@ func (h *PlatformHandler) BranchSales(c *gin.Context) {
 	for rows.Next() {
 		var id int64
 		var name, code, status string
-		var sales float64
-		var orders int
-		if err := rows.Scan(&id, &name, &code, &status, &sales, &orders); err != nil {
-			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านยอดขายสาขาได้"})
+		if err := rows.Scan(&id, &name, &code, &status); err != nil {
+			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านข้อมูลสาขาได้"})
 			return
 		}
-		result = append(result, gin.H{"id": id, "name": name, "code": code, "status": status, "sales": sales, "orders": orders})
-	}
-	if err := rows.Err(); err != nil {
-		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านยอดขายสาขาได้"})
-		return
+		result = append(result, gin.H{"id": id, "name": name, "code": code, "status": status, "sales": 0, "orders": 0})
 	}
 	c.JSON(200, gin.H{"success": true, "data": result})
 }

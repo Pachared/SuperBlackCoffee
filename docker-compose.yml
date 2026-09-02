@@ -7,12 +7,6 @@ services:
     environment:
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://superblackcoffee.co.th}
     restart: unless-stopped
-  pos:
-    build: ./apps/pos
-    ports: ['5173:5173']
-    environment:
-      VITE_API_URL: http://localhost:8080
-    restart: unless-stopped
   admin:
     build: ./apps/admin
     ports: ['5174:5174']

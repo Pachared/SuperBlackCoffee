@@ -18,22 +18,6 @@ jobs:
       - run: pnpm run lint:website
       - run: pnpm run build:website
 
-  pos:
-    name: POS
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:frontend
-      - run: pnpm run lint:pos
-      - run: pnpm run build:pos
-
   admin:
     name: Admin
     runs-on: ubuntu-latest
