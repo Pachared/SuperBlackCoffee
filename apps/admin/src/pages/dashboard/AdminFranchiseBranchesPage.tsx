@@ -55,13 +55,6 @@ const plans: Record<
 
 const franchisees = [
   {
-    name: 'บริษัท สยาม คอฟฟี่ กรุ๊ป จำกัด',
-    branch: 'สาขาสยามสแควร์',
-    plan: 'M' as FranchisePlan,
-    email: 'siam@superblackcoffee.co.th',
-    status: 'ส่งคำเชิญแล้ว',
-  },
-  {
     name: 'คุณกฤตภาส จันทร์ดี',
     branch: 'สาขารัชดา',
     plan: 'S' as FranchisePlan,
