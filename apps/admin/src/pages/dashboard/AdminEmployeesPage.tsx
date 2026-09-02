@@ -226,7 +226,6 @@ export function AdminEmployeesPage() {
                 >
                   {calendarDays.map((day) => {
                     const isCurrentMonth = day.getMonth() === month.getMonth();
-                    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                     const isToday = isSameDay(day, today);
                     return (
                       <Box
@@ -249,11 +248,7 @@ export function AdminEmployeesPage() {
                             placeItems: 'center',
                             borderRadius: '50%',
                             bgcolor: isToday ? '#3c2d24' : 'transparent',
-                            color: isToday
-                              ? '#fff'
-                              : isWeekend
-                                ? '#9a6d5c'
-                                : '#45342b',
+                            color: isToday ? '#fff' : '#45342b',
                             fontSize: 13,
                             fontWeight: 700,
                           }}
@@ -264,12 +259,12 @@ export function AdminEmployeesPage() {
                           <Typography
                             sx={{
                               mt: 2.5,
-                              color: isWeekend ? '#aa9589' : '#a89285',
+                              color: '#a89285',
                               fontSize: 11,
                               lineHeight: 1.35,
                             }}
                           >
-                            {isWeekend ? 'วันหยุด' : 'ยังไม่มีตารางกะ'}
+                            ยังไม่มีตารางกะ
                           </Typography>
                         ) : null}
                       </Box>
