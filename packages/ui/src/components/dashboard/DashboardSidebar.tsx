@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import {
   cloneElement,
   isValidElement,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -68,12 +69,54 @@ export function DashboardSidebar({
   const logoutIconRef = useRef<LogoutIconHandle>(null);
   const closeIconRef = useRef<PanelLeftCloseIconHandle>(null);
   const openIconRef = useRef<PanelLeftOpenIconHandle>(null);
+  const navigationListRef = useRef<HTMLUListElement>(null);
   const [showExpandedContent, setShowExpandedContent] = useState(!collapsed);
   const [expandedContentVisible, setExpandedContentVisible] =
     useState(!collapsed);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [clickedMenu, setClickedMenu] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | undefined>(undefined);
+  const [, setScrollbarThumb] = useState({
+    visible: false,
+    left: 0,
+    top: 0,
+    height: 0,
+  });
+
+  const updateScrollbarThumb = () => {
+    const list = navigationListRef.current;
+    if (!list) return;
+
+    const { top, height } = list.getBoundingClientRect();
+    const sidebarRight =
+      list.parentElement?.getBoundingClientRect().right ??
+      list.getBoundingClientRect().right;
+    const isScrollable = list.scrollHeight > list.clientHeight;
+    const thumbHeight = isScrollable
+      ? Math.max(
+          28,
+          (list.clientHeight * list.clientHeight) / list.scrollHeight,
+        )
+      : 0;
+    const maxScroll = list.scrollHeight - list.clientHeight;
+    const maxThumbOffset = list.clientHeight - thumbHeight;
+    const thumbOffset = maxScroll
+      ? (list.scrollTop / maxScroll) * maxThumbOffset
+      : 0;
+
+    setScrollbarThumb({
+      visible: isScrollable,
+      left: sidebarRight - 6,
+      top: top + thumbOffset,
+      height: Math.min(thumbHeight, height),
+    });
+  };
+
+  useEffect(() => {
+    updateScrollbarThumb();
+    window.addEventListener('resize', updateScrollbarThumb);
+    return () => window.removeEventListener('resize', updateScrollbarThumb);
+  }, [collapsed, navigation.length]);
 
   useLayoutEffect(() => {
     if (collapsed) {
@@ -199,25 +242,26 @@ export function DashboardSidebar({
         </Typography>
       </Box>
       <List
+        ref={navigationListRef}
+        onScroll={updateScrollbarThumb}
         sx={{
           flex: 1,
           minHeight: 0,
           // Extend only through the Drawer padding so selected rows can meet
           // the panel edge. The previous 32px extension escaped the Drawer
           // and rendered this element's scrollbar over the page content.
-          width: 'calc(100% + 16px)',
-          mr: -2,
+          // Leave a small reveal at the panel edge so the active item's
+          // curved connection remains visible beside the main content.
+          width: 'calc(100% + 20px)',
+          mr: -2.5,
           py: 0,
-          pr: 2,
+          pr: 0,
           overflowY: 'auto',
           overflowX: 'hidden',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255,255,255,.26) transparent',
-          '&::-webkit-scrollbar': { width: 6 },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'rgba(255,255,255,.26)',
-            borderRadius: 99,
-          },
+          // The native scrollbar reserves space on the right. Hide it and
+          // draw the thumb above the navigation so selected rows stay flush.
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': { width: 0, height: 0 },
         }}
       >
         {navigation.map(({ label, icon, badge, group }, index) => (
@@ -287,61 +331,25 @@ export function DashboardSidebar({
                         bgcolor: activeBackground,
                         color: '#171411',
                         borderRadius: '16px 0 0 16px',
-                        mr: -2,
-                        width: 'calc(100% + 16px)',
+                        mr: 0,
+                        width: 'calc(100% + 1px)',
                         position: 'relative',
                         zIndex: 1,
-                        '&::before, &::after': {
-                          content: '""',
-                          position: 'absolute',
-                          right: 0,
-                          width: 16,
-                          height: 16,
-                          pointerEvents: 'none',
-                        },
-                        '&::before': {
-                          top: -16,
-                          borderRadius: '0 0 16px 0',
-                          boxShadow: '0 8px 0 0 ' + activeBackground,
-                        },
-                        '&::after': {
-                          bottom: -16,
-                          borderRadius: '0 16px 0 0',
-                          boxShadow: '0 -8px 0 0 ' + activeBackground,
-                        },
                       }
                     : {
                         bgcolor: activeBackground,
                         color: '#171411',
-                        borderRadius: '12px 0 0 12px',
-                        mr: -2,
-                        width: 'calc(100% + 16px)',
-                        pr: 2,
+                        borderRadius: '16px 0 0 16px',
+                        mr: 0,
+                        width: 'calc(100% + 1px)',
                         position: 'relative',
                         zIndex: 1,
-                        '&::before, &::after': {
-                          content: '""',
-                          position: 'absolute',
-                          right: 0,
-                          width: 14,
-                          height: 14,
-                          pointerEvents: 'none',
-                        },
-                        '&::before': {
-                          top: -14,
-                          borderRadius: '0 0 14px 0',
-                          boxShadow: '0 7px 0 0 ' + activeBackground,
-                        },
-                        '&::after': {
-                          bottom: -14,
-                          borderRadius: '0 14px 0 0',
-                          boxShadow: '0 -7px 0 0 ' + activeBackground,
-                        },
                       },
                 '&.Mui-selected:hover': { bgcolor: activeBackground },
                 '&:not(.Mui-selected):hover': {
                   bgcolor: selectedColor,
-                  width: 'calc(100% + 12px)',
+                  borderRadius: '16px 0 0 16px !important',
+                  width: 'calc(100% - 8px)',
                   position: 'relative',
                   zIndex: 2,
                 },
