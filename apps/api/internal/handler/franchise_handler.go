@@ -2,9 +2,11 @@ package handler
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"y/internal/middleware"
 )
 
@@ -35,6 +37,8 @@ type franchiseInput struct {
 	Plan       string `json:"plan" binding:"required,oneof=S M L"`
 	BranchName string `json:"branchName" binding:"required"`
 	BranchCode string `json:"branchCode" binding:"required"`
+	Username   string `json:"username" binding:"required,min=3"`
+	Password   string `json:"password" binding:"required,min=8"`
 }
 
 func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
@@ -53,9 +57,18 @@ func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	var franchiseeID int64
-	err = tx.QueryRowContext(c, `INSERT INTO franchisees(name,email,plan,status) VALUES($1,$2,$3,'invited') RETURNING id`, input.Name, input.Email, input.Plan).Scan(&franchiseeID)
+	err = tx.QueryRowContext(c, `INSERT INTO franchisees(name,email,plan,status) VALUES($1,$2,$3,'active') RETURNING id`, input.Name, input.Email, input.Plan).Scan(&franchiseeID)
+	var branchID int64
 	if err == nil {
-		_, err = tx.ExecContext(c, `INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,$2,$3,'inactive')`, franchiseeID, input.BranchName, input.BranchCode)
+		err = tx.QueryRowContext(c, `INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,$2,$3,'active') RETURNING id`, franchiseeID, input.BranchName, input.BranchCode).Scan(&branchID)
+	}
+	if err == nil {
+		passwordHash, hashErr := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if hashErr != nil {
+			err = hashErr
+		} else {
+			_, err = tx.ExecContext(c, `INSERT INTO users(name,username,email,password_hash,role,franchisee_id,branch_id) VALUES($1,$2,$3,$4,'franchise_owner',$5,$6)`, strings.TrimSpace(input.Name), strings.TrimSpace(input.Username), strings.TrimSpace(input.Email), string(passwordHash), franchiseeID, branchID)
+		}
 	}
 	if err != nil {
 		c.JSON(409, gin.H{"success": false, "message": "อีเมลแฟรนไชส์หรือรหัสสาขานี้มีอยู่แล้ว"})

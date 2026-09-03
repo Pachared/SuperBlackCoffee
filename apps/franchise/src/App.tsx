@@ -2,54 +2,129 @@ import { useState } from 'react';
 import { Box, Button, Card, Chip, Typography } from '@mui/material';
 import {
   BoxIcon,
+  BoxesIcon,
   DashboardMain,
   DashboardSidebar,
   DashboardTopbar,
   LayoutGridIcon,
-  MapPinPlusIcon,
   ReceiptIcon,
+  ReceiptTextIcon,
+  UsersIcon,
   SbcThemeProvider,
+  LoginScreen,
 } from '@stackbuild/ui';
+import {
+  EmployeesManagementPage,
+  IngredientsManagementPage,
+  ProductsManagementPage,
+  StockManagementPage,
+} from '../../admin/src/pages/dashboard/management';
+import { login } from './api/auth';
 
 const navigation = [
-  { label: 'ภาพรวม', icon: <LayoutGridIcon /> },
-  { label: 'ข้อมูลแฟรนไชส์', icon: <MapPinPlusIcon /> },
-  { label: 'เอกสารและคำขอ', icon: <ReceiptIcon /> },
-  { label: 'คู่มือการดำเนินงาน', icon: <BoxIcon /> },
+  { label: 'ภาพรวม', icon: <LayoutGridIcon />, group: 'ภาพรวม' },
+  { label: 'คำสั่งซื้อ', icon: <ReceiptIcon />, group: 'งานประจำวัน' },
+  {
+    label: 'เมนูและสินค้า',
+    icon: <ReceiptTextIcon />,
+    group: 'สินค้าและคลัง',
+  },
+  { label: 'สต๊อก', icon: <BoxIcon />, group: 'สินค้าและคลัง' },
+  { label: 'วัตถุดิบ', icon: <BoxesIcon />, group: 'สินค้าและคลัง' },
+  {
+    label: 'เอกสารและคำขอ',
+    icon: <ReceiptIcon />,
+    group: 'เอกสารและการสนับสนุน',
+  },
+  {
+    label: 'คู่มือการดำเนินงาน',
+    icon: <BoxIcon />,
+    group: 'เอกสารและการสนับสนุน',
+  },
+  { label: 'พนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
 ];
 
+const franchiseBranch = 'อยุธยา' as const;
+const navigationForPlan = (plan: 'S' | 'M' | 'L') =>
+  navigation.filter((item) => plan === 'L' || item.label !== 'สต๊อก');
+
 export default function App() {
+  const [loggedIn, setLoggedIn] = useState(
+    () => sessionStorage.getItem('sbc-franchise-session') === 'true',
+  );
+  const [plan, setPlan] = useState<'S' | 'M' | 'L'>(
+    () =>
+      (sessionStorage.getItem('sbc-franchise-plan') as 'S' | 'M' | 'L') ?? 'S',
+  );
   const [activePage, setActivePage] = useState('ภาพรวม');
   const [collapsed, setCollapsed] = useState(false);
+  const logout = () => {
+    sessionStorage.removeItem('sbc-access-token');
+    sessionStorage.removeItem('sbc-franchise-session');
+    sessionStorage.removeItem('sbc-franchise-plan');
+    setLoggedIn(false);
+  };
   return (
     <SbcThemeProvider secondary="#8f6040" background="#fbfaf8">
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-        <DashboardSidebar
-          activePage={activePage}
-          navigation={navigation}
-          onNavigate={setActivePage}
-          onLogout={() => undefined}
-          selectedColor="#3c2d24"
-          activeBackground="#fbfaf8"
-          accentColor="#bf9576"
-          collapsed={collapsed}
-          onToggle={() => setCollapsed((value) => !value)}
+      {!loggedIn ? (
+        <LoginScreen
+          headline="Franchise Portal"
+          description="เข้าสู่ระบบเพื่อจัดการแฟรนไชส์ของคุณ"
+          submitLabel="เข้าสู่ระบบแฟรนไชส์"
+          onSubmit={async (username, password) => {
+            const session = await login(username, password);
+            if (session.user.role !== 'franchise_owner')
+              throw new Error('บัญชีนี้ไม่มีสิทธิ์แฟรนไชส์');
+            const accountPlan = session.user.plan ?? 'S';
+            sessionStorage.setItem('sbc-access-token', session.accessToken);
+            sessionStorage.setItem('sbc-franchise-session', 'true');
+            sessionStorage.setItem('sbc-franchise-plan', accountPlan);
+            setPlan(accountPlan);
+            setLoggedIn(true);
+          }}
         />
-        <DashboardTopbar
-          title={activePage}
-          initials="FC"
-          name="Franchise account"
-          role="Franchise partner"
-          sidebarWidth={collapsed ? 96 : 230}
-        />
-        <DashboardMain>
-          {activePage === 'ภาพรวม' ? (
-            <Overview />
+      ) : (
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+          <DashboardSidebar
+            activePage={activePage}
+            navigation={navigationForPlan(plan)}
+            onNavigate={setActivePage}
+            onLogout={logout}
+            selectedColor="#3c2d24"
+            activeBackground="#fbfaf8"
+            accentColor="#bf9576"
+            collapsed={collapsed}
+            onToggle={() => setCollapsed((value) => !value)}
+          />
+          <DashboardTopbar
+            title={activePage}
+            initials="FC"
+            name="Franchise account"
+            role="Franchise partner"
+            sidebarWidth={collapsed ? 96 : 230}
+          />
+          {activePage === 'เมนูและสินค้า' ? (
+            <ProductsManagementPage
+              activeBranch={franchiseBranch}
+              franchisePlan={plan}
+            />
+          ) : activePage === 'วัตถุดิบ' ? (
+            <IngredientsManagementPage activeBranch={franchiseBranch} />
+          ) : activePage === 'สต๊อก' ? (
+            <StockManagementPage activeBranch={franchiseBranch} />
+          ) : activePage === 'พนักงาน' ? (
+            <EmployeesManagementPage franchiseMode />
           ) : (
-            <EmptyPage title={activePage} />
+            <DashboardMain>
+              {activePage === 'ภาพรวม' ? (
+                <Overview />
+              ) : (
+                <EmptyPage title={activePage} />
+              )}
+            </DashboardMain>
           )}
-        </DashboardMain>
-      </Box>
+        </Box>
+      )}
     </SbcThemeProvider>
   );
 }

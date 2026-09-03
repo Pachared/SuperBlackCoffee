@@ -45,13 +45,13 @@ const AdminFranchiseManagementPage = lazy(() =>
   ),
 );
 const AdminEmployeesPage = lazy(() =>
-  import('../../pages/dashboard/AdminEmployeesPage').then((module) => ({
-    default: module.AdminEmployeesPage,
+  import('../../pages/dashboard/management').then((module) => ({
+    default: module.EmployeesManagementPage,
   })),
 );
 const AdminIngredientsPage = lazy(() =>
-  import('../../pages/dashboard/AdminIngredientsPage').then((module) => ({
-    default: module.AdminIngredientsPage,
+  import('../../pages/dashboard/management').then((module) => ({
+    default: module.IngredientsManagementPage,
   })),
 );
 const AdminOrdersPage = lazy(() =>
@@ -70,13 +70,13 @@ const AdminOverviewPage = lazy(() =>
   })),
 );
 const AdminProductsPage = lazy(() =>
-  import('../../pages/dashboard/AdminProductsPage').then((module) => ({
-    default: module.AdminProductsPage,
+  import('../../pages/dashboard/management').then((module) => ({
+    default: module.ProductsManagementPage,
   })),
 );
 const AdminStockPage = lazy(() =>
-  import('../../pages/dashboard/AdminStockPage').then((module) => ({
-    default: module.AdminStockPage,
+  import('../../pages/dashboard/management').then((module) => ({
+    default: module.StockManagementPage,
   })),
 );
 const AdminProcurementPage = lazy(() =>

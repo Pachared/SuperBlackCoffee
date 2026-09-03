@@ -89,7 +89,11 @@ function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function AdminEmployeesPage() {
+export function AdminEmployeesPage({
+  franchiseMode = false,
+}: {
+  franchiseMode?: boolean;
+} = {}) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
   const [selectedShift, setSelectedShift] = useState<StaffShift | null>(null);
@@ -113,7 +117,9 @@ export function AdminEmployeesPage() {
     queryFn: () => listStaffSchedules(monthKey),
   });
   const branches = useQuery({ queryKey: ['branches'], queryFn: listBranches });
-  const activeBranchId = selectedBranchId ?? branches.data?.[0]?.id ?? null;
+  const activeBranchId = franchiseMode
+    ? (branches.data?.[0]?.id ?? null)
+    : (selectedBranchId ?? branches.data?.[0]?.id ?? null);
   const activeBranch = branches.data?.find(
     (branch) => branch.id === activeBranchId,
   );
@@ -345,7 +351,7 @@ export function AdminEmployeesPage() {
               sx={{ p: 2, borderRadius: '15px', borderColor: '#e8ddd5' }}
             >
               <Typography color="text.secondary" sx={{ fontSize: 14 }}>
-                พนักงานประจำสาขา
+                {franchiseMode ? 'พนักงานในแฟรนไชส์' : 'พนักงานประจำสาขา'}
               </Typography>
               <Typography
                 sx={{
@@ -360,31 +366,33 @@ export function AdminEmployeesPage() {
             </Card>
           </Box>
 
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexWrap: 'wrap',
-              mb: 2,
-            }}
-          >
-            <Typography color="text.secondary" sx={{ fontSize: 14, mr: 0.5 }}>
-              แสดงตารางของสาขา
-            </Typography>
-            {(branches.data ?? []).map((branch) => (
-              <Button
-                key={branch.id}
-                size="small"
-                variant={
-                  activeBranchId === branch.id ? 'contained' : 'outlined'
-                }
-                onClick={() => setSelectedBranchId(branch.id)}
-              >
-                {branch.name}
-              </Button>
-            ))}
-          </Box>
+          {!franchiseMode && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                flexWrap: 'wrap',
+                mb: 2,
+              }}
+            >
+              <Typography color="text.secondary" sx={{ fontSize: 14, mr: 0.5 }}>
+                แสดงตารางของสาขา
+              </Typography>
+              {(branches.data ?? []).map((branch) => (
+                <Button
+                  key={branch.id}
+                  size="small"
+                  variant={
+                    activeBranchId === branch.id ? 'contained' : 'outlined'
+                  }
+                  onClick={() => setSelectedBranchId(branch.id)}
+                >
+                  {branch.name}
+                </Button>
+              ))}
+            </Box>
+          )}
 
           <Card
             variant="outlined"
@@ -403,19 +411,26 @@ export function AdminEmployeesPage() {
               }}
             >
               <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box>
-                  <Typography
-                    sx={{ color: '#8b7161', fontSize: 12, fontWeight: 700 }}
-                  >
-                    สาขา
-                  </Typography>
-                  <Typography
-                    sx={{ color: '#201914', fontSize: 21, fontWeight: 800 }}
-                  >
-                    {activeBranch?.name ?? 'ยังไม่พบสาขา'}
-                  </Typography>
-                </Box>
-                <Box sx={{ pl: 3, borderLeft: '1px solid #dfd1c8' }}>
+                {!franchiseMode && (
+                  <Box>
+                    <Typography
+                      sx={{ color: '#8b7161', fontSize: 12, fontWeight: 700 }}
+                    >
+                      สาขา
+                    </Typography>
+                    <Typography
+                      sx={{ color: '#201914', fontSize: 21, fontWeight: 800 }}
+                    >
+                      {activeBranch?.name ?? 'ยังไม่พบสาขา'}
+                    </Typography>
+                  </Box>
+                )}
+                <Box
+                  sx={{
+                    pl: franchiseMode ? 0 : 3,
+                    borderLeft: franchiseMode ? 0 : '1px solid #dfd1c8',
+                  }}
+                >
                   <Typography
                     sx={{ color: '#8b7161', fontSize: 12, fontWeight: 700 }}
                   >
@@ -667,21 +682,23 @@ export function AdminEmployeesPage() {
               onChange={(event) => setEditDate(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
             />
-            <FormControl>
-              <InputLabel id="schedule-branch-label">สาขา</InputLabel>
-              <Select
-                labelId="schedule-branch-label"
-                label="สาขา"
-                value={editBranchId}
-                onChange={(event) => setEditBranchId(event.target.value)}
-              >
-                {(branches.data ?? []).map((branch) => (
-                  <MenuItem key={branch.id} value={String(branch.id)}>
-                    {branch.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {!franchiseMode && (
+              <FormControl>
+                <InputLabel id="schedule-branch-label">สาขา</InputLabel>
+                <Select
+                  labelId="schedule-branch-label"
+                  label="สาขา"
+                  value={editBranchId}
+                  onChange={(event) => setEditBranchId(event.target.value)}
+                >
+                  {(branches.data ?? []).map((branch) => (
+                    <MenuItem key={branch.id} value={String(branch.id)}>
+                      {branch.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <FormControl>
               <InputLabel id="schedule-status-label">สถานะ</InputLabel>
               <Select
@@ -823,21 +840,25 @@ export function AdminEmployeesPage() {
               value={newEmployeeName}
               onChange={(event) => setNewEmployeeName(event.target.value)}
             />
-            <FormControl required>
-              <InputLabel id="new-employee-branch-label">สาขา</InputLabel>
-              <Select
-                labelId="new-employee-branch-label"
-                label="สาขา"
-                value={newEmployeeBranchId}
-                onChange={(event) => setNewEmployeeBranchId(event.target.value)}
-              >
-                {(branches.data ?? []).map((branch) => (
-                  <MenuItem key={branch.id} value={String(branch.id)}>
-                    {branch.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {!franchiseMode && (
+              <FormControl required>
+                <InputLabel id="new-employee-branch-label">สาขา</InputLabel>
+                <Select
+                  labelId="new-employee-branch-label"
+                  label="สาขา"
+                  value={newEmployeeBranchId}
+                  onChange={(event) =>
+                    setNewEmployeeBranchId(event.target.value)
+                  }
+                >
+                  {(branches.data ?? []).map((branch) => (
+                    <MenuItem key={branch.id} value={String(branch.id)}>
+                      {branch.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <FormControl required>
               <InputLabel id="new-employee-role-label">ตำแหน่ง</InputLabel>
               <Select

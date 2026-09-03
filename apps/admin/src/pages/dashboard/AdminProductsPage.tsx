@@ -129,8 +129,10 @@ const normalizeMenuCategory = (category: string, name: string) => {
 
 export function AdminProductsPage({
   activeBranch,
+  franchisePlan,
 }: {
   activeBranch: IngredientBranch;
+  franchisePlan?: 'S' | 'M' | 'L';
 }) {
   const plusRef = useRef<PlusIconHandle>(null);
   const searchRef = useRef<SearchIconHandle>(null);
@@ -162,9 +164,11 @@ export function AdminProductsPage({
       catalogProducts.filter(
         (item) =>
           item.name.includes(deferredQuery) &&
-          (filter === 'ทั้งหมด' || item.category === filter),
+          (filter === 'ทั้งหมด' || item.category === filter) &&
+          (franchisePlan !== 'S' ||
+            (item.category !== 'อาหาร' && item.category !== 'เบเกอรี่')),
       ),
-    [catalogProducts, deferredQuery, filter],
+    [catalogProducts, deferredQuery, filter, franchisePlan],
   );
   const displayedBranches =
     activeBranch === 'ทุกสาขา' ? ingredientBranches.slice(1) : [activeBranch];

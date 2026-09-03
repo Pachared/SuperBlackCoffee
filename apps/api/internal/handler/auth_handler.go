@@ -41,10 +41,14 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 	claims := middleware.Claims{UserID: int64(user.ID), Role: user.Role, RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)), IssuedAt: jwt.NewNumericDate(time.Now())}}
 	claims.FranchiseeID = user.FranchiseeID
 	claims.BranchID = user.BranchID
+	plan := ""
+	if user.FranchiseeID != nil {
+		_ = h.db.QueryRowContext(c, `SELECT plan FROM franchisees WHERE id=$1`, *user.FranchiseeID).Scan(&plan)
+	}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(h.jwtSecret))
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้าง access token ได้"})
 		return
 	}
-	c.JSON(200, gin.H{"success": true, "data": gin.H{"accessToken": token, "user": gin.H{"id": user.ID, "name": user.Name, "role": user.Role, "franchiseeId": claims.FranchiseeID, "branchId": claims.BranchID}}})
+	c.JSON(200, gin.H{"success": true, "data": gin.H{"accessToken": token, "user": gin.H{"id": user.ID, "name": user.Name, "role": user.Role, "franchiseeId": claims.FranchiseeID, "branchId": claims.BranchID, "plan": plan}}})
 }
