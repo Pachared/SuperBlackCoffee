@@ -346,6 +346,15 @@ export function EmployeesManagementPage({
                 ? 'ยืนยันจัดตาราง'
                 : 'จัดตารางอัตโนมัติ'}
           </Button>
+          {confirmAutoSchedule ? (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setConfirmAutoSchedule(false)}
+            >
+              ยกเลิก
+            </Button>
+          ) : null}
           <Button
             variant="contained"
             size="small"
