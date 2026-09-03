@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Divider,
   Drawer,
   FormControl,
   InputLabel,
@@ -12,7 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DashboardMain, XIcon } from '@stackbuild/ui';
+import { ClockIcon, DashboardMain, XIcon } from '@stackbuild/ui';
 import {
   generateStaffSchedules,
   listStaffSchedules,
@@ -20,7 +21,12 @@ import {
   updateStaffShift,
   type StaffShift,
 } from '../api/staff-schedules';
-import { createEmployee, listEmployees } from '../api/users';
+import {
+  createEmployee,
+  deleteEmployee,
+  listEmployees,
+  updateEmployee,
+} from '../api/users';
 import { listBranches } from '../api/branches';
 import { EmployeesSkeleton } from '../components/skeletons/EmployeesSkeleton';
 
@@ -107,6 +113,18 @@ export function EmployeesManagementPage({
     'branch_manager' | 'cashier'
   >('cashier');
   const [newEmployeeBranchId, setNewEmployeeBranchId] = useState('');
+  const [defaultStartsAt, setDefaultStartsAt] = useState('08:00');
+  const [defaultEndsAt, setDefaultEndsAt] = useState('17:00');
+  const [hoveredTimeField, setHoveredTimeField] = useState<
+    'start' | 'end' | null
+  >(null);
+  const [confirmAutoSchedule, setConfirmAutoSchedule] = useState(false);
+  const [pendingDeleteEmployeeId, setPendingDeleteEmployeeId] = useState<
+    number | null
+  >(null);
+  const [editingEmployeeId, setEditingEmployeeId] = useState<number | null>(
+    null,
+  );
   const {
     data: employees = [],
     error,
@@ -121,10 +139,13 @@ export function EmployeesManagementPage({
     queryFn: () => listStaffSchedules(monthKey),
   });
   const branches = useQuery({ queryKey: ['branches'], queryFn: listBranches });
+  const workspaceBranches = franchiseMode
+    ? (branches.data ?? [])
+    : (branches.data ?? []).filter((branch) => !branch.franchiseeId);
   const activeBranchId = franchiseMode
-    ? (branches.data?.[0]?.id ?? null)
-    : (selectedBranchId ?? branches.data?.[0]?.id ?? null);
-  const activeBranch = branches.data?.find(
+    ? (workspaceBranches[0]?.id ?? null)
+    : (selectedBranchId ?? workspaceBranches[0]?.id ?? null);
+  const activeBranch = workspaceBranches.find(
     (branch) => branch.id === activeBranchId,
   );
   const generate = useMutation({
@@ -172,6 +193,8 @@ export function EmployeesManagementPage({
         password: `Temp${Date.now()}!`,
         role: newEmployeeRole,
         branchId: Number(newEmployeeBranchId),
+        defaultStartsAt,
+        defaultEndsAt,
       }),
     onSuccess: () => {
       setIsEmployeeDrawerOpen(false);
@@ -206,6 +229,9 @@ export function EmployeesManagementPage({
     (employee) =>
       employee.role === 'cashier' || employee.role === 'branch_manager',
   ).length;
+  const branchEmployees = franchiseMode
+    ? employees
+    : employees.filter((employee) => employee.branchId === activeBranchId);
   const today = new Date();
 
   const changeMonth = (offset: number) => {
@@ -220,6 +246,22 @@ export function EmployeesManagementPage({
     setEditDate(shift.date);
     setEditBranchId(String(shift.branchId));
     setEditStatus(shift.status);
+  };
+  const editEmployee = async (employee: (typeof employees)[number]) => {
+    setEditingEmployeeId(employee.id);
+    setNewEmployeeName(employee.name);
+    setNewEmployeeRole(
+      employee.role === 'branch_manager' ? 'branch_manager' : 'cashier',
+    );
+    setNewEmployeeBranchId(String(employee.branchId ?? activeBranchId ?? ''));
+    setDefaultStartsAt(employee.defaultStartsAt?.slice(0, 5) || '08:00');
+    setDefaultEndsAt(employee.defaultEndsAt?.slice(0, 5) || '17:00');
+    setIsEmployeeDrawerOpen(true);
+  };
+  const removeEmployee = async (employee: (typeof employees)[number]) => {
+    await deleteEmployee(employee.id);
+    setPendingDeleteEmployeeId(null);
+    void refetch();
   };
 
   return (
@@ -277,19 +319,43 @@ export function EmployeesManagementPage({
           >
             เดือนถัดไป
           </Button>
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={{ mx: 0.5, borderColor: '#d8cec7' }}
+          />
           <Button
             variant="contained"
             size="small"
-            onClick={() => generate.mutate()}
+            onClick={() => {
+              if (confirmAutoSchedule) {
+                setConfirmAutoSchedule(false);
+                generate.mutate();
+              } else setConfirmAutoSchedule(true);
+            }}
             disabled={generate.isPending || activeBranchId === null}
+            sx={
+              confirmAutoSchedule
+                ? { bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' } }
+                : undefined
+            }
           >
-            {generate.isPending ? 'กำลังจัดตาราง...' : 'จัดตารางอัตโนมัติ'}
+            {generate.isPending
+              ? 'กำลังจัดตาราง...'
+              : confirmAutoSchedule
+                ? 'ยืนยันจัดตาราง'
+                : 'จัดตารางอัตโนมัติ'}
           </Button>
           <Button
             variant="contained"
             size="small"
             onClick={() => {
+              setEditingEmployeeId(null);
+              setNewEmployeeName('');
+              setNewEmployeeRole('cashier');
               setNewEmployeeBranchId(String(activeBranchId ?? ''));
+              setDefaultStartsAt('');
+              setDefaultEndsAt('');
               setIsEmployeeDrawerOpen(true);
             }}
             sx={{ bgcolor: '#805637', '&:hover': { bgcolor: '#60412a' } }}
@@ -300,7 +366,7 @@ export function EmployeesManagementPage({
       </Box>
 
       {isLoading ? <EmployeesSkeleton /> : null}
-      {error ? (
+      {!franchiseMode && error ? (
         <Card
           variant="outlined"
           sx={{ p: 2, borderColor: '#edc7c3', color: '#a22e2a' }}
@@ -311,7 +377,7 @@ export function EmployeesManagementPage({
           </Button>
         </Card>
       ) : null}
-      {schedules.error ? (
+      {!franchiseMode && schedules.error ? (
         <Card
           variant="outlined"
           sx={{ mb: 2, p: 2, borderColor: '#edc7c3', color: '#a22e2a' }}
@@ -322,52 +388,300 @@ export function EmployeesManagementPage({
           </Button>
         </Card>
       ) : null}
-      {!isLoading && !error ? (
+      {!isLoading && (!error || franchiseMode) ? (
         <>
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'minmax(0, 2fr) minmax(0, 8fr)',
+              },
               gap: 1.5,
               mb: 2,
+              alignItems: 'stretch',
             }}
           >
-            <Card
-              variant="outlined"
-              sx={{ p: 2, borderRadius: '15px', borderColor: '#e8ddd5' }}
-            >
-              <Typography color="text.secondary" sx={{ fontSize: 14 }}>
-                พนักงานทั้งหมด
-              </Typography>
-              <Typography
-                sx={{
-                  mt: 0.25,
-                  color: '#201914',
-                  fontWeight: 700,
-                  fontSize: 26,
-                }}
+            {!franchiseMode ? (
+              <Card
+                variant="outlined"
+                sx={{ p: 2, borderRadius: '15px', borderColor: '#e8ddd5' }}
               >
-                {employees.length}
-              </Typography>
-            </Card>
+                <Typography
+                  color="text.secondary"
+                  sx={{ fontSize: 14, fontWeight: 700 }}
+                >
+                  พนักงานทั้งหมด
+                </Typography>
+                <Typography
+                  sx={{
+                    mt: 0.25,
+                    color: '#201914',
+                    fontWeight: 700,
+                    fontSize: 26,
+                  }}
+                >
+                  {employees.length}
+                </Typography>
+              </Card>
+            ) : null}
             <Card
               variant="outlined"
               sx={{ p: 2, borderRadius: '15px', borderColor: '#e8ddd5' }}
             >
-              <Typography color="text.secondary" sx={{ fontSize: 14 }}>
+              <Typography
+                color="text.secondary"
+                sx={{ fontSize: 14, fontWeight: 700 }}
+              >
                 {franchiseMode ? 'พนักงานในแฟรนไชส์' : 'พนักงานประจำสาขา'}
               </Typography>
-              <Typography
+              {franchiseMode ? (
+                <Typography
+                  sx={{
+                    mt: 0.25,
+                    color: '#201914',
+                    fontWeight: 700,
+                    fontSize: 26,
+                  }}
+                >
+                  {staffCount}
+                </Typography>
+              ) : (
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      sm: 'repeat(2, minmax(0, 1fr))',
+                    },
+                    gap: 1,
+                    mt: 1.5,
+                  }}
+                >
+                  {branchEmployees.length === 0 ? (
+                    <Typography color="text.secondary" sx={{ fontSize: 14 }}>
+                      ยังไม่มีพนักงานในสาขานี้
+                    </Typography>
+                  ) : (
+                    branchEmployees.map((employee) => (
+                      <Box
+                        key={employee.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: '10px',
+                          bgcolor: '#fbf7f4',
+                        }}
+                      >
+                        <Typography
+                          sx={{ flex: 1, fontSize: 15, fontWeight: 600 }}
+                        >
+                          {employee.name}
+                        </Typography>
+                        <Typography
+                          color="text.secondary"
+                          sx={{ fontSize: 13 }}
+                        >
+                          {employee.role === 'branch_manager'
+                            ? 'ผู้จัดการสาขา'
+                            : 'แคชเชียร์'}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            ml: 2,
+                          }}
+                        >
+                          <Divider
+                            orientation="vertical"
+                            flexItem
+                            sx={{ borderColor: '#d8cec7', mx: 0.5 }}
+                          />
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => {
+                              if (pendingDeleteEmployeeId === employee.id)
+                                setPendingDeleteEmployeeId(null);
+                              else void editEmployee(employee);
+                            }}
+                            sx={{
+                              minHeight: 34,
+                              borderRadius: '10px',
+                              bgcolor: '#5f4030',
+                              color: '#fff',
+                              boxShadow: 'none',
+                              '&:hover': {
+                                bgcolor: '#3c2d24',
+                                boxShadow: 'none',
+                              },
+                            }}
+                          >
+                            {pendingDeleteEmployeeId === employee.id
+                              ? 'ยกเลิก'
+                              : 'แก้ไข'}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="error"
+                            onClick={() => {
+                              if (pendingDeleteEmployeeId === employee.id)
+                                void removeEmployee(employee);
+                              else setPendingDeleteEmployeeId(employee.id);
+                            }}
+                            sx={{
+                              minHeight: 34,
+                              borderRadius: '10px',
+                              boxShadow: 'none',
+                              '&:hover': { boxShadow: 'none' },
+                            }}
+                          >
+                            {pendingDeleteEmployeeId === employee.id
+                              ? 'ยืนยัน'
+                              : 'ลบ'}
+                          </Button>
+                        </Box>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              )}
+            </Card>
+
+            {franchiseMode ? (
+              <Card
+                variant="outlined"
                 sx={{
-                  mt: 0.25,
-                  color: '#201914',
-                  fontWeight: 700,
-                  fontSize: 26,
+                  gridColumn: { xs: 'auto', sm: '2' },
+                  p: 2,
+                  borderRadius: '16px',
+                  borderColor: '#e8ddd5',
                 }}
               >
-                {staffCount}
-              </Typography>
-            </Card>
+                <Typography
+                  color="text.secondary"
+                  sx={{
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    mb: 1.5,
+                  }}
+                >
+                  รายชื่อพนักงาน
+                </Typography>
+                {employees.length === 0 ? (
+                  <Typography
+                    sx={{ color: '#b8aaa1', fontSize: 14, fontWeight: 500 }}
+                  >
+                    ยังไม่มีพนักงานในแฟรนไชส์
+                  </Typography>
+                ) : (
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'repeat(2, minmax(0, 1fr))',
+                      },
+                      gap: 1,
+                    }}
+                  >
+                    {employees.map((employee) => (
+                      <Box
+                        key={employee.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: '10px',
+                          bgcolor: '#fbf7f4',
+                        }}
+                      >
+                        <Typography
+                          sx={{ flex: 1, fontSize: 15, fontWeight: 600 }}
+                        >
+                          {employee.name}
+                        </Typography>
+                        <Typography
+                          color="text.secondary"
+                          sx={{ fontSize: 13 }}
+                        >
+                          {employee.role === 'branch_manager'
+                            ? 'ผู้จัดการสาขา'
+                            : 'แคชเชียร์'}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            ml: 2,
+                          }}
+                        >
+                          <Divider
+                            orientation="vertical"
+                            flexItem
+                            sx={{ borderColor: '#d8cec7', mx: 0.5 }}
+                          />
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => {
+                              if (pendingDeleteEmployeeId === employee.id)
+                                setPendingDeleteEmployeeId(null);
+                              else void editEmployee(employee);
+                            }}
+                            sx={{
+                              minHeight: 34,
+                              borderRadius: '10px',
+                              bgcolor: '#5f4030',
+                              color: '#fff',
+                              boxShadow: 'none',
+                              '&:hover': {
+                                bgcolor: '#3c2d24',
+                                boxShadow: 'none',
+                              },
+                            }}
+                          >
+                            {pendingDeleteEmployeeId === employee.id
+                              ? 'ยกเลิก'
+                              : 'แก้ไข'}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="error"
+                            onClick={() => {
+                              if (pendingDeleteEmployeeId === employee.id)
+                                void removeEmployee(employee);
+                              else setPendingDeleteEmployeeId(employee.id);
+                            }}
+                            sx={{
+                              minHeight: 34,
+                              borderRadius: '10px',
+                              boxShadow: 'none',
+                              '&:hover': { boxShadow: 'none' },
+                            }}
+                          >
+                            {pendingDeleteEmployeeId === employee.id
+                              ? 'ยืนยัน'
+                              : 'ลบ'}
+                          </Button>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Card>
+            ) : null}
           </Box>
 
           {!franchiseMode && (
@@ -383,7 +697,7 @@ export function EmployeesManagementPage({
               <Typography color="text.secondary" sx={{ fontSize: 14, mr: 0.5 }}>
                 แสดงตารางของสาขา
               </Typography>
-              {(branches.data ?? []).map((branch) => (
+              {workspaceBranches.map((branch) => (
                 <Button
                   key={branch.id}
                   size="small"
@@ -676,7 +990,10 @@ export function EmployeesManagementPage({
               },
               gap: 2,
               mt: 3,
-              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                bgcolor: '#fff',
+              },
             }}
           >
             <TextField
@@ -695,7 +1012,7 @@ export function EmployeesManagementPage({
                   value={editBranchId}
                   onChange={(event) => setEditBranchId(event.target.value)}
                 >
-                  {(branches.data ?? []).map((branch) => (
+                  {workspaceBranches.map((branch) => (
                     <MenuItem key={branch.id} value={String(branch.id)}>
                       {branch.name}
                     </MenuItem>
@@ -799,7 +1116,7 @@ export function EmployeesManagementPage({
                   fontWeight: 600,
                 }}
               >
-                เพิ่มพนักงาน
+                {editingEmployeeId !== null ? 'แก้ไขพนักงาน' : 'เพิ่มพนักงาน'}
               </Typography>
               <Typography color="text.secondary" sx={{ fontSize: 14 }}>
                 สร้างบัญชีเพื่อเข้าสู่ระบบและจัดตารางกะ
@@ -825,7 +1142,30 @@ export function EmployeesManagementPage({
             component="form"
             onSubmit={(event) => {
               event.preventDefault();
-              createEmployeeMutation.mutate();
+              if (
+                !defaultStartsAt ||
+                !defaultEndsAt ||
+                defaultStartsAt === '00:00' ||
+                defaultEndsAt === '00:00'
+              ) {
+                window.alert('กรุณาระบุเวลาเข้างานและเวลาออกงานก่อนบันทึก');
+                return;
+              }
+              if (editingEmployeeId !== null) {
+                void updateEmployee(editingEmployeeId, {
+                  name: newEmployeeName,
+                  role: newEmployeeRole,
+                  branchId: Number(newEmployeeBranchId),
+                  defaultStartsAt,
+                  defaultEndsAt,
+                }).then(() => {
+                  setEditingEmployeeId(null);
+                  setIsEmployeeDrawerOpen(false);
+                  void queryClient.invalidateQueries({
+                    queryKey: ['employees'],
+                  });
+                });
+              } else createEmployeeMutation.mutate();
             }}
             sx={{
               display: 'grid',
@@ -835,7 +1175,10 @@ export function EmployeesManagementPage({
               },
               gap: 2,
               mt: 3,
-              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                bgcolor: '#fff',
+              },
             }}
           >
             <TextField
@@ -855,7 +1198,7 @@ export function EmployeesManagementPage({
                     setNewEmployeeBranchId(event.target.value)
                   }
                 >
-                  {(branches.data ?? []).map((branch) => (
+                  {workspaceBranches.map((branch) => (
                     <MenuItem key={branch.id} value={String(branch.id)}>
                       {branch.name}
                     </MenuItem>
@@ -879,6 +1222,98 @@ export function EmployeesManagementPage({
                 <MenuItem value="branch_manager">ผู้จัดการสาขา</MenuItem>
               </Select>
             </FormControl>
+            <Box sx={{ gridColumn: '1 / -1', mt: 0.5 }}>
+              <Divider sx={{ borderColor: '#d8cec7', mb: 1.5 }} />
+              <Typography
+                sx={{ color: '#3c2d24', fontSize: 14, fontWeight: 600, mb: 1 }}
+              >
+                เวลาทำงานประจำ
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                gridColumn: { xs: '1', sm: '1 / -1' },
+              }}
+            >
+              <Box sx={{ flex: 1, position: 'relative' }}>
+                <TextField
+                  required
+                  fullWidth
+                  label="เวลาเข้างาน"
+                  type="time"
+                  value={defaultStartsAt}
+                  onChange={(event) => setDefaultStartsAt(event.target.value)}
+                  onMouseEnter={() => setHoveredTimeField('start')}
+                  onMouseLeave={() => setHoveredTimeField(null)}
+                  sx={{
+                    '& input::-webkit-calendar-picker-indicator': {
+                      opacity: 0,
+                    },
+                  }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      onClick: (event) => event.currentTarget.showPicker?.(),
+                    },
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: '0 16px 0 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#3c2d24',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                >
+                  <ClockIcon
+                    size={20}
+                    animated={hoveredTimeField === 'start'}
+                  />
+                </Box>
+              </Box>
+              <Box sx={{ flex: 1, position: 'relative' }}>
+                <TextField
+                  required
+                  fullWidth
+                  label="เวลาออกงาน"
+                  type="time"
+                  value={defaultEndsAt}
+                  onChange={(event) => setDefaultEndsAt(event.target.value)}
+                  onMouseEnter={() => setHoveredTimeField('end')}
+                  onMouseLeave={() => setHoveredTimeField(null)}
+                  sx={{
+                    '& input::-webkit-calendar-picker-indicator': {
+                      opacity: 0,
+                    },
+                  }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      onClick: (event) => event.currentTarget.showPicker?.(),
+                    },
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: '0 16px 0 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#3c2d24',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                >
+                  <ClockIcon size={20} animated={hoveredTimeField === 'end'} />
+                </Box>
+              </Box>
+            </Box>
             {createEmployeeMutation.error ? (
               <Typography
                 color="error"
@@ -895,7 +1330,10 @@ export function EmployeesManagementPage({
                 gridColumn: '1 / -1',
               }}
             >
-              <Button onClick={() => setIsEmployeeDrawerOpen(false)}>
+              <Button
+                variant="outlined"
+                onClick={() => setIsEmployeeDrawerOpen(false)}
+              >
                 ยกเลิก
               </Button>
               <Button

@@ -105,7 +105,7 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
       <IngredientsSkeleton />
     ) : page === 'แชทลูกค้า' ? (
       <AdminCustomerChatSkeleton />
-    ) : page === 'พนักงาน' ? (
+    ) : page === 'ตารางพนักงาน' ? (
       <EmployeesSkeleton />
     ) : (
       <AdminBranchesSkeleton />
@@ -147,7 +147,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
   };
   const isIngredientPage = activePage === 'วัตถุดิบ';
   const isStockPage = activePage === 'สต๊อก';
-  const isEmployeesPage = activePage === 'พนักงาน';
+  const isEmployeesPage = activePage === 'ตารางพนักงาน';
   const hasBranchSidebar =
     isIngredientPage ||
     isStockPage ||
@@ -173,7 +173,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminFranchiseBranchesPage />
   ) : activePage === 'จัดการแฟรนไชส์' ? (
     <AdminFranchiseManagementPage />
-  ) : activePage === 'พนักงาน' ? (
+  ) : activePage === 'ตารางพนักงาน' ? (
     <AdminEmployeesPage />
   ) : (
     <AdminBranchesPage />

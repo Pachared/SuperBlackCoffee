@@ -19,7 +19,11 @@ func (h *PlatformHandler) ListMenuItems(c *gin.Context) {
 	if !ok {
 		return
 	}
-	cacheKey := "sbc:menu:" + strconv.FormatInt(branchID, 10)
+	plan, ok := h.requestPlan(c)
+	if !ok {
+		return
+	}
+	cacheKey := "sbc:menu:" + strconv.FormatInt(branchID, 10) + ":" + plan
 	var cached []model.MenuItem
 	if h.cache.GetJSON(c, cacheKey, &cached) {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": cached})
@@ -30,6 +34,7 @@ func (h *PlatformHandler) ListMenuItems(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "ไม่สามารถดึงรายการเมนูได้"})
 		return
 	}
+	result = h.filterMenuForPlan(plan, result)
 	h.cache.SetJSON(c, cacheKey, result, 30*time.Second)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }
@@ -39,6 +44,9 @@ func (h *PlatformHandler) CreateMenuItem(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
+	if !h.ensureCatalogWriteAllowed(c) {
+		return
+	}
 	var input dto.MenuRequest
 	if err := c.ShouldBindJSON(&input); err != nil || input.Name == "" || input.Category == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลเมนูไม่ถูกต้อง"})
@@ -46,6 +54,14 @@ func (h *PlatformHandler) CreateMenuItem(c *gin.Context) {
 	}
 	branchID, ok := h.branchScope(c)
 	if !ok {
+		return
+	}
+	plan, ok := h.requestPlan(c)
+	if !ok {
+		return
+	}
+	if !menuAllowedForPlan(plan, input.Category) {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "แพ็กเกจแฟรนไชส์นี้ไม่รองรับหมวดหมู่เมนูดังกล่าว"})
 		return
 	}
 	tx, err := h.db.BeginTx(c, nil)
@@ -83,6 +99,9 @@ func (h *PlatformHandler) writeMenuItem(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
+	if !h.ensureCatalogWriteAllowed(c) {
+		return
+	}
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id < 1 {
 		c.JSON(400, gin.H{"success": false, "message": "รหัสเมนูไม่ถูกต้อง"})
@@ -95,6 +114,14 @@ func (h *PlatformHandler) writeMenuItem(c *gin.Context) {
 	}
 	branchID, ok := h.branchScope(c)
 	if !ok {
+		return
+	}
+	plan, ok := h.requestPlan(c)
+	if !ok {
+		return
+	}
+	if !menuAllowedForPlan(plan, input.Category) {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "แพ็กเกจแฟรนไชส์นี้ไม่รองรับหมวดหมู่เมนูดังกล่าว"})
 		return
 	}
 	tx, err := h.db.BeginTx(c, nil)
@@ -134,6 +161,9 @@ func (h *PlatformHandler) DeleteMenuItem(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
+	if !h.ensureCatalogWriteAllowed(c) {
+		return
+	}
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id < 1 {
 		c.JSON(400, gin.H{"success": false, "message": "รหัสเมนูไม่ถูกต้อง"})
@@ -141,6 +171,10 @@ func (h *PlatformHandler) DeleteMenuItem(c *gin.Context) {
 	}
 	branchID, ok := h.branchScope(c)
 	if !ok {
+		return
+	}
+	plan, ok := h.requestPlan(c)
+	if !ok || !h.ensureMenuDeleteAllowed(c, plan, branchID, id) {
 		return
 	}
 	result, err := h.db.ExecContext(c, `DELETE FROM menu_items WHERE id=$1 AND branch_id=$2`, id, branchID)

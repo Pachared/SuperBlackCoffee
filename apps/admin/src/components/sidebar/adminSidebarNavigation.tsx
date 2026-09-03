@@ -36,7 +36,7 @@ export const adminSidebarNavigation = [
     icon: <MapPinPlusIcon />,
     group: 'สาขาและแฟรนไชส์',
   },
-  { label: 'พนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
+  { label: 'ตารางพนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
   {
     label: 'แชทลูกค้า',
     icon: <MessageSquareIcon />,

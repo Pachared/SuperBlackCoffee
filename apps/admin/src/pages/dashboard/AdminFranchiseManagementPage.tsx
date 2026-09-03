@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Box,
+  Alert,
   Button,
   Card,
   Chip,
@@ -55,14 +56,19 @@ export function AdminFranchiseManagementPage() {
     password: '',
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
   const submit = async () => {
     setSaving(true);
     setError('');
+    setSuccess('');
     try {
-      await createFranchisee(form);
+      const created = await createFranchisee(form);
+      setSuccess(
+        `สร้างแฟรนไชส์เรียบร้อยแล้ว (รหัสรายการ ${created.id}) บัญชีสามารถเข้าสู่ Franchise Portal ด้วย Username ที่ระบุได้`,
+      );
       setForm({
         name: '',
         email: '',
@@ -176,6 +182,11 @@ export function AdminFranchiseManagementPage() {
           <Typography color="error" sx={{ mt: 1.5 }}>
             {error}
           </Typography>
+        ) : null}
+        {success ? (
+          <Alert severity="success" sx={{ mt: 1.5 }}>
+            {success}
+          </Alert>
         ) : null}
         <Button
           variant="contained"

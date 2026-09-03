@@ -185,6 +185,53 @@ func TestInventoryRouteReadsFromIsolatedPostgres(t *testing.T) {
 	}
 }
 
+func TestFranchisePlanFiltersMenuAndIngredients(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("กำหนด TEST_DATABASE_URL เพื่อทดสอบ PostgreSQL integration")
+	}
+	db := openRouterTestDB(t, url)
+	var franchiseID, branchID, coffeeInventoryID, foodInventoryID int64
+	if err := db.QueryRow(`INSERT INTO franchisees(name,email,plan,status) VALUES('ทดสอบ S','plan-s@example.com','S','active') RETURNING id`).Scan(&franchiseID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,'สาขาทดสอบ S','PLAN-S','active') RETURNING id`, franchiseID).Scan(&branchID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,'เมล็ดกาแฟ','coffee','ingredient',10,'กรัม',1,1) RETURNING id`, branchID).Scan(&coffeeInventoryID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost) VALUES($1,'หมู','food','ingredient',10,'กรัม',1,1) RETURNING id`, branchID).Scan(&foodInventoryID); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range []struct {
+		name, category string
+		ingredientID   int64
+	}{{"อเมริกาโน่", "เมนูกาแฟเย็น", coffeeInventoryID}, {"ข้าวกะเพรา", "อาหาร", foodInventoryID}} {
+		var menuID int64
+		if err := db.QueryRow(`INSERT INTO menu_items(branch_id,name,category,store_price,lineman_price,cost_price,status) VALUES($1,$2,$3,60,70,18,'available') RETURNING id`, branchID, item.name, item.category).Scan(&menuID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`INSERT INTO menu_item_ingredients(menu_item_id,inventory_item_id,quantity,unit,cost_amount) VALUES($1,$2,1,'กรัม',1)`, menuID, item.ingredientID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	r := New(db, nil)
+	token := testTokenWithFranchise(t, "franchise_owner", branchID, franchiseID)
+	menu := requestJSON(r, http.MethodGet, "/api/v1/menu-items", "", token)
+	if menu.Code != http.StatusOK || !strings.Contains(menu.Body.String(), "อเมริกาโน่") || strings.Contains(menu.Body.String(), "ข้าวกะเพรา") {
+		t.Fatalf("S menu access = %d: %s", menu.Code, menu.Body.String())
+	}
+	ingredients := requestJSON(r, http.MethodGet, "/api/v1/inventory?kind=ingredient", "", token)
+	if ingredients.Code != http.StatusOK || !strings.Contains(ingredients.Body.String(), "เมล็ดกาแฟ") || strings.Contains(ingredients.Body.String(), `"หมู"`) {
+		t.Fatalf("S ingredient access = %d: %s", ingredients.Code, ingredients.Body.String())
+	}
+	stock := requestJSON(r, http.MethodGet, "/api/v1/inventory?kind=stock", "", token)
+	if stock.Code != http.StatusForbidden {
+		t.Fatalf("S stock access = %d: %s", stock.Code, stock.Body.String())
+	}
+}
+
 func TestPurchaseOrderReceiptAddsStockAndCreatesMovement(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
@@ -518,10 +565,17 @@ func testToken(t *testing.T, role string) string {
 }
 
 func testTokenWithBranch(t *testing.T, role string, branchID int64) string {
+	return testTokenWithFranchise(t, role, branchID, 0)
+}
+
+func testTokenWithFranchise(t *testing.T, role string, branchID, franchiseID int64) string {
 	t.Helper()
 	claims := middleware.Claims{UserID: 7, Role: role, RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))}}
 	if branchID > 0 {
 		claims.BranchID = &branchID
+	}
+	if franchiseID > 0 {
+		claims.FranchiseeID = &franchiseID
 	}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(config.JWTSecret()))
 	if err != nil {

@@ -7,15 +7,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"y/internal/middleware"
 )
 
 func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 	var input struct {
-		Name     string `json:"name" binding:"required"`
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required,min=8"`
-		Role     string `json:"role" binding:"required"`
-		BranchID int64  `json:"branchId" binding:"required"`
+		Name            string `json:"name" binding:"required"`
+		Username        string `json:"username" binding:"required"`
+		Password        string `json:"password" binding:"required,min=8"`
+		Role            string `json:"role" binding:"required"`
+		BranchID        int64  `json:"branchId" binding:"required"`
+		DefaultStartsAt string `json:"defaultStartsAt"`
+		DefaultEndsAt   string `json:"defaultEndsAt"`
 	}
 	if c.ShouldBindJSON(&input) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "กรอกข้อมูลพนักงานให้ครบ และรหัสผ่านอย่างน้อย 8 ตัวอักษร"})
@@ -25,6 +28,11 @@ func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ตำแหน่งพนักงานไม่ถูกต้อง"})
 		return
 	}
+	var franchiseeID *int64
+	if err := h.db.QueryRowContext(c, `SELECT franchisee_id FROM branches WHERE id=$1`, input.BranchID).Scan(&franchiseeID); err != nil || franchiseeID != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "เลือกได้เฉพาะสาขาของระบบหลัก"})
+		return
+	}
 	username := strings.ToLower(strings.TrimSpace(input.Username))
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -32,13 +40,77 @@ func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 		return
 	}
 	var id int64
-	err = h.db.QueryRowContext(c, `INSERT INTO users(name,username,email,password_hash,role,branch_id) VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, strings.TrimSpace(input.Name), username, username+"@superblackcoffee.local", string(passwordHash), input.Role, input.BranchID).Scan(&id)
+	if input.DefaultStartsAt == "" {
+		input.DefaultStartsAt = "08:00"
+	}
+	if input.DefaultEndsAt == "" {
+		input.DefaultEndsAt = "17:00"
+	}
+	err = h.db.QueryRowContext(c, `INSERT INTO users(name,username,email,password_hash,role,branch_id,default_starts_at,default_ends_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, strings.TrimSpace(input.Name), username, username+"@superblackcoffee.local", string(passwordHash), input.Role, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt).Scan(&id)
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"success": false, "message": "username นี้ถูกใช้งานแล้ว หรือไม่พบสาขาที่เลือก"})
 		return
 	}
 	h.recordAudit(c, input.BranchID, "user", id, "create", gin.H{"username": username, "role": input.Role})
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"id": id}})
+}
+
+func (h *PlatformHandler) UpdateStaffMember(c *gin.Context) {
+	var input struct {
+		Name            string `json:"name" binding:"required"`
+		Role            string `json:"role" binding:"required"`
+		BranchID        int64  `json:"branchId" binding:"required"`
+		DefaultStartsAt string `json:"defaultStartsAt"`
+		DefaultEndsAt   string `json:"defaultEndsAt"`
+	}
+	if c.ShouldBindJSON(&input) != nil || (input.Role != "cashier" && input.Role != "branch_manager") {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลพนักงานไม่ถูกต้อง"})
+		return
+	}
+	claims := middleware.ClaimsFrom(c)
+	if input.DefaultStartsAt == "" {
+		input.DefaultStartsAt = "08:00"
+	}
+	if input.DefaultEndsAt == "" {
+		input.DefaultEndsAt = "17:00"
+	}
+	query := `UPDATE users SET name=$1,role=$2,branch_id=$3,default_starts_at=$4,default_ends_at=$5 WHERE id=$6 AND role IN ('cashier','branch_manager') AND franchisee_id IS NULL`
+	args := []any{strings.TrimSpace(input.Name), input.Role, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt, c.Param("id")}
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok || branchID != input.BranchID {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "ไม่มีสิทธิ์แก้ไขพนักงานนี้"})
+			return
+		}
+		query = `UPDATE users SET name=$1,role=$2,default_starts_at=$4,default_ends_at=$5 WHERE id=$6 AND role IN ('cashier','branch_manager') AND branch_id=$3 AND franchisee_id=$7`
+		args = append(args, *claims.FranchiseeID)
+	}
+	result, err := h.db.ExecContext(c, query, args...)
+	if err != nil || rowsAffected(result) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบพนักงาน"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"id": c.Param("id")}})
+}
+
+func (h *PlatformHandler) DeleteStaffMember(c *gin.Context) {
+	claims := middleware.ClaimsFrom(c)
+	query := `DELETE FROM users WHERE id=$1 AND role IN ('cashier','branch_manager') AND franchisee_id IS NULL`
+	args := []any{c.Param("id")}
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok {
+			return
+		}
+		query = `DELETE FROM users WHERE id=$1 AND role IN ('cashier','branch_manager') AND branch_id=$2 AND franchisee_id=$3`
+		args = append(args, branchID, *claims.FranchiseeID)
+	}
+	result, err := h.db.ExecContext(c, query, args...)
+	if err != nil || rowsAffected(result) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบพนักงาน"})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 func (h *PlatformHandler) ListStaffSchedules(c *gin.Context) {
@@ -48,7 +120,7 @@ func (h *PlatformHandler) ListStaffSchedules(c *gin.Context) {
 		return
 	}
 	nextMonth := month.AddDate(0, 1, 0)
-	rows, err := h.db.QueryContext(c, `SELECT s.id,s.user_id,u.name,s.branch_id,s.shift_date,s.starts_at,s.ends_at,s.status,COALESCE(s.leave_type,'') FROM staff_shifts s JOIN users u ON u.id=s.user_id WHERE s.shift_date >= $1 AND s.shift_date < $2 ORDER BY s.shift_date,s.starts_at,u.name`, month, nextMonth)
+	rows, err := h.db.QueryContext(c, `SELECT s.id,s.user_id,u.name,s.branch_id,s.shift_date,s.starts_at,s.ends_at,s.status,COALESCE(s.leave_type,'') FROM staff_shifts s JOIN users u ON u.id=s.user_id JOIN branches b ON b.id=s.branch_id WHERE b.franchisee_id IS NULL AND u.franchisee_id IS NULL AND s.shift_date >= $1 AND s.shift_date < $2 ORDER BY s.shift_date,s.starts_at,u.name`, month, nextMonth)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดตารางงานได้"})
 		return
@@ -169,8 +241,8 @@ func (h *PlatformHandler) GenerateStaffSchedules(c *gin.Context) {
 SELECT u.id,u.branch_id,d::date,'08:00','17:00',
   CASE WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'day_off' ELSE 'scheduled' END,
   CASE WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'วันหยุดประจำสัปดาห์' ELSE NULL END
-FROM users u CROSS JOIN generate_series($1::date,$2::date - INTERVAL '1 day',INTERVAL '1 day') d
-WHERE u.role IN ('cashier','branch_manager') AND u.branch_id=$3
+FROM users u JOIN branches b ON b.id=u.branch_id CROSS JOIN generate_series($1::date,$2::date - INTERVAL '1 day',INTERVAL '1 day') d
+WHERE u.role IN ('cashier','branch_manager') AND u.franchisee_id IS NULL AND b.franchisee_id IS NULL AND u.branch_id=$3
 ON CONFLICT (user_id,shift_date) DO NOTHING`, month, monthEnd, input.BranchID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถจัดตารางอัตโนมัติได้"})

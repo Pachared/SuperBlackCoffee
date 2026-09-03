@@ -8,6 +8,8 @@ export type Employee = {
   role: 'admin' | 'franchise_owner' | 'branch_manager' | 'cashier';
   franchiseeId?: number;
   branchId?: number;
+  defaultStartsAt?: string;
+  defaultEndsAt?: string;
 };
 
 export const listEmployees = () => secured<Employee[]>('/users');
@@ -17,4 +19,18 @@ export const createEmployee = (data: {
   password: string;
   role: 'branch_manager' | 'cashier';
   branchId: number;
+  defaultStartsAt: string;
+  defaultEndsAt: string;
 }) => secured<{ id: number }>('/users', { method: 'POST', data });
+export const updateEmployee = (
+  id: number,
+  data: {
+    name: string;
+    role: 'branch_manager' | 'cashier';
+    branchId: number;
+    defaultStartsAt: string;
+    defaultEndsAt: string;
+  },
+) => secured<{ id: number }>(`/users/${id}`, { method: 'PATCH', data });
+export const deleteEmployee = (id: number) =>
+  secured<void>(`/users/${id}`, { method: 'DELETE' });

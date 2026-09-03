@@ -24,10 +24,19 @@ func (h *PlatformHandler) ListInventory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "kind ต้องเป็น ingredient หรือ stock"})
 		return
 	}
+	plan, ok := h.requestPlan(c)
+	if !ok {
+		return
+	}
+	if plan != franchisePlanL && kind == "stock" {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "แพ็กเกจแฟรนไชส์นี้ไม่มีสิทธิ์เข้าถึงสต็อก"})
+		return
+	}
 	cacheKey := "sbc:inventory:" + strconv.FormatInt(branchID, 10)
 	if kind != "" {
 		cacheKey += ":" + kind
 	}
+	cacheKey += ":" + plan
 	var cached []model.InventoryItem
 	if h.cache.GetJSON(c, cacheKey, &cached) {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": cached})
@@ -36,6 +45,11 @@ func (h *PlatformHandler) ListInventory(c *gin.Context) {
 	result, err := h.inventory.List(c, branchID, kind)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถดึงรายการสต็อกได้"})
+		return
+	}
+	result, err = h.filterInventoryForPlan(c, plan, branchID, result)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถกรองรายการตามแพ็กเกจแฟรนไชส์ได้"})
 		return
 	}
 	h.cache.SetJSON(c, cacheKey, result, 30*time.Second)
@@ -48,6 +62,9 @@ func (h *PlatformHandler) CreateInventory(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
+	if !h.ensureCatalogWriteAllowed(c) {
+		return
+	}
 	branchID, ok := h.branchScope(c)
 	if !ok {
 		return
@@ -57,7 +74,15 @@ func (h *PlatformHandler) CreateInventory(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "message": "ข้อมูลรายการสต็อกไม่ถูกต้อง"})
 		return
 	}
+	plan, ok := h.requestPlan(c)
+	if !ok {
+		return
+	}
 	item := model.InventoryItem{Name: input.Name, Category: defaultString(input.Category, "other"), Kind: model.InventoryKind(defaultString(input.Kind, "ingredient")), Quantity: input.Quantity, Unit: input.Unit, ReorderLevel: input.ReorderLevel, UnitCost: input.UnitCost}
+	if plan != franchisePlanL && item.Kind == model.InventoryKindStock {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "แพ็กเกจแฟรนไชส์นี้ไม่มีสิทธิ์จัดการสต็อก"})
+		return
+	}
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างรายการสต็อกได้"})
@@ -92,6 +117,9 @@ func (h *PlatformHandler) UpdateInventory(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
+	if !h.ensureCatalogWriteAllowed(c) {
+		return
+	}
 	branchID, ok := h.branchScope(c)
 	if !ok {
 		return
@@ -101,12 +129,20 @@ func (h *PlatformHandler) UpdateInventory(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "message": "รหัสรายการสต็อกไม่ถูกต้อง"})
 		return
 	}
+	plan, ok := h.requestPlan(c)
+	if !ok || !h.ensureInventoryWriteAllowed(c, plan, branchID, id) {
+		return
+	}
 	var input inventoryInput
 	if c.ShouldBindJSON(&input) != nil {
 		c.JSON(400, gin.H{"success": false, "message": "ข้อมูลรายการสต็อกไม่ถูกต้อง"})
 		return
 	}
 	item := model.InventoryItem{Name: input.Name, Category: defaultString(input.Category, "other"), Kind: model.InventoryKind(defaultString(input.Kind, "ingredient")), Quantity: input.Quantity, Unit: input.Unit, ReorderLevel: input.ReorderLevel, UnitCost: input.UnitCost}
+	if plan != franchisePlanL && item.Kind == model.InventoryKindStock {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "แพ็กเกจแฟรนไชส์นี้ไม่มีสิทธิ์จัดการสต็อก"})
+		return
+	}
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถแก้ไขรายการสต็อกได้"})
@@ -145,6 +181,9 @@ func (h *PlatformHandler) DeleteInventory(c *gin.Context) {
 	if h.unavailable(c) {
 		return
 	}
+	if !h.ensureCatalogWriteAllowed(c) {
+		return
+	}
 	branchID, ok := h.branchScope(c)
 	if !ok {
 		return
@@ -152,6 +191,10 @@ func (h *PlatformHandler) DeleteInventory(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || id < 1 {
 		c.JSON(400, gin.H{"success": false, "message": "รหัสรายการสต็อกไม่ถูกต้อง"})
+		return
+	}
+	plan, ok := h.requestPlan(c)
+	if !ok || !h.ensureInventoryWriteAllowed(c, plan, branchID, id) {
 		return
 	}
 	tx, err := h.db.BeginTx(c, nil)

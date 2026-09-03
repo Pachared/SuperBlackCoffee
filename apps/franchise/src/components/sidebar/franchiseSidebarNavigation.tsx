@@ -24,7 +24,7 @@ export const navigation = [
     icon: <BoxIcon />,
     group: 'เอกสารและการสนับสนุน',
   },
-  { label: 'พนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
+  { label: 'ตารางพนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
 ] as const;
 
 export type FranchisePlan = 'S' | 'M' | 'L';

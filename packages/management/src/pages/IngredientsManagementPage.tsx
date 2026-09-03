@@ -49,8 +49,12 @@ type IngredientFilter = (typeof filters)[number];
 
 export function IngredientsManagementPage({
   activeBranch,
+  franchisePlan,
+  readOnly = false,
 }: {
   activeBranch: Branch;
+  franchisePlan?: 'S' | 'M' | 'L';
+  readOnly?: boolean;
 }) {
   const plusIconRef = useRef<PlusIconHandle>(null);
   const searchIconRef = useRef<SearchIconHandle>(null);
@@ -227,29 +231,31 @@ export function IngredientsManagementPage({
             },
           }}
         />
-        <Button
-          variant="contained"
-          startIcon={<PlusIcon ref={plusIconRef} size={16} />}
-          onClick={() => {
-            setEditingIngredient(null);
-            setImagePreviewUrl(null);
-            setIsAddDrawerOpen(true);
-          }}
-          onMouseEnter={() => plusIconRef.current?.startAnimation()}
-          onMouseLeave={() => plusIconRef.current?.stopAnimation()}
-          sx={{
-            minHeight: 40,
-            borderRadius: '12px',
-            bgcolor: '#201914',
-            fontFamily: 'Kanit, sans-serif',
-            fontWeight: 500,
-            boxShadow: 'none',
-            '& .MuiButton-startIcon': { ml: 0.5, mr: 0.75 },
-            '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
-          }}
-        >
-          เพิ่มวัตถุดิบ
-        </Button>
+        {!readOnly ? (
+          <Button
+            variant="contained"
+            startIcon={<PlusIcon ref={plusIconRef} size={16} />}
+            onClick={() => {
+              setEditingIngredient(null);
+              setImagePreviewUrl(null);
+              setIsAddDrawerOpen(true);
+            }}
+            onMouseEnter={() => plusIconRef.current?.startAnimation()}
+            onMouseLeave={() => plusIconRef.current?.stopAnimation()}
+            sx={{
+              minHeight: 40,
+              borderRadius: '12px',
+              bgcolor: '#201914',
+              fontFamily: 'Kanit, sans-serif',
+              fontWeight: 500,
+              boxShadow: 'none',
+              '& .MuiButton-startIcon': { ml: 0.5, mr: 0.75 },
+              '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
+            }}
+          >
+            เพิ่มวัตถุดิบ
+          </Button>
+        ) : null}
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
         {filters.map((item) => (
@@ -427,63 +433,65 @@ export function IngredientsManagementPage({
                             >
                               {ingredient.amount}
                             </Typography>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                gap: 1,
-                                mt: 'auto',
-                                pt: 2,
-                              }}
-                            >
-                              <Button
-                                size="small"
-                                variant="contained"
-                                onClick={() => {
-                                  setEditingIngredient(ingredient);
-                                  setImagePreviewUrl(null);
-                                  setIsAddDrawerOpen(true);
-                                }}
+                            {!readOnly ? (
+                              <Box
                                 sx={{
-                                  flex: 1,
-                                  minHeight: 34,
-                                  borderRadius: '10px',
-                                  bgcolor: '#5f4030',
-                                  color: '#fff',
-                                  fontFamily: 'Kanit, sans-serif',
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  boxShadow: 'none',
-                                  '&:hover': {
-                                    bgcolor: '#3c2d24',
+                                  display: 'flex',
+                                  gap: 1,
+                                  mt: 'auto',
+                                  pt: 2,
+                                }}
+                              >
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => {
+                                    setEditingIngredient(ingredient);
+                                    setImagePreviewUrl(null);
+                                    setIsAddDrawerOpen(true);
+                                  }}
+                                  sx={{
+                                    flex: 1,
+                                    minHeight: 34,
+                                    borderRadius: '10px',
+                                    bgcolor: '#5f4030',
+                                    color: '#fff',
+                                    fontFamily: 'Kanit, sans-serif',
+                                    fontSize: 12,
+                                    fontWeight: 500,
                                     boxShadow: 'none',
-                                  },
-                                }}
-                              >
-                                แก้ไขวัตถุดิบ
-                              </Button>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="error"
-                                onClick={() =>
-                                  setDeleteTargetKey(ingredientKey)
-                                }
-                                sx={{
-                                  flex: 1,
-                                  minHeight: 34,
-                                  borderRadius: '10px',
-                                  fontFamily: 'Kanit, sans-serif',
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  boxShadow: 'none',
-                                  '&:hover': { boxShadow: 'none' },
-                                }}
-                              >
-                                ลบวัตถุดิบ
-                              </Button>
-                            </Box>
+                                    '&:hover': {
+                                      bgcolor: '#3c2d24',
+                                      boxShadow: 'none',
+                                    },
+                                  }}
+                                >
+                                  แก้ไขวัตถุดิบ
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="error"
+                                  onClick={() =>
+                                    setDeleteTargetKey(ingredientKey)
+                                  }
+                                  sx={{
+                                    flex: 1,
+                                    minHeight: 34,
+                                    borderRadius: '10px',
+                                    fontFamily: 'Kanit, sans-serif',
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    boxShadow: 'none',
+                                    '&:hover': { boxShadow: 'none' },
+                                  }}
+                                >
+                                  ลบวัตถุดิบ
+                                </Button>
+                              </Box>
+                            ) : null}
                           </Box>
-                          {deleteTargetKey === ingredientKey && (
+                          {!readOnly && deleteTargetKey === ingredientKey && (
                             <Box
                               sx={{
                                 position: 'absolute',
@@ -842,6 +850,7 @@ export function IngredientsManagementPage({
                 }}
               >
                 <Button
+                  variant="outlined"
                   onClick={() => setIsAddDrawerOpen(false)}
                   sx={{
                     minHeight: 40,

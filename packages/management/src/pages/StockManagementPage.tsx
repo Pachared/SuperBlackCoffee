@@ -43,8 +43,10 @@ type StockFilter = (typeof filters)[number];
 
 export function StockManagementPage({
   activeBranch,
+  readOnly = false,
 }: {
   activeBranch: Branch;
+  readOnly?: boolean;
 }) {
   const plusRef = useRef<PlusIconHandle>(null);
   const searchRef = useRef<SearchIconHandle>(null);
@@ -168,25 +170,27 @@ export function StockManagementPage({
             },
           }}
         />
-        <Button
-          variant="contained"
-          startIcon={<PlusIcon ref={plusRef} size={16} />}
-          onClick={openAdd}
-          onMouseEnter={() => plusRef.current?.startAnimation()}
-          onMouseLeave={() => plusRef.current?.stopAnimation()}
-          sx={{
-            minHeight: 40,
-            borderRadius: '12px',
-            bgcolor: '#201914',
-            fontFamily: 'Kanit, sans-serif',
-            fontWeight: 500,
-            boxShadow: 'none',
-            '& .MuiButton-startIcon': { ml: 0.5, mr: 0.75 },
-            '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
-          }}
-        >
-          เพิ่มสต๊อก
-        </Button>
+        {!readOnly ? (
+          <Button
+            variant="contained"
+            startIcon={<PlusIcon ref={plusRef} size={16} />}
+            onClick={openAdd}
+            onMouseEnter={() => plusRef.current?.startAnimation()}
+            onMouseLeave={() => plusRef.current?.stopAnimation()}
+            sx={{
+              minHeight: 40,
+              borderRadius: '12px',
+              bgcolor: '#201914',
+              fontFamily: 'Kanit, sans-serif',
+              fontWeight: 500,
+              boxShadow: 'none',
+              '& .MuiButton-startIcon': { ml: 0.5, mr: 0.75 },
+              '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
+            }}
+          >
+            เพิ่มสต๊อก
+          </Button>
+        ) : null}
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
         {filters.map((item) => (
@@ -341,49 +345,56 @@ export function StockManagementPage({
                           >
                             {item.amount}
                           </Typography>
-                          <Box
-                            sx={{ display: 'flex', gap: 1, mt: 'auto', pt: 2 }}
-                          >
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={() => openEdit(item)}
+                          {!readOnly ? (
+                            <Box
                               sx={{
-                                flex: 1,
-                                minHeight: 34,
-                                borderRadius: '10px',
-                                bgcolor: '#5f4030',
-                                fontFamily: 'Kanit, sans-serif',
-                                fontSize: 12,
-                                boxShadow: 'none',
-                                '&:hover': {
-                                  bgcolor: '#3c2d24',
+                                display: 'flex',
+                                gap: 1,
+                                mt: 'auto',
+                                pt: 2,
+                              }}
+                            >
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => openEdit(item)}
+                                sx={{
+                                  flex: 1,
+                                  minHeight: 34,
+                                  borderRadius: '10px',
+                                  bgcolor: '#5f4030',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  fontSize: 12,
                                   boxShadow: 'none',
-                                },
-                              }}
-                            >
-                              แก้ไขสต๊อก
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="error"
-                              onClick={() => setDeleteTargetKey(itemKey)}
-                              sx={{
-                                flex: 1,
-                                minHeight: 34,
-                                borderRadius: '10px',
-                                fontFamily: 'Kanit, sans-serif',
-                                fontSize: 12,
-                                boxShadow: 'none',
-                                '&:hover': { boxShadow: 'none' },
-                              }}
-                            >
-                              ลบสต๊อก
-                            </Button>
-                          </Box>
+                                  '&:hover': {
+                                    bgcolor: '#3c2d24',
+                                    boxShadow: 'none',
+                                  },
+                                }}
+                              >
+                                แก้ไขสต๊อก
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="error"
+                                onClick={() => setDeleteTargetKey(itemKey)}
+                                sx={{
+                                  flex: 1,
+                                  minHeight: 34,
+                                  borderRadius: '10px',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  fontSize: 12,
+                                  boxShadow: 'none',
+                                  '&:hover': { boxShadow: 'none' },
+                                }}
+                              >
+                                ลบสต๊อก
+                              </Button>
+                            </Box>
+                          ) : null}
                         </Box>
-                        {deleteTargetKey === itemKey && (
+                        {!readOnly && deleteTargetKey === itemKey && (
                           <Box
                             sx={{
                               position: 'absolute',
@@ -739,6 +750,7 @@ export function StockManagementPage({
                 }}
               >
                 <Button
+                  variant="outlined"
                   onClick={() => setDrawerOpen(false)}
                   sx={{
                     minHeight: 40,

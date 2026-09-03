@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Box } from '@mui/material';
 import {
   DashboardMain,
@@ -18,7 +18,7 @@ import {
   franchiseBranch,
   navigationForPlan,
   type FranchisePlan,
-} from './config/navigation';
+} from './components/sidebar/franchiseSidebarNavigation';
 import { EmptyPage } from './pages/EmptyPage';
 import { Overview } from './pages/Overview';
 
@@ -32,13 +32,14 @@ export default function App() {
     () => sessionStorage.getItem('sbc-franchise-session') === 'true',
   );
   const [plan, setPlan] = useState<FranchisePlan>(readPlan);
-  const [activePage, setActivePage] = useState(
-    () => sessionStorage.getItem('sbc-franchise-active-page') ?? 'ภาพรวม',
-  );
+  const [activePage, setActivePage] = useState(() => {
+    const stored = sessionStorage.getItem('sbc-franchise-active-page');
+    return stored === 'พนักงาน' ? 'ตารางพนักงาน' : (stored ?? 'ภาพรวม');
+  });
   const [collapsed, setCollapsed] = useState(
     () => sessionStorage.getItem('sbc-franchise-sidebar-collapsed') === 'true',
   );
-  const logout = () => {
+  const logout = useCallback(() => {
     [
       'sbc-access-token',
       'sbc-franchise-session',
@@ -47,11 +48,18 @@ export default function App() {
       'sbc-franchise-sidebar-collapsed',
     ].forEach((key) => sessionStorage.removeItem(key));
     setLoggedIn(false);
-  };
+  }, []);
+  useEffect(() => {
+    window.addEventListener('sbc:session-expired', logout);
+    return () => window.removeEventListener('sbc:session-expired', logout);
+  }, [logout]);
   const navigate = (page: string) => {
     sessionStorage.setItem('sbc-franchise-active-page', page);
     setActivePage(page);
   };
+  // Match the Admin layout: the employee schedule uses the compact primary
+  // sidebar so the calendar and employee list have the same workspace width.
+  const primarySidebarCollapsed = collapsed || activePage === 'ตารางพนักงาน';
   return (
     <SbcThemeProvider secondary="#8f6040" background="#fbfaf8">
       {!loggedIn ? (
@@ -81,7 +89,8 @@ export default function App() {
             selectedColor="#3c2d24"
             activeBackground="#fbfaf8"
             accentColor="#bf9576"
-            collapsed={collapsed}
+            collapsed={primarySidebarCollapsed}
+            hideToggle={activePage === 'ตารางพนักงาน'}
             onToggle={() =>
               setCollapsed((value) => {
                 const next = !value;
@@ -98,18 +107,23 @@ export default function App() {
             initials="FC"
             name="Franchise account"
             role="Franchise partner"
-            sidebarWidth={collapsed ? 96 : 230}
+            sidebarWidth={primarySidebarCollapsed ? 96 : 230}
           />
           {activePage === 'เมนูและสินค้า' ? (
             <ProductsManagementPage
               activeBranch={franchiseBranch}
               franchisePlan={plan}
+              readOnly
             />
           ) : activePage === 'วัตถุดิบ' ? (
-            <IngredientsManagementPage activeBranch={franchiseBranch} />
+            <IngredientsManagementPage
+              activeBranch={franchiseBranch}
+              franchisePlan={plan}
+              readOnly
+            />
           ) : activePage === 'สต๊อก' ? (
-            <StockManagementPage activeBranch={franchiseBranch} />
-          ) : activePage === 'พนักงาน' ? (
+            <StockManagementPage activeBranch={franchiseBranch} readOnly />
+          ) : activePage === 'ตารางพนักงาน' ? (
             <EmployeesManagementPage franchiseMode />
           ) : (
             <DashboardMain>

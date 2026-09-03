@@ -58,6 +58,15 @@ const filters = [
 ] as const;
 type ProductFilter = (typeof filters)[number];
 
+const filtersForPlan = (plan?: 'S' | 'M' | 'L') =>
+  filters.filter(
+    (filter) =>
+      plan === 'L' ||
+      plan === undefined ||
+      (plan === 'M' && filter !== 'เบเกอรี่') ||
+      (plan === 'S' && filter !== 'อาหาร' && filter !== 'เบเกอรี่'),
+  );
+
 const isCoffeeMenu = (category: string) =>
   category === 'เมนูร้อน' || category === 'เมนูกาแฟเย็น';
 const menuImageFallback = (product: Pick<Product, 'category'>) =>
@@ -131,9 +140,11 @@ const normalizeMenuCategory = (category: string, name: string) => {
 export function ProductsManagementPage({
   activeBranch,
   franchisePlan,
+  readOnly = false,
 }: {
   activeBranch: Branch;
   franchisePlan?: 'S' | 'M' | 'L';
+  readOnly?: boolean;
 }) {
   const plusRef = useRef<PlusIconHandle>(null);
   const searchRef = useRef<SearchIconHandle>(null);
@@ -166,11 +177,19 @@ export function ProductsManagementPage({
         (item) =>
           item.name.includes(deferredQuery) &&
           (filter === 'ทั้งหมด' || item.category === filter) &&
-          (franchisePlan !== 'S' ||
-            (item.category !== 'อาหาร' && item.category !== 'เบเกอรี่')),
+          (franchisePlan === 'L' ||
+            franchisePlan === undefined ||
+            (franchisePlan === 'M' && item.category !== 'เบเกอรี่') ||
+            (franchisePlan === 'S' &&
+              item.category !== 'อาหาร' &&
+              item.category !== 'เบเกอรี่')),
       ),
     [catalogProducts, deferredQuery, filter, franchisePlan],
   );
+
+  useEffect(() => {
+    if (!filtersForPlan(franchisePlan).includes(filter)) setFilter('ทั้งหมด');
+  }, [filter, franchisePlan]);
   const displayedBranches =
     activeBranch === 'ทุกสาขา' ? branches.slice(1) : [activeBranch];
   const openAdd = () => {
@@ -329,28 +348,30 @@ export function ProductsManagementPage({
             },
           }}
         />
-        <Button
-          variant="contained"
-          startIcon={<PlusIcon ref={plusRef} size={16} />}
-          onClick={openAdd}
-          onMouseEnter={() => plusRef.current?.startAnimation()}
-          onMouseLeave={() => plusRef.current?.stopAnimation()}
-          sx={{
-            minHeight: 40,
-            borderRadius: '12px',
-            bgcolor: '#201914',
-            fontFamily: 'Kanit, sans-serif',
-            fontWeight: 500,
-            boxShadow: 'none',
-            '& .MuiButton-startIcon': { ml: 0.5, mr: 0.75 },
-            '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
-          }}
-        >
-          เพิ่มเมนูและสินค้า
-        </Button>
+        {!readOnly ? (
+          <Button
+            variant="contained"
+            startIcon={<PlusIcon ref={plusRef} size={16} />}
+            onClick={openAdd}
+            onMouseEnter={() => plusRef.current?.startAnimation()}
+            onMouseLeave={() => plusRef.current?.stopAnimation()}
+            sx={{
+              minHeight: 40,
+              borderRadius: '12px',
+              bgcolor: '#201914',
+              fontFamily: 'Kanit, sans-serif',
+              fontWeight: 500,
+              boxShadow: 'none',
+              '& .MuiButton-startIcon': { ml: 0.5, mr: 0.75 },
+              '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
+            }}
+          >
+            เพิ่มเมนูและสินค้า
+          </Button>
+        ) : null}
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-        {filters.map((item) => (
+        {filtersForPlan(franchisePlan).map((item) => (
           <Button
             key={item}
             onClick={() => setFilter(item)}
@@ -661,49 +682,56 @@ export function ProductsManagementPage({
                               </Box>
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{ display: 'flex', gap: 1, mt: 'auto', pt: 2 }}
-                          >
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={() => openEdit(item)}
+                          {!readOnly ? (
+                            <Box
                               sx={{
-                                flex: 1,
-                                minHeight: 34,
-                                borderRadius: '10px',
-                                bgcolor: '#5f4030',
-                                fontFamily: 'Kanit, sans-serif',
-                                fontSize: 12,
-                                boxShadow: 'none',
-                                '&:hover': {
-                                  bgcolor: '#3c2d24',
+                                display: 'flex',
+                                gap: 1,
+                                mt: 'auto',
+                                pt: 2,
+                              }}
+                            >
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => openEdit(item)}
+                                sx={{
+                                  flex: 1,
+                                  minHeight: 34,
+                                  borderRadius: '10px',
+                                  bgcolor: '#5f4030',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  fontSize: 12,
                                   boxShadow: 'none',
-                                },
-                              }}
-                            >
-                              แก้ไขสินค้า
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="error"
-                              onClick={() => setDeleting(productKey)}
-                              sx={{
-                                flex: 1,
-                                minHeight: 34,
-                                borderRadius: '10px',
-                                fontFamily: 'Kanit, sans-serif',
-                                fontSize: 12,
-                                boxShadow: 'none',
-                                '&:hover': { boxShadow: 'none' },
-                              }}
-                            >
-                              ลบสินค้า
-                            </Button>
-                          </Box>
+                                  '&:hover': {
+                                    bgcolor: '#3c2d24',
+                                    boxShadow: 'none',
+                                  },
+                                }}
+                              >
+                                แก้ไขสินค้า
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="error"
+                                onClick={() => setDeleting(productKey)}
+                                sx={{
+                                  flex: 1,
+                                  minHeight: 34,
+                                  borderRadius: '10px',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  fontSize: 12,
+                                  boxShadow: 'none',
+                                  '&:hover': { boxShadow: 'none' },
+                                }}
+                              >
+                                ลบสินค้า
+                              </Button>
+                            </Box>
+                          ) : null}
                         </Box>
-                        {deleting === productKey && (
+                        {!readOnly && deleting === productKey && (
                           <Box
                             sx={{
                               position: 'absolute',
@@ -1180,6 +1208,7 @@ export function ProductsManagementPage({
                 }}
               >
                 <Button
+                  variant="outlined"
                   onClick={() => setDrawerOpen(false)}
                   sx={{
                     minHeight: 40,

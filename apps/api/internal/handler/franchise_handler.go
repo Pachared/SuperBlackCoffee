@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"time"
@@ -41,6 +42,52 @@ type franchiseInput struct {
 	Password   string `json:"password"`
 }
 
+const franchiseCatalogTemplateBranchCode = "SBC-AYA-001"
+
+func copyFranchiseCatalog(c context.Context, tx *sql.Tx, branchID int64, plan string) error {
+	_, err := tx.ExecContext(c, `
+		INSERT INTO inventory_items(branch_id,name,category,kind,quantity,unit,reorder_level,unit_cost,image_url)
+		SELECT $1,i.name,i.category,i.kind,i.quantity,i.unit,i.reorder_level,i.unit_cost,i.image_url
+		FROM inventory_items i
+		JOIN branches source ON source.id=i.branch_id AND source.code=$2
+		WHERE $3='L' OR (
+			i.kind='ingredient' AND EXISTS (
+				SELECT 1 FROM menu_item_ingredients mi
+				JOIN menu_items m ON m.id=mi.menu_item_id
+				WHERE mi.inventory_item_id=i.id AND m.branch_id=source.id
+				AND CASE WHEN $3='S' THEN lower(m.category) NOT IN ('อาหาร','food','เบเกอรี่','bakery')
+					         ELSE lower(m.category) NOT IN ('เบเกอรี่','bakery') END
+			)
+		)
+		ON CONFLICT (branch_id,name) DO NOTHING`, branchID, franchiseCatalogTemplateBranchCode, plan)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(c, `
+		INSERT INTO menu_items(branch_id,name,category,store_price,store_price_available,lineman_price,lineman_price_available,cost_price,lineman_cost_price,status,image_url)
+		SELECT $1,m.name,m.category,m.store_price,m.store_price_available,m.lineman_price,m.lineman_price_available,m.cost_price,m.lineman_cost_price,m.status,m.image_url
+		FROM menu_items m JOIN branches source ON source.id=m.branch_id AND source.code=$2
+		WHERE $3='L' OR ($3='M' AND lower(m.category) NOT IN ('เบเกอรี่','bakery'))
+		OR ($3='S' AND lower(m.category) NOT IN ('อาหาร','food','เบเกอรี่','bakery'))
+		ON CONFLICT (branch_id,name) DO NOTHING`, branchID, franchiseCatalogTemplateBranchCode, plan)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(c, `
+		INSERT INTO menu_item_ingredients(menu_item_id,inventory_item_id,quantity,unit,cost_amount)
+		SELECT target_menu.id,target_inventory.id,mi.quantity,mi.unit,mi.cost_amount
+		FROM menu_item_ingredients mi
+		JOIN menu_items source_menu ON source_menu.id=mi.menu_item_id
+		JOIN branches source ON source.id=source_menu.branch_id AND source.code=$2
+		JOIN inventory_items source_inventory ON source_inventory.id=mi.inventory_item_id
+		JOIN menu_items target_menu ON target_menu.branch_id=$1 AND target_menu.name=source_menu.name
+		JOIN inventory_items target_inventory ON target_inventory.branch_id=$1 AND target_inventory.name=source_inventory.name
+		WHERE $3='L' OR ($3='M' AND lower(source_menu.category) NOT IN ('เบเกอรี่','bakery'))
+		OR ($3='S' AND lower(source_menu.category) NOT IN ('อาหาร','food','เบเกอรี่','bakery'))
+		ON CONFLICT (menu_item_id,inventory_item_id) DO NOTHING`, branchID, franchiseCatalogTemplateBranchCode, plan)
+	return err
+}
+
 func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 	if h.unavailable(c) {
 		return
@@ -67,6 +114,9 @@ func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 	var branchID int64
 	if err == nil {
 		err = tx.QueryRowContext(c, `INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,$2,$3,'inactive') RETURNING id`, franchiseeID, input.BranchName, input.BranchCode).Scan(&branchID)
+	}
+	if err == nil {
+		err = copyFranchiseCatalog(c, tx, branchID, input.Plan)
 	}
 	if err == nil {
 		passwordHash, hashErr := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)

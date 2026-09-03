@@ -19,7 +19,6 @@ func registerPublicRoutes(r *gin.Engine, deps routeDependencies) {
 	v1 := r.Group("/api/v1")
 	v1.GET("/status", health)
 	v1.POST("/website/leads", deps.platform.CreateWebsiteLead)
-	v1.GET("/users", middleware.RequireAuth(deps.secret, "admin"), deps.users.List)
 	v1.POST("/auth/login", deps.platform.Login)
 }
 
@@ -29,9 +28,12 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 	protected.GET("/dashboard", deps.platform.Dashboard)
 	protected.GET("/metrics", middleware.RequireAuth(deps.secret, "admin"), middleware.Metrics)
 	protected.GET("/branches", deps.platform.ListBranches)
+	protected.GET("/users", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.ListStaffUsers)
 	protected.GET("/branches/sales", middleware.RequireAuth(deps.secret, "admin"), deps.platform.BranchSales)
 	protected.GET("/staff-schedules", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListStaffSchedules)
 	protected.POST("/users", middleware.RequireAuth(deps.secret, "admin"), deps.platform.CreateStaffMember)
+	protected.PATCH("/users/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.UpdateStaffMember)
+	protected.DELETE("/users/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.DeleteStaffMember)
 	protected.POST("/staff-schedules/generate", middleware.RequireAuth(deps.secret, "admin"), deps.platform.GenerateStaffSchedules)
 	protected.PATCH("/staff-schedules/:id", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdateStaffShift)
 	protected.POST("/staff-schedules/:id/replace", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ReplaceStaffShift)

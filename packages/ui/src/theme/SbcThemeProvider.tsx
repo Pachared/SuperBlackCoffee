@@ -17,6 +17,32 @@ export function SbcThemeProvider({
       background: { default: background },
     },
     shape: { borderRadius: 20 },
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 12,
+            padding: '8px 16px !important',
+            minHeight: '40px !important',
+            fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif',
+            fontSize: '14px !important',
+            fontWeight: '400 !important',
+            lineHeight: '1.4 !important',
+            textTransform: 'none !important',
+          },
+        },
+      },
+      MuiButtonBase: {
+        styleOverrides: {
+          root: { borderRadius: 12 },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: { borderRadius: 12 },
+        },
+      },
+    },
     typography: {
       fontFamily: '"SBC Sans", "Kanit", Arial, sans-serif',
       h3: {
