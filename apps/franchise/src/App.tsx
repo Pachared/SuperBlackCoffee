@@ -56,12 +56,18 @@ export default function App() {
     () =>
       (sessionStorage.getItem('sbc-franchise-plan') as 'S' | 'M' | 'L') ?? 'S',
   );
-  const [activePage, setActivePage] = useState('ภาพรวม');
-  const [collapsed, setCollapsed] = useState(false);
+  const [activePage, setActivePage] = useState(
+    () => sessionStorage.getItem('sbc-franchise-active-page') ?? 'ภาพรวม',
+  );
+  const [collapsed, setCollapsed] = useState(
+    () => sessionStorage.getItem('sbc-franchise-sidebar-collapsed') === 'true',
+  );
   const logout = () => {
     sessionStorage.removeItem('sbc-access-token');
     sessionStorage.removeItem('sbc-franchise-session');
     sessionStorage.removeItem('sbc-franchise-plan');
+    sessionStorage.removeItem('sbc-franchise-active-page');
+    sessionStorage.removeItem('sbc-franchise-sidebar-collapsed');
     setLoggedIn(false);
   };
   return (
@@ -88,13 +94,25 @@ export default function App() {
           <DashboardSidebar
             activePage={activePage}
             navigation={navigationForPlan(plan)}
-            onNavigate={setActivePage}
+            onNavigate={(page) => {
+              sessionStorage.setItem('sbc-franchise-active-page', page);
+              setActivePage(page);
+            }}
             onLogout={logout}
             selectedColor="#3c2d24"
             activeBackground="#fbfaf8"
             accentColor="#bf9576"
             collapsed={collapsed}
-            onToggle={() => setCollapsed((value) => !value)}
+            onToggle={() =>
+              setCollapsed((value) => {
+                const nextValue = !value;
+                sessionStorage.setItem(
+                  'sbc-franchise-sidebar-collapsed',
+                  String(nextValue),
+                );
+                return nextValue;
+              })
+            }
           />
           <DashboardTopbar
             title={activePage}
