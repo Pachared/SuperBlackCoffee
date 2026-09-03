@@ -1,10 +1,12 @@
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Button,
   Card,
   Chip,
   Drawer,
+  Divider,
   InputAdornment,
   MenuItem,
   TextField,
@@ -13,11 +15,13 @@ import {
 import {
   DashboardMain,
   coffeeIngredientsImage,
+  CartIcon,
   INGREDIENT_STATUS_BADGES,
   PlusIcon,
   SearchIcon,
   XIcon,
   type IngredientStatus,
+  type CartIconHandle,
   type PlusIconHandle,
   type SearchIconHandle,
   type XIconHandle,
@@ -29,14 +33,19 @@ import {
 } from '../components/sidebar/BranchesSidebar';
 import { IngredientsSkeleton } from '../components/skeletons/IngredientsSkeleton';
 import { listInventory } from '../api/inventory';
+import { createStockRequest } from '../api/stock-requests';
 
 type Ingredient = {
+  id: number;
   name: string;
-  amount: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
   status: IngredientStatus;
   imagePosition: string;
   imageUrl: string;
 };
+type IngredientCartItem = Ingredient & { key: string; quantityToOrder: number };
 type InventoryBranch = Exclude<Branch, 'ทุกสาขา'>;
 
 const filters = [
@@ -51,14 +60,19 @@ export function IngredientsManagementPage({
   activeBranch,
   franchisePlan,
   readOnly = false,
+  allowOrdering = false,
+  onRequestCreated,
 }: {
   activeBranch: Branch;
   franchisePlan?: 'S' | 'M' | 'L';
   readOnly?: boolean;
+  allowOrdering?: boolean;
+  onRequestCreated?: () => void;
 }) {
   const plusIconRef = useRef<PlusIconHandle>(null);
   const searchIconRef = useRef<SearchIconHandle>(null);
   const closeIconRef = useRef<XIconHandle>(null);
+  const cartIconRef = useRef<CartIconHandle>(null);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [filter, setFilter] = useState<IngredientFilter>('ทั้งหมด');
@@ -72,6 +86,26 @@ export function IngredientsManagementPage({
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<IngredientCartItem[]>([]);
+  const [cartError, setCartError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const createRequest = useMutation({
+    mutationFn: createStockRequest,
+    onSuccess: () => {
+      setCartItems([]);
+      setCartError(null);
+      setCartOpen(false);
+      void queryClient.invalidateQueries({
+        queryKey: ['franchise-stock-requests'],
+      });
+      onRequestCreated?.();
+    },
+    onError: (error) =>
+      setCartError(
+        error instanceof Error ? error.message : 'ส่งคำขอวัตถุดิบไม่สำเร็จ',
+      ),
+  });
   const [visibleBranchNames, setVisibleBranchNames] = useState<Set<string>>(
     () => new Set(),
   );
@@ -106,8 +140,11 @@ export function IngredientsManagementPage({
         return [
           branch,
           items.map((item, index) => ({
+            id: item.id,
             name: item.name,
-            amount: `คงเหลือ ${item.quantity} ${item.unit} · ต้นทุน ${item.unitCost.toFixed(2)} บาท/${item.unit}`,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitCost: item.unitCost,
             status: (item.status === 'out'
               ? 'วัตถุดิบหมด'
               : item.status === 'low'
@@ -187,6 +224,34 @@ export function IngredientsManagementPage({
   const drawerTitle = editingIngredient ? 'แก้ไขวัตถุดิบ' : 'เพิ่มวัตถุดิบ';
   const imageSource =
     imagePreviewUrl ?? (editingIngredient ? coffeeIngredientsImage : null);
+  const cartQuantity = cartItems.reduce(
+    (total, item) => total + item.quantityToOrder,
+    0,
+  );
+  const addToCart = (ingredient: Ingredient, key: string) => {
+    setCartError(null);
+    setCartItems((items) => {
+      const existing = items.find((item) => item.key === key);
+      if (existing)
+        return items.map((item) =>
+          item.key === key
+            ? { ...item, quantityToOrder: item.quantityToOrder + 1 }
+            : item,
+        );
+      return [...items, { ...ingredient, key, quantityToOrder: 1 }];
+    });
+    requestAnimationFrame(() => {
+      cartIconRef.current?.startAnimation();
+    });
+  };
+  const updateCartQuantity = (key: string, quantityToOrder: number) =>
+    setCartItems((items) =>
+      quantityToOrder < 1
+        ? items.filter((item) => item.key !== key)
+        : items.map((item) =>
+            item.key === key ? { ...item, quantityToOrder } : item,
+          ),
+    );
 
   return (
     <DashboardMain>
@@ -200,37 +265,112 @@ export function IngredientsManagementPage({
           mb: 2,
         }}
       >
-        <TextField
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => searchIconRef.current?.startAnimation()}
-          onBlur={() => searchIconRef.current?.stopAnimation()}
-          placeholder="ค้นหาวัตถุดิบ"
-          size="small"
-          name="ingredient-search"
-          autoComplete="off"
+        <Box
           sx={{
-            width: { xs: '100%', lg: 310 },
-            '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+            display: 'flex',
+            width: readOnly ? '100%' : { xs: '100%', lg: 'auto' },
+            alignItems: 'center',
+            gap: 1,
           }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment
-                  position="start"
+        >
+          <TextField
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onFocus={() => searchIconRef.current?.startAnimation()}
+            onBlur={() => searchIconRef.current?.stopAnimation()}
+            placeholder="ค้นหาวัตถุดิบ"
+            size="small"
+            name="ingredient-search"
+            autoComplete="off"
+            sx={{
+              flex: { xs: 1, lg: '0 1 auto' },
+              width: { lg: 310 },
+              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment
+                    position="start"
+                    sx={{
+                      alignSelf: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: 18,
+                    }}
+                  >
+                    <SearchIcon ref={searchIconRef} size={18} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          {allowOrdering ? (
+            <Button
+              aria-label="ตะกร้าวัตถุดิบ"
+              onClick={() => setCartOpen(true)}
+              onMouseEnter={() => cartIconRef.current?.startAnimation()}
+              onMouseLeave={() => cartIconRef.current?.stopAnimation()}
+              sx={{
+                minWidth: 'fit-content',
+                minHeight: 40,
+                ml: { lg: 'auto' },
+                px: 1.25,
+                position: 'relative',
+                borderRadius: '12px',
+                color: '#fff',
+                bgcolor: '#805637',
+                '&:hover': { bgcolor: '#60412a' },
+              }}
+            >
+              {cartQuantity > 0 ? (
+                <Box
+                  component="span"
+                  aria-label={`${cartQuantity} รายการในตะกร้า`}
                   sx={{
-                    alignSelf: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    height: 18,
+                    position: 'absolute',
+                    top: -7,
+                    right: -7,
+                    display: 'grid',
+                    placeItems: 'center',
+                    minWidth: 23,
+                    height: 23,
+                    px: 0.75,
+                    borderRadius: 99,
+                    bgcolor: '#d92d28',
+                    color: '#fff',
+                    fontFamily: 'Kanit, sans-serif',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    lineHeight: 1,
                   }}
                 >
-                  <SearchIcon ref={searchIconRef} size={18} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
+                  {cartQuantity}
+                </Box>
+              ) : null}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  lineHeight: 0,
+                }}
+              >
+                <CartIcon
+                  ref={cartIconRef}
+                  size={20}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    lineHeight: 0,
+                  }}
+                />
+              </Box>
+              <Box component="span" sx={{ ml: 0.75 }}>
+                ตะกร้าสั่งวัตถุดิบ
+              </Box>
+            </Button>
+          ) : null}
+        </Box>
         {!readOnly ? (
           <Button
             variant="contained"
@@ -423,16 +563,94 @@ export function IngredientsManagementPage({
                             >
                               {ingredient.name}
                             </Typography>
-                            <Typography
-                              sx={{
-                                mt: 0.6,
-                                color: 'text.secondary',
-                                fontFamily: 'Kanit, sans-serif',
-                                fontSize: 13,
-                              }}
-                            >
-                              {ingredient.amount}
-                            </Typography>
+                            <Box sx={{ display: 'grid', gap: 0.35, mt: 0.8 }}>
+                              <Typography
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  px: 1,
+                                  py: 0.45,
+                                  color: '#5f4b3d',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                คงเหลือ
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    fontSize: 18,
+                                    fontWeight: 700,
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  {ingredient.quantity} {ingredient.unit}
+                                </Box>
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  px: 1,
+                                  py: 0.45,
+                                  color: '#805637',
+                                  fontFamily: 'Kanit, sans-serif',
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ต้นทุน
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    fontSize: 18,
+                                    fontWeight: 700,
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  {ingredient.unitCost.toFixed(2)} บาท/
+                                  {ingredient.unit}
+                                </Box>
+                              </Typography>
+                            </Box>
+                            {allowOrdering ? (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  gap: 1,
+                                  mt: 'auto',
+                                  pt: 2,
+                                }}
+                              >
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  fullWidth
+                                  onClick={() =>
+                                    addToCart(ingredient, ingredientKey)
+                                  }
+                                  sx={{
+                                    minHeight: 34,
+                                    borderRadius: '10px',
+                                    bgcolor: '#805637',
+                                    color: '#fff',
+                                    fontFamily: 'Kanit, sans-serif',
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    boxShadow: 'none',
+                                    '&:hover': {
+                                      bgcolor: '#60412a',
+                                      boxShadow: 'none',
+                                    },
+                                  }}
+                                >
+                                  สั่งวัตถุดิบ
+                                </Button>
+                              </Box>
+                            ) : null}
                             {!readOnly ? (
                               <Box
                                 sx={{
@@ -813,7 +1031,7 @@ export function IngredientsManagementPage({
                 fullWidth
                 label="จำนวนคงเหลือ"
                 type="number"
-                defaultValue={editingIngredient?.amount.match(/\d+/)?.[0]}
+                defaultValue={editingIngredient?.quantity}
                 slotProps={{ htmlInput: { min: 0 } }}
               />
               <TextField
@@ -877,6 +1095,247 @@ export function IngredientsManagementPage({
                 </Button>
               </Box>
             </Box>
+          </Box>
+        </Box>
+      </Drawer>
+      <Drawer
+        anchor="bottom"
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        transitionDuration={{ enter: 280, exit: 220 }}
+        sx={{ zIndex: 1300 }}
+        slotProps={{
+          paper: {
+            sx: {
+              left: { md: '280px' },
+              width: { md: 'calc(100% - 304px)' },
+              minHeight: { xs: '82vh', sm: 740 },
+              maxHeight: '88vh',
+              bgcolor: '#fffaf7',
+              borderRadius: '24px 24px 0 0',
+              boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
+            },
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: { xs: '82vh', sm: 740 },
+            p: { xs: 2.5, sm: 4 },
+          }}
+        >
+          <Box
+            sx={{
+              width: 44,
+              height: 5,
+              mx: 'auto',
+              mb: 2.5,
+              borderRadius: 99,
+              bgcolor: '#d8c8bd',
+            }}
+          />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{
+                  color: '#201914',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 22,
+                  fontWeight: 600,
+                }}
+              >
+                ตะกร้าวัตถุดิบ
+              </Typography>
+              <Typography
+                sx={{
+                  mt: 0.25,
+                  color: 'text.secondary',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 13,
+                }}
+              >
+                {cartQuantity
+                  ? `${cartQuantity} รายการที่ต้องการสั่ง`
+                  : 'ยังไม่มีรายการในตะกร้า'}
+              </Typography>
+            </Box>
+            <Button
+              aria-label="ปิดตะกร้าวัตถุดิบ"
+              onClick={() => setCartOpen(false)}
+              sx={{
+                minWidth: 40,
+                width: 40,
+                height: 40,
+                p: 0,
+                borderRadius: '12px',
+                bgcolor: '#f7eee8',
+                color: '#5f4b3d',
+                '&:hover': { bgcolor: '#f1e4da' },
+              }}
+            >
+              <XIcon size={20} />
+            </Button>
+          </Box>
+          <Divider sx={{ my: 2.25, borderColor: '#e8ddd5' }} />
+          <Box
+            sx={{
+              display: 'grid',
+              alignContent: 'start',
+              gap: 1.25,
+              flex: 1,
+              overflowY: 'auto',
+            }}
+          >
+            {cartItems.length ? (
+              cartItems.map((item) => (
+                <Box
+                  key={item.key}
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    gap: 1.25,
+                    alignItems: 'center',
+                    p: 1.25,
+                    border: '1px solid #e8ddd5',
+                    borderRadius: '12px',
+                    bgcolor: '#fff',
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      noWrap
+                      sx={{
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {item.name}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mt: 0.15,
+                        color: 'text.secondary',
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 12,
+                      }}
+                    >
+                      คงเหลือ {item.quantity} {item.unit}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}
+                  >
+                    <Button
+                      aria-label={`ลดจำนวน ${item.name}`}
+                      onClick={() =>
+                        updateCartQuantity(item.key, item.quantityToOrder - 1)
+                      }
+                      sx={{
+                        minWidth: 30,
+                        width: 30,
+                        height: 30,
+                        p: 0,
+                        borderRadius: '9px',
+                        color: '#5f4b3d',
+                        border: '1px solid #d8c8bd',
+                      }}
+                    >
+                      −
+                    </Button>
+                    <Typography
+                      sx={{
+                        minWidth: 26,
+                        textAlign: 'center',
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {item.quantityToOrder}
+                    </Typography>
+                    <Button
+                      aria-label={`เพิ่มจำนวน ${item.name}`}
+                      onClick={() =>
+                        updateCartQuantity(item.key, item.quantityToOrder + 1)
+                      }
+                      sx={{
+                        minWidth: 30,
+                        width: 30,
+                        height: 30,
+                        p: 0,
+                        borderRadius: '9px',
+                        color: '#5f4b3d',
+                        border: '1px solid #d8c8bd',
+                      }}
+                    >
+                      +
+                    </Button>
+                  </Box>
+                </Box>
+              ))
+            ) : (
+              <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+                <CartIcon size={32} />
+                <Typography
+                  sx={{ mt: 1, fontFamily: 'Kanit, sans-serif', fontSize: 14 }}
+                >
+                  เลือกวัตถุดิบจาก card เพื่อเพิ่มลงตะกร้า
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          <Box sx={{ pt: 2.25 }}>
+            {cartError ? (
+              <Typography
+                sx={{
+                  mb: 1,
+                  color: 'error.main',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 13,
+                }}
+              >
+                {cartError}
+              </Typography>
+            ) : null}
+            <Button
+              fullWidth
+              variant="contained"
+              disabled={cartItems.length === 0 || createRequest.isPending}
+              onClick={() =>
+                createRequest.mutate({
+                  note: 'คำขอวัตถุดิบจาก Franchise',
+                  items: cartItems.map((item) => ({
+                    inventoryItemId: item.id,
+                    name: item.name,
+                    quantity: item.quantityToOrder,
+                    unit: item.unit,
+                  })),
+                })
+              }
+              sx={{
+                minHeight: 42,
+                borderRadius: '12px',
+                bgcolor: '#805637',
+                fontFamily: 'Kanit, sans-serif',
+                fontWeight: 500,
+                boxShadow: 'none',
+                '&:hover': { bgcolor: '#60412a', boxShadow: 'none' },
+              }}
+            >
+              {createRequest.isPending
+                ? 'กำลังส่งคำขอ…'
+                : `ยืนยันสั่งวัตถุดิบ (${cartQuantity})`}
+            </Button>
           </Box>
         </Box>
       </Drawer>

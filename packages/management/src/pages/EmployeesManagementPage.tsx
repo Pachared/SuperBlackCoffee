@@ -1,4 +1,4 @@
-import { type MouseEvent, useMemo, useState } from 'react';
+import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -9,6 +9,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Skeleton,
   TextField,
   Typography,
 } from '@mui/material';
@@ -119,6 +120,7 @@ export function EmployeesManagementPage({
     'start' | 'end' | null
   >(null);
   const [confirmAutoSchedule, setConfirmAutoSchedule] = useState(false);
+  const [showInitialSkeleton, setShowInitialSkeleton] = useState(true);
   const [pendingDeleteEmployeeId, setPendingDeleteEmployeeId] = useState<
     number | null
   >(null);
@@ -129,6 +131,7 @@ export function EmployeesManagementPage({
     data: employees = [],
     error,
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({ queryKey: ['employees'], queryFn: listEmployees });
   const calendarDays = useMemo(() => getCalendarDays(month), [month]);
@@ -139,6 +142,19 @@ export function EmployeesManagementPage({
     queryFn: () => listStaffSchedules(monthKey),
   });
   const branches = useQuery({ queryKey: ['branches'], queryFn: listBranches });
+  const pageLoading =
+    showInitialSkeleton ||
+    isLoading ||
+    isFetching ||
+    schedules.isLoading ||
+    schedules.isFetching ||
+    branches.isLoading ||
+    branches.isFetching;
+  useEffect(() => {
+    if (isFetching || schedules.isFetching || branches.isFetching) return;
+    const timer = window.setTimeout(() => setShowInitialSkeleton(false), 800);
+    return () => window.clearTimeout(timer);
+  }, [branches.isFetching, isFetching, schedules.isFetching]);
   const workspaceBranches = franchiseMode
     ? (branches.data ?? [])
     : (branches.data ?? []).filter((branch) => !branch.franchiseeId);
@@ -276,105 +292,143 @@ export function EmployeesManagementPage({
           mb: 2.5,
         }}
       >
-        <Box>
-          <Typography
-            sx={{
-              color: '#201914',
-              fontFamily: 'Kanit, sans-serif',
-              fontSize: 24,
-              fontWeight: 700,
-            }}
-          >
-            ตารางงานพนักงาน
-          </Typography>
-          <Typography
-            sx={{
-              color: 'text.secondary',
-              fontFamily: 'Kanit, sans-serif',
-              fontSize: 14,
-            }}
-          >
-            ดูและวางแผนตารางกะของพนักงานในรูปแบบปฏิทิน
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => changeMonth(-1)}
-          >
-            เดือนก่อน
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setMonth(startOfMonth(new Date()))}
-          >
-            เดือนนี้
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => changeMonth(1)}
-          >
-            เดือนถัดไป
-          </Button>
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ mx: 0.5, borderColor: '#d8cec7' }}
-          />
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => {
-              if (confirmAutoSchedule) {
-                setConfirmAutoSchedule(false);
-                generate.mutate();
-              } else setConfirmAutoSchedule(true);
-            }}
-            disabled={generate.isPending || activeBranchId === null}
-            sx={
-              confirmAutoSchedule
-                ? { bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' } }
-                : undefined
-            }
-          >
-            {generate.isPending
-              ? 'กำลังจัดตาราง...'
-              : confirmAutoSchedule
-                ? 'ยืนยันจัดตาราง'
-                : 'จัดตารางอัตโนมัติ'}
-          </Button>
-          {confirmAutoSchedule ? (
+        {pageLoading ? (
+          <Box>
+            <Skeleton variant="text" width={220} height={42} />
+            <Skeleton variant="text" width={340} height={24} />
+          </Box>
+        ) : (
+          <Box>
+            <Typography
+              sx={{
+                color: '#201914',
+                fontFamily: 'Kanit, sans-serif',
+                fontSize: 24,
+                fontWeight: 700,
+              }}
+            >
+              ตารางงานพนักงาน
+            </Typography>
+            <Typography
+              sx={{
+                color: 'text.secondary',
+                fontFamily: 'Kanit, sans-serif',
+                fontSize: 14,
+              }}
+            >
+              ดูและวางแผนตารางกะของพนักงานในรูปแบบปฏิทิน
+            </Typography>
+          </Box>
+        )}
+        {pageLoading ? (
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {[138, 110, 142].map((width, index) => (
+              <Skeleton
+                key={index}
+                variant="rounded"
+                width={width}
+                height={40}
+                sx={{ borderRadius: '12px' }}
+              />
+            ))}
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ mx: 0.5, borderColor: '#d8cec7' }}
+            />
+            <Skeleton
+              variant="rounded"
+              width={190}
+              height={40}
+              sx={{ borderRadius: '12px' }}
+            />
+            <Skeleton
+              variant="rounded"
+              width={140}
+              height={40}
+              sx={{ borderRadius: '12px' }}
+            />
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               size="small"
-              onClick={() => setConfirmAutoSchedule(false)}
+              onClick={() => changeMonth(-1)}
             >
-              ยกเลิก
+              เดือนก่อน
             </Button>
-          ) : null}
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => {
-              setEditingEmployeeId(null);
-              setNewEmployeeName('');
-              setNewEmployeeRole('cashier');
-              setNewEmployeeBranchId(String(activeBranchId ?? ''));
-              setDefaultStartsAt('');
-              setDefaultEndsAt('');
-              setIsEmployeeDrawerOpen(true);
-            }}
-            sx={{ bgcolor: '#805637', '&:hover': { bgcolor: '#60412a' } }}
-          >
-            เพิ่มพนักงาน
-          </Button>
-        </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setMonth(startOfMonth(new Date()))}
+            >
+              เดือนนี้
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => changeMonth(1)}
+            >
+              เดือนถัดไป
+            </Button>
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ mx: 0.5, borderColor: '#d8cec7' }}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                if (confirmAutoSchedule) {
+                  setConfirmAutoSchedule(false);
+                  generate.mutate();
+                } else setConfirmAutoSchedule(true);
+              }}
+              disabled={generate.isPending || activeBranchId === null}
+              sx={
+                confirmAutoSchedule
+                  ? { bgcolor: '#2e7d32', '&:hover': { bgcolor: '#1b5e20' } }
+                  : undefined
+              }
+            >
+              {generate.isPending
+                ? 'กำลังจัดตาราง...'
+                : confirmAutoSchedule
+                  ? 'ยืนยันจัดตาราง'
+                  : 'จัดตารางอัตโนมัติ'}
+            </Button>
+            {confirmAutoSchedule ? (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setConfirmAutoSchedule(false)}
+              >
+                ยกเลิก
+              </Button>
+            ) : null}
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                setEditingEmployeeId(null);
+                setNewEmployeeName('');
+                setNewEmployeeRole('cashier');
+                setNewEmployeeBranchId(String(activeBranchId ?? ''));
+                setDefaultStartsAt('');
+                setDefaultEndsAt('');
+                setIsEmployeeDrawerOpen(true);
+              }}
+              sx={{ bgcolor: '#805637', '&:hover': { bgcolor: '#60412a' } }}
+            >
+              เพิ่มพนักงาน
+            </Button>
+          </Box>
+        )}
       </Box>
 
-      {isLoading ? <EmployeesSkeleton /> : null}
+      {pageLoading ? <EmployeesSkeleton franchiseMode={franchiseMode} /> : null}
       {!franchiseMode && error ? (
         <Card
           variant="outlined"
@@ -397,7 +451,7 @@ export function EmployeesManagementPage({
           </Button>
         </Card>
       ) : null}
-      {!isLoading && (!error || franchiseMode) ? (
+      {!pageLoading && (!error || franchiseMode) ? (
         <>
           <Box
             sx={{

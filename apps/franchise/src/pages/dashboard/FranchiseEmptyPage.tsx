@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material';
 
-export function EmptyPage({ title }: { title: string }) {
+export function FranchiseEmptyPage({ title }: { title: string }) {
   return (
     <Box
       sx={{

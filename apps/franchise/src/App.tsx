@@ -16,11 +16,14 @@ import {
 import { login } from './api/auth';
 import {
   franchiseBranch,
+  franchisePageFromPath,
+  franchisePagePaths,
   navigationForPlan,
   type FranchisePlan,
 } from './components/sidebar/franchiseSidebarNavigation';
-import { EmptyPage } from './pages/EmptyPage';
-import { Overview } from './pages/Overview';
+import { FranchiseEmptyPage } from './pages/dashboard/FranchiseEmptyPage';
+import { FranchiseIngredientRequestsPage } from './pages/dashboard/FranchiseIngredientRequestsPage';
+import { FranchiseOverviewPage } from './pages/dashboard/FranchiseOverviewPage';
 
 const readPlan = (): FranchisePlan => {
   const value = sessionStorage.getItem('sbc-franchise-plan');
@@ -33,6 +36,8 @@ export default function App() {
   );
   const [plan, setPlan] = useState<FranchisePlan>(readPlan);
   const [activePage, setActivePage] = useState(() => {
+    const fromPath = franchisePageFromPath(window.location.pathname);
+    if (window.location.pathname !== '/') return fromPath;
     const stored = sessionStorage.getItem('sbc-franchise-active-page');
     return stored === 'พนักงาน' ? 'ตารางพนักงาน' : (stored ?? 'ภาพรวม');
   });
@@ -53,7 +58,20 @@ export default function App() {
     window.addEventListener('sbc:session-expired', logout);
     return () => window.removeEventListener('sbc:session-expired', logout);
   }, [logout]);
+  useEffect(() => {
+    const onPopState = () => {
+      const page = franchisePageFromPath(window.location.pathname);
+      sessionStorage.setItem('sbc-franchise-active-page', page);
+      setActivePage(page);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
   const navigate = (page: string) => {
+    const path =
+      franchisePagePaths[page as keyof typeof franchisePagePaths] ?? '/';
+    if (window.location.pathname !== path)
+      window.history.pushState({}, '', path);
     sessionStorage.setItem('sbc-franchise-active-page', page);
     setActivePage(page);
   };
@@ -120,7 +138,11 @@ export default function App() {
               activeBranch={franchiseBranch}
               franchisePlan={plan}
               readOnly
+              allowOrdering
+              onRequestCreated={() => navigate('คำขอวัตถุดิบ')}
             />
+          ) : activePage === 'คำขอวัตถุดิบ' ? (
+            <FranchiseIngredientRequestsPage />
           ) : activePage === 'สต๊อก' ? (
             <StockManagementPage activeBranch={franchiseBranch} readOnly />
           ) : activePage === 'ตารางพนักงาน' ? (
@@ -128,9 +150,9 @@ export default function App() {
           ) : (
             <DashboardMain>
               {activePage === 'ภาพรวม' ? (
-                <Overview />
+                <FranchiseOverviewPage plan={plan} onNavigate={navigate} />
               ) : (
-                <EmptyPage title={activePage} />
+                <FranchiseEmptyPage title={activePage} />
               )}
             </DashboardMain>
           )}

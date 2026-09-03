@@ -106,7 +106,7 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
     ) : page === 'แชทลูกค้า' ? (
       <AdminCustomerChatSkeleton />
     ) : page === 'ตารางพนักงาน' ? (
-      <EmployeesSkeleton />
+      <EmployeesSkeleton showHeader />
     ) : (
       <AdminBranchesSkeleton />
     );

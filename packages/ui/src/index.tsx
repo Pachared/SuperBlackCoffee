@@ -52,6 +52,7 @@ export {
 export { XIcon, type XIconHandle } from './components/icons/XIcon';
 export { ClockIcon, type ClockIconHandle } from './components/icons/ClockIcon';
 export { BoxesIcon } from './components/icons/BoxesIcon';
+export { CartIcon, type CartIconHandle } from './components/icons/CartIcon';
 export {
   MapPinPlusInsideIcon,
   type MapPinPlusInsideIconHandle,

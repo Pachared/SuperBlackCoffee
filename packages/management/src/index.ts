@@ -12,3 +12,17 @@ export { EmployeesSkeleton } from './components/skeletons/EmployeesSkeleton';
 export { IngredientsSkeleton } from './components/skeletons/IngredientsSkeleton';
 export { ProductsSkeleton } from './components/skeletons/ProductsSkeleton';
 export { StockSkeleton } from './components/skeletons/StockSkeleton';
+export { getDashboardSummary } from './api/dashboard';
+export type { DashboardSummary } from './api/dashboard';
+export { listInventory } from './api/inventory';
+export type { InventoryItem } from './api/inventory';
+export { listMenuItems } from './api/menu';
+export type { MenuItem } from './api/menu';
+export { listEmployees } from './api/users';
+export type { Employee } from './api/users';
+export { createStockRequest, listStockRequests } from './api/stock-requests';
+export type {
+  CreateStockRequestInput,
+  StockRequest,
+  StockRequestStatus,
+} from './api/stock-requests';
