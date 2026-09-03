@@ -34,7 +34,7 @@ export function AdminDashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const primarySidebarCollapsed = forceSidebarCollapsed || sidebarCollapsed;
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <DashboardSidebar
         activePage={activePage}
         navigation={navigation}

@@ -202,10 +202,13 @@ export function DashboardSidebar({
         sx={{
           flex: 1,
           minHeight: 0,
-          width: 'calc(100% + 32px)',
-          mr: -4,
+          // Extend only through the Drawer padding so selected rows can meet
+          // the panel edge. The previous 32px extension escaped the Drawer
+          // and rendered this element's scrollbar over the page content.
+          width: 'calc(100% + 16px)',
+          mr: -2,
           py: 0,
-          pr: 4,
+          pr: 2,
           overflowY: 'auto',
           overflowX: 'hidden',
           scrollbarWidth: 'thin',
