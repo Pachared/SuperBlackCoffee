@@ -62,9 +62,15 @@ function startOfMonth(date: Date) {
 function getCalendarDays(month: Date) {
   const firstDay = startOfMonth(month);
   const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(
+    month.getFullYear(),
+    month.getMonth() + 1,
+    0,
+  ).getDate();
+  const rowCount = Math.ceil((mondayOffset + daysInMonth) / 7);
   const firstVisibleDay = new Date(firstDay);
   firstVisibleDay.setDate(firstDay.getDate() - mondayOffset);
-  return Array.from({ length: 42 }, (_, index) => {
+  return Array.from({ length: rowCount * 7 }, (_, index) => {
     const date = new Date(firstVisibleDay);
     date.setDate(firstVisibleDay.getDate() + index);
     return date;
@@ -94,8 +100,6 @@ export function AdminEmployeesPage() {
   const [draggedShiftId, setDraggedShiftId] = useState<number | null>(null);
   const [isEmployeeDrawerOpen, setIsEmployeeDrawerOpen] = useState(false);
   const [newEmployeeName, setNewEmployeeName] = useState('');
-  const [newEmployeeUsername, setNewEmployeeUsername] = useState('');
-  const [newEmployeePassword, setNewEmployeePassword] = useState('');
   const [newEmployeeRole, setNewEmployeeRole] = useState<
     'branch_manager' | 'cashier'
   >('cashier');
@@ -154,16 +158,14 @@ export function AdminEmployeesPage() {
     mutationFn: () =>
       createEmployee({
         name: newEmployeeName,
-        username: newEmployeeUsername,
-        password: newEmployeePassword,
+        username: `employee_${Date.now()}`,
+        password: `Temp${Date.now()}!`,
         role: newEmployeeRole,
         branchId: Number(newEmployeeBranchId),
       }),
     onSuccess: () => {
       setIsEmployeeDrawerOpen(false);
       setNewEmployeeName('');
-      setNewEmployeeUsername('');
-      setNewEmployeePassword('');
       void queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
@@ -472,6 +474,7 @@ export function AdminEmployeesPage() {
                           bgcolor: isCurrentMonth ? '#fff' : '#fbf8f6',
                           opacity: isCurrentMonth ? 1 : 0.5,
                           '&:nth-of-type(7n)': { borderRight: 0 },
+                          '&:nth-last-child(-n + 7)': { borderBottom: 0 },
                         }}
                       >
                         <Box
@@ -549,14 +552,18 @@ export function AdminEmployeesPage() {
                                     ? '#ebe8e5'
                                     : '#ffe4e4',
                               color: '#60493b',
-                              fontSize: 10,
+                              fontSize: 12,
                               lineHeight: 1.25,
                             }}
                           >
-                            {shift.name}
-                            <br />
+                            <Box
+                              component="span"
+                              sx={{ display: 'block', mb: 0.35 }}
+                            >
+                              {shift.name}
+                            </Box>
                             {shift.status === 'scheduled'
-                              ? `${shift.startsAt}–${shift.endsAt}`
+                              ? `${shift.startsAt.slice(0, 5)} น. - ${shift.endsAt.slice(0, 5)} น.`
                               : leaveLabels[shift.status]}
                           </Box>
                         ))}
@@ -815,20 +822,6 @@ export function AdminEmployeesPage() {
               label="ชื่อ-นามสกุล"
               value={newEmployeeName}
               onChange={(event) => setNewEmployeeName(event.target.value)}
-            />
-            <TextField
-              required
-              label="Username"
-              value={newEmployeeUsername}
-              onChange={(event) => setNewEmployeeUsername(event.target.value)}
-            />
-            <TextField
-              required
-              label="Password"
-              type="password"
-              helperText="อย่างน้อย 8 ตัวอักษร"
-              value={newEmployeePassword}
-              onChange={(event) => setNewEmployeePassword(event.target.value)}
             />
             <FormControl required>
               <InputLabel id="new-employee-branch-label">สาขา</InputLabel>

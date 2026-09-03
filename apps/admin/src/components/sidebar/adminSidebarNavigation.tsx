@@ -12,7 +12,7 @@ import {
 
 export const adminSidebarNavigation = [
   { label: 'ภาพรวม', icon: <LayoutGridIcon />, group: 'ภาพรวม' },
-  { label: 'คำสั่งซื้อ', icon: <ReceiptIcon />, group: 'งานประจำวัน' },
+  { label: 'คำสั่งซื้อ', icon: <ReceiptIcon />, group: 'การขายและคำสั่งซื้อ' },
   {
     label: 'เมนูและสินค้า',
     icon: <ReceiptTextIcon />,
@@ -36,7 +36,7 @@ export const adminSidebarNavigation = [
     icon: <MapPinPlusIcon />,
     group: 'สาขาและแฟรนไชส์',
   },
-  { label: 'พนักงาน', icon: <UsersIcon />, group: 'สาขาและแฟรนไชส์' },
+  { label: 'พนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
   {
     label: 'แชทลูกค้า',
     icon: <MessageSquareIcon />,

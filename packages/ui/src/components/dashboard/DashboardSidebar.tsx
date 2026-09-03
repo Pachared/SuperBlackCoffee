@@ -431,9 +431,11 @@ export function DashboardSidebar({
       <Box
         sx={{
           mt: 'auto',
-          p: 0,
+          px: 0,
+          pt: 1.5,
+          pb: 0,
           bgcolor: '#171411',
-          borderRadius: 0,
+          borderRadius: '14px 14px 0 0',
         }}
       >
         <Button
