@@ -37,8 +37,8 @@ type franchiseInput struct {
 	Plan       string `json:"plan" binding:"required,oneof=S M L"`
 	BranchName string `json:"branchName" binding:"required"`
 	BranchCode string `json:"branchCode" binding:"required"`
-	Username   string `json:"username" binding:"required,min=3"`
-	Password   string `json:"password" binding:"required,min=8"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
 }
 
 func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
@@ -50,6 +50,12 @@ func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "message": "ข้อมูลแฟรนไชส์ไม่ถูกต้อง"})
 		return
 	}
+	if strings.TrimSpace(input.Username) == "" {
+		input.Username = "franchise_" + strings.ReplaceAll(strings.Split(input.Email, "@")[0], ".", "_")
+	}
+	if len(input.Password) < 8 {
+		input.Password = "Temporary!" + input.Username
+	}
 	tx, err := h.db.BeginTx(c, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถสร้างแฟรนไชส์ได้"})
@@ -57,10 +63,10 @@ func (h *PlatformHandler) CreateFranchisee(c *gin.Context) {
 	}
 	defer tx.Rollback()
 	var franchiseeID int64
-	err = tx.QueryRowContext(c, `INSERT INTO franchisees(name,email,plan,status) VALUES($1,$2,$3,'active') RETURNING id`, input.Name, input.Email, input.Plan).Scan(&franchiseeID)
+	err = tx.QueryRowContext(c, `INSERT INTO franchisees(name,email,plan,status) VALUES($1,$2,$3,'invited') RETURNING id`, input.Name, input.Email, input.Plan).Scan(&franchiseeID)
 	var branchID int64
 	if err == nil {
-		err = tx.QueryRowContext(c, `INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,$2,$3,'active') RETURNING id`, franchiseeID, input.BranchName, input.BranchCode).Scan(&branchID)
+		err = tx.QueryRowContext(c, `INSERT INTO branches(franchisee_id,name,code,status) VALUES($1,$2,$3,'inactive') RETURNING id`, franchiseeID, input.BranchName, input.BranchCode).Scan(&branchID)
 	}
 	if err == nil {
 		passwordHash, hashErr := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
