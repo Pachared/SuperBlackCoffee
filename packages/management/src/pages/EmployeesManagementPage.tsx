@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type MouseEvent, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -1265,7 +1265,8 @@ export function EmployeesManagementPage({
                   slotProps={{
                     inputLabel: { shrink: true },
                     htmlInput: {
-                      onClick: (event) => event.currentTarget.showPicker?.(),
+                      onClick: (event: MouseEvent<HTMLInputElement>) =>
+                        event.currentTarget.showPicker?.(),
                     },
                   }}
                 />
@@ -1304,7 +1305,8 @@ export function EmployeesManagementPage({
                   slotProps={{
                     inputLabel: { shrink: true },
                     htmlInput: {
-                      onClick: (event) => event.currentTarget.showPicker?.(),
+                      onClick: (event: MouseEvent<HTMLInputElement>) =>
+                        event.currentTarget.showPicker?.(),
                     },
                   }}
                 />
