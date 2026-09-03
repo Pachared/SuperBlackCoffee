@@ -12,6 +12,10 @@ export default defineConfig({
         dirname,
         '../../packages/ui/src/index.tsx',
       ),
+      '@stackbuild/management': path.resolve(
+        dirname,
+        '../../packages/management/src/index.ts',
+      ),
       '@stackbuild/types': path.resolve(
         dirname,
         '../../packages/types/src/index.ts',

@@ -1,21 +1,21 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { DashboardMain, coffeeIngredientsImage } from '@stackbuild/ui';
-import { adminSidebarNavigation } from '../../components/sidebar/adminSidebarNavigation';
 import {
-  IngredientBranchesSidebar,
-  type IngredientBranch,
-} from '../../components/sidebar/IngredientBranchesSidebar';
+  EmployeesSkeleton,
+  IngredientsSkeleton,
+  ProductsSkeleton,
+  StockSkeleton,
+  BranchesSidebar,
+  type Branch,
+} from '@stackbuild/management';
+import { adminSidebarNavigation } from '../../components/sidebar/adminSidebarNavigation';
 import { AdminDashboardLayout } from '../../layouts/AdminDashboardLayout';
 import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import { AdminAuditSkeleton } from '../../components/skeletons/AdminAuditSkeleton';
 import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
 import { AdminCustomerChatSkeleton } from '../../components/skeletons/AdminCustomerChatSkeleton';
-import { AdminEmployeesSkeleton } from '../../components/skeletons/AdminEmployeesSkeleton';
-import { AdminIngredientsSkeleton } from '../../components/skeletons/AdminIngredientsSkeleton';
 import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
 import { AdminProcurementSkeleton } from '../../components/skeletons/AdminProcurementSkeleton';
-import { AdminProductsSkeleton } from '../../components/skeletons/AdminProductsSkeleton';
-import { AdminStockSkeleton } from '../../components/skeletons/AdminStockSkeleton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   adminPageFromPath,
@@ -96,17 +96,17 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
     ) : page === 'ประวัติการทำรายการ' ? (
       <AdminAuditSkeleton />
     ) : page === 'สต๊อก' ? (
-      <AdminStockSkeleton />
+      <StockSkeleton />
     ) : page === 'จัดซื้อ' ? (
       <AdminProcurementSkeleton />
     ) : page === 'เมนูและสินค้า' ? (
-      <AdminProductsSkeleton />
+      <ProductsSkeleton />
     ) : page === 'วัตถุดิบ' ? (
-      <AdminIngredientsSkeleton />
+      <IngredientsSkeleton />
     ) : page === 'แชทลูกค้า' ? (
       <AdminCustomerChatSkeleton />
     ) : page === 'พนักงาน' ? (
-      <AdminEmployeesSkeleton />
+      <EmployeesSkeleton />
     ) : (
       <AdminBranchesSkeleton />
     );
@@ -117,8 +117,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
   const location = useLocation();
   const routerNavigate = useNavigate();
   const activePage = adminPageFromPath(location.pathname);
-  const [activeIngredientBranch, setActiveIngredientBranch] =
-    useState<IngredientBranch>('ทุกสาขา');
+  const [activeBranch, setActiveBranch] = useState<Branch>('ทุกสาขา');
   const scrollbarTimeoutRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const ingredientImage = new Image();
@@ -155,19 +154,19 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     activePage === 'เมนูและสินค้า' ||
     activePage === 'คำสั่งซื้อ';
   const pageContent = isIngredientPage ? (
-    <AdminIngredientsPage activeBranch={activeIngredientBranch} />
+    <AdminIngredientsPage activeBranch={activeBranch} />
   ) : activePage === 'ภาพรวม' ? (
     <AdminOverviewPage onNavigate={navigate} />
   ) : activePage === 'คำสั่งซื้อ' ? (
-    <AdminOrdersPage activeBranch={activeIngredientBranch} />
+    <AdminOrdersPage activeBranch={activeBranch} />
   ) : activePage === 'ประวัติการทำรายการ' ? (
     <AdminAuditPage />
   ) : isStockPage ? (
-    <AdminStockPage activeBranch={activeIngredientBranch} />
+    <AdminStockPage activeBranch={activeBranch} />
   ) : activePage === 'จัดซื้อ' ? (
     <AdminProcurementPage />
   ) : activePage === 'เมนูและสินค้า' ? (
-    <AdminProductsPage activeBranch={activeIngredientBranch} />
+    <AdminProductsPage activeBranch={activeBranch} />
   ) : activePage === 'แชทลูกค้า' ? (
     <AdminCustomerChatPage />
   ) : activePage === 'สาขาแฟรนไชส์' ? (
@@ -180,21 +179,21 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminBranchesPage />
   );
   const pageTitle = isIngredientPage
-    ? activeIngredientBranch === 'ทุกสาขา'
+    ? activeBranch === 'ทุกสาขา'
       ? 'วัตถุดิบ ทุกสาขา'
-      : `วัตถุดิบ สาขา${activeIngredientBranch}`
+      : `วัตถุดิบ สาขา${activeBranch}`
     : isStockPage
-      ? activeIngredientBranch === 'ทุกสาขา'
+      ? activeBranch === 'ทุกสาขา'
         ? 'สต๊อก ทุกสาขา'
-        : `สต๊อก สาขา${activeIngredientBranch}`
+        : `สต๊อก สาขา${activeBranch}`
       : activePage === 'เมนูและสินค้า'
-        ? activeIngredientBranch === 'ทุกสาขา'
+        ? activeBranch === 'ทุกสาขา'
           ? 'เมนูและสินค้า ทุกสาขา'
-          : `เมนูและสินค้า สาขา${activeIngredientBranch}`
+          : `เมนูและสินค้า สาขา${activeBranch}`
         : activePage === 'คำสั่งซื้อ'
-          ? activeIngredientBranch === 'ทุกสาขา'
+          ? activeBranch === 'ทุกสาขา'
             ? 'คำสั่งซื้อ ทุกสาขา'
-            : `คำสั่งซื้อ สาขา${activeIngredientBranch}`
+            : `คำสั่งซื้อ สาขา${activeBranch}`
           : activePage === 'สาขา SBC'
             ? 'สาขา Super Black Coffee'
             : activePage;
@@ -208,9 +207,9 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
       forceSidebarCollapsed={hasBranchSidebar || isEmployeesPage}
       secondarySidebarVisible={hasBranchSidebar}
       secondarySidebar={
-        <IngredientBranchesSidebar
-          activeBranch={activeIngredientBranch}
-          onBranchChange={setActiveIngredientBranch}
+        <BranchesSidebar
+          activeBranch={activeBranch}
+          onBranchChange={setActiveBranch}
           visible={hasBranchSidebar}
         />
       }

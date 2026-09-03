@@ -13,6 +13,10 @@ export default defineConfig({
         dirname,
         '../../packages/ui/src/index.tsx',
       ),
+      '@stackbuild/management': path.resolve(
+        dirname,
+        '../../packages/management/src/index.ts',
+      ),
     },
   },
 });

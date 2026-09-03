@@ -20,6 +20,7 @@
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
     "@stackbuild/ui": "workspace:*",
+    "@stackbuild/management": "workspace:*",
     "@stackbuild/types": "workspace:*"
   },
   "devDependencies": {

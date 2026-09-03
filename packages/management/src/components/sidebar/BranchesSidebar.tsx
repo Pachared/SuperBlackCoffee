@@ -7,23 +7,20 @@ import {
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 
-export const ingredientBranches = ['ทุกสาขา', 'อยุธยา', 'พิษณุโลก'] as const;
-export type IngredientBranch = (typeof ingredientBranches)[number];
-export const ingredientBranchCodes: Record<
-  Exclude<IngredientBranch, 'ทุกสาขา'>,
-  string
-> = {
+export const branches = ['ทุกสาขา', 'อยุธยา', 'พิษณุโลก'] as const;
+export type Branch = (typeof branches)[number];
+export const branchCodeByBranch: Record<Exclude<Branch, 'ทุกสาขา'>, string> = {
   อยุธยา: 'SBC-AYA-001',
   พิษณุโลก: 'SBC-PLK-001',
 };
 
-export function IngredientBranchesSidebar({
+export function BranchesSidebar({
   activeBranch,
   onBranchChange,
   visible = true,
 }: {
-  activeBranch: IngredientBranch;
-  onBranchChange: (branch: IngredientBranch) => void;
+  activeBranch: Branch;
+  onBranchChange: (branch: Branch) => void;
   visible?: boolean;
 }) {
   const [isScrolling, setIsScrolling] = useState(false);
@@ -72,7 +69,7 @@ export function IngredientBranchesSidebar({
       }}
     >
       <List disablePadding>
-        {ingredientBranches.map((branch) => (
+        {branches.map((branch) => (
           <ListItemButton
             key={branch}
             selected={branch === activeBranch}

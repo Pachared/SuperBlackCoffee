@@ -14,16 +14,15 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardMain, XIcon } from '@stackbuild/ui';
 import {
-  createEmployee,
   generateStaffSchedules,
-  listBranches,
   listStaffSchedules,
   replaceStaffShift,
   updateStaffShift,
   type StaffShift,
-} from '../../api';
-import { AdminEmployeesSkeleton } from '../../components/skeletons/AdminEmployeesSkeleton';
-import { useEmployees } from '../../hooks/useEmployees';
+} from '../api/staff-schedules';
+import { createEmployee, listEmployees } from '../api/users';
+import { listBranches } from '../api/branches';
+import { EmployeesSkeleton } from '../components/skeletons/EmployeesSkeleton';
 
 const thaiMonth = new Intl.DateTimeFormat('th-TH', {
   month: 'long',
@@ -89,7 +88,7 @@ function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function AdminEmployeesPage({
+export function EmployeesManagementPage({
   franchiseMode = false,
 }: {
   franchiseMode?: boolean;
@@ -108,7 +107,12 @@ export function AdminEmployeesPage({
     'branch_manager' | 'cashier'
   >('cashier');
   const [newEmployeeBranchId, setNewEmployeeBranchId] = useState('');
-  const { data: employees = [], error, isLoading, refetch } = useEmployees();
+  const {
+    data: employees = [],
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({ queryKey: ['employees'], queryFn: listEmployees });
   const calendarDays = useMemo(() => getCalendarDays(month), [month]);
   const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
   const queryClient = useQueryClient();
@@ -295,7 +299,7 @@ export function AdminEmployeesPage({
         </Box>
       </Box>
 
-      {isLoading ? <AdminEmployeesSkeleton /> : null}
+      {isLoading ? <EmployeesSkeleton /> : null}
       {error ? (
         <Card
           variant="outlined"

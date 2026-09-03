@@ -16,7 +16,8 @@
     "@mui/material": "latest",
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
-    "@stackbuild/ui": "workspace:*"
+    "@stackbuild/ui": "workspace:*",
+    "@stackbuild/management": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "latest",

@@ -1,6 +1,6 @@
 import { Box, Card, Skeleton } from '@mui/material';
 
-export function AdminIngredientsSkeleton() {
+export function IngredientsSkeleton() {
   return (
     <Box
       sx={{

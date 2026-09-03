@@ -1,0 +1,21 @@
+{
+  "name": "@stackbuild/management",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@mui/material": "latest",
+    "@stackbuild/types": "workspace:*",
+    "@stackbuild/ui": "workspace:*",
+    "@tanstack/react-query": "latest",
+    "axios": "latest",
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "typescript": "6.0.3"
+  }
+}

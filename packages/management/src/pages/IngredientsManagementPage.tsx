@@ -23,12 +23,12 @@ import {
   type XIconHandle,
 } from '@stackbuild/ui';
 import {
-  ingredientBranchCodes,
-  ingredientBranches,
-  type IngredientBranch,
-} from '../../components/sidebar/IngredientBranchesSidebar';
-import { AdminIngredientsSkeleton } from '../../components/skeletons/AdminIngredientsSkeleton';
-import { listInventory } from '../../api';
+  branchCodeByBranch,
+  branches,
+  type Branch,
+} from '../components/sidebar/BranchesSidebar';
+import { IngredientsSkeleton } from '../components/skeletons/IngredientsSkeleton';
+import { listInventory } from '../api/inventory';
 
 type Ingredient = {
   name: string;
@@ -37,7 +37,7 @@ type Ingredient = {
   imagePosition: string;
   imageUrl: string;
 };
-type InventoryBranch = Exclude<IngredientBranch, 'ทุกสาขา'>;
+type InventoryBranch = Exclude<Branch, 'ทุกสาขา'>;
 
 const filters = [
   'ทั้งหมด',
@@ -47,10 +47,10 @@ const filters = [
 ] as const;
 type IngredientFilter = (typeof filters)[number];
 
-export function AdminIngredientsPage({
+export function IngredientsManagementPage({
   activeBranch,
 }: {
-  activeBranch: IngredientBranch;
+  activeBranch: Branch;
 }) {
   const plusIconRef = useRef<PlusIconHandle>(null);
   const searchIconRef = useRef<SearchIconHandle>(null);
@@ -89,7 +89,7 @@ export function AdminIngredientsPage({
     setIsLoading(true);
     const branchNames: InventoryBranch[] =
       activeBranch === 'ทุกสาขา'
-        ? ingredientBranches.filter(
+        ? branches.filter(
             (branch): branch is InventoryBranch => branch !== 'ทุกสาขา',
           )
         : [activeBranch];
@@ -97,7 +97,7 @@ export function AdminIngredientsPage({
       branchNames.map(async (branch) => {
         const items = await listInventory(
           'ingredient',
-          ingredientBranchCodes[branch],
+          branchCodeByBranch[branch],
         );
         return [
           branch,
@@ -163,7 +163,7 @@ export function AdminIngredientsPage({
                   setLoadedBranchNames((names) =>
                     names.has(branch) ? names : new Set(names).add(branch),
                   ),
-                branch === ingredientBranches[1] ? 360 : 220,
+                branch === branches[1] ? 360 : 220,
               ),
             );
         });
@@ -179,7 +179,7 @@ export function AdminIngredientsPage({
     };
   }, [activeBranch]);
   const displayedBranches =
-    activeBranch === 'ทุกสาขา' ? ingredientBranches.slice(1) : [activeBranch];
+    activeBranch === 'ทุกสาขา' ? branches.slice(1) : [activeBranch];
   const drawerTitle = editingIngredient ? 'แก้ไขวัตถุดิบ' : 'เพิ่มวัตถุดิบ';
   const imageSource =
     imagePreviewUrl ?? (editingIngredient ? coffeeIngredientsImage : null);
@@ -328,7 +328,7 @@ export function AdminIngredientsPage({
               {!isBranchVisible ? (
                 <Box sx={{ minHeight: 420 }} />
               ) : isLoading || !isBranchLoaded ? (
-                <AdminIngredientsSkeleton />
+                <IngredientsSkeleton />
               ) : (
                 <>
                   <Box

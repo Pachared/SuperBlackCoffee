@@ -23,12 +23,12 @@ import {
   type XIconHandle,
 } from '@stackbuild/ui';
 import {
-  ingredientBranchCodes,
-  ingredientBranches,
-  type IngredientBranch,
-} from '../../components/sidebar/IngredientBranchesSidebar';
-import { listInventory } from '../../api';
-import { AdminStockSkeleton } from '../../components/skeletons/AdminStockSkeleton';
+  branchCodeByBranch,
+  branches,
+  type Branch,
+} from '../components/sidebar/BranchesSidebar';
+import { listInventory } from '../api/inventory';
+import { StockSkeleton } from '../components/skeletons/StockSkeleton';
 
 type StockItem = {
   name: string;
@@ -36,15 +36,15 @@ type StockItem = {
   status: IngredientStatus;
   position: string;
 };
-type InventoryBranch = Exclude<IngredientBranch, 'ทุกสาขา'>;
+type InventoryBranch = Exclude<Branch, 'ทุกสาขา'>;
 
 const filters = ['ทั้งหมด', 'ใกล้หมด', 'หมด', 'ค้างสต๊อก'] as const;
 type StockFilter = (typeof filters)[number];
 
-export function AdminStockPage({
+export function StockManagementPage({
   activeBranch,
 }: {
-  activeBranch: IngredientBranch;
+  activeBranch: Branch;
 }) {
   const plusRef = useRef<PlusIconHandle>(null);
   const searchRef = useRef<SearchIconHandle>(null);
@@ -70,7 +70,7 @@ export function AdminStockPage({
           (filter === 'ค้างสต๊อก' && item.status === 'วัตถุดิบค้างสต๊อก')),
     );
   const displayedBranches =
-    activeBranch === 'ทุกสาขา' ? ingredientBranches.slice(1) : [activeBranch];
+    activeBranch === 'ทุกสาขา' ? branches.slice(1) : [activeBranch];
   const drawerTitle = editingItem ? 'แก้ไขสต๊อก' : 'เพิ่มสต๊อก';
   const imageSource =
     imagePreviewUrl ?? (editingItem ? coffeeIngredientsImage : null);
@@ -86,16 +86,13 @@ export function AdminStockPage({
     setIsLoading(true);
     const branchNames: InventoryBranch[] =
       activeBranch === 'ทุกสาขา'
-        ? ingredientBranches.filter(
+        ? branches.filter(
             (branch): branch is InventoryBranch => branch !== 'ทุกสาขา',
           )
         : [activeBranch];
     void Promise.all(
       branchNames.map(async (branch) => {
-        const items = await listInventory(
-          'stock',
-          ingredientBranchCodes[branch],
-        );
+        const items = await listInventory('stock', branchCodeByBranch[branch]);
         return [
           branch,
           items.map((item, index) => ({
@@ -257,7 +254,7 @@ export function AdminStockPage({
                 </Typography>
               )}
               {isLoading ? (
-                <AdminStockSkeleton />
+                <StockSkeleton />
               ) : (
                 <Box
                   sx={{

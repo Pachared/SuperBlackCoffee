@@ -1,6 +1,6 @@
 import { Box, Skeleton } from '@mui/material';
 
-export function AdminEmployeesSkeleton() {
+export function EmployeesSkeleton() {
   return (
     <Box sx={{ display: 'grid', gap: 1.25 }}>
       <Skeleton variant="text" width={190} height={32} />

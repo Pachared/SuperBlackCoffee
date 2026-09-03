@@ -15,8 +15,14 @@
     "paths": {
       "@/*": ["./src/*"],
       "@stackbuild/ui": ["../../packages/ui/src/index.tsx"],
+      "@stackbuild/management": ["../../packages/management/src/index.ts"],
       "@stackbuild/types": ["../../packages/types/src/index.ts"]
     }
   },
-  "include": ["src", "../../packages/ui/src", "../../packages/types/src"]
+  "include": [
+    "src",
+    "../../packages/ui/src",
+    "../../packages/types/src",
+    "../../packages/management/src"
+  ]
 }

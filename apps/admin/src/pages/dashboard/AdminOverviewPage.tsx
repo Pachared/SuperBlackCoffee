@@ -10,17 +10,17 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardMain, formatCurrency } from '@stackbuild/ui';
+import {
+  branchCodeByBranch,
+  branches,
+  type Branch,
+} from '@stackbuild/management';
 import { useDashboardSummary } from '../../hooks/useDashboardSummary';
 import { useStockRequests } from '../../hooks/useStockRequests';
 import { useWebsiteLeads } from '../../hooks/useWebsiteLeads';
 import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import type { AdminPage } from '../../routes/adminRoutes';
 import { listBranchSales, listInventory, type BranchSales } from '../../api';
-import {
-  ingredientBranchCodes,
-  ingredientBranches,
-  type IngredientBranch,
-} from '../../components/sidebar/IngredientBranchesSidebar';
 
 type OverviewAction = {
   title: string;
@@ -191,8 +191,7 @@ export function AdminOverviewPage({
   const dashboard = useDashboardSummary();
   const stockRequests = useStockRequests();
   const websiteLeads = useWebsiteLeads();
-  const [selectedBranch, setSelectedBranch] =
-    useState<IngredientBranch>('ทุกสาขา');
+  const [selectedBranch, setSelectedBranch] = useState<Branch>('ทุกสาขา');
   const branchSales = useQuery({
     queryKey: ['overview-branch-sales'],
     queryFn: () => listBranchSales('today'),
@@ -201,12 +200,10 @@ export function AdminOverviewPage({
     queryKey: ['overview-branch-stock'],
     queryFn: async () => {
       const entries = await Promise.all(
-        ingredientBranches.slice(1).map(async (branch) => {
+        branches.slice(1).map(async (branch) => {
           const items = await listInventory(
             'stock',
-            ingredientBranchCodes[
-              branch as Exclude<IngredientBranch, 'ทุกสาขา'>
-            ],
+            branchCodeByBranch[branch as Exclude<Branch, 'ทุกสาขา'>],
           );
           return {
             branch,
@@ -247,7 +244,7 @@ export function AdminOverviewPage({
     branchSales.isError ||
     branchStock.isError;
   const selectedBranchCode =
-    selectedBranch === 'ทุกสาขา' ? null : ingredientBranchCodes[selectedBranch];
+    selectedBranch === 'ทุกสาขา' ? null : branchCodeByBranch[selectedBranch];
   const branchSalesRows = (branchSales.data ?? []).filter(
     (branch) =>
       selectedBranchCode === null || branch.code === selectedBranchCode,
@@ -310,7 +307,7 @@ export function AdminOverviewPage({
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {ingredientBranches.map((branch) => (
+            {branches.map((branch) => (
               <Button
                 key={branch}
                 size="small"

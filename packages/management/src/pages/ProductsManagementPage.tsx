@@ -20,13 +20,14 @@ import {
   type XIconHandle,
 } from '@stackbuild/ui';
 import {
-  ingredientBranchCodes,
-  ingredientBranches,
-  type IngredientBranch,
-} from '../../components/sidebar/IngredientBranchesSidebar';
-import { AdminProductsSkeleton } from '../../components/skeletons/AdminProductsSkeleton';
-import { listInventory, listMenuItems } from '../../api';
-import coffeeMenuDefaultImage from '../../assets/coffee.svg';
+  branchCodeByBranch,
+  branches,
+  type Branch,
+} from '../components/sidebar/BranchesSidebar';
+import { ProductsSkeleton } from '../components/skeletons/ProductsSkeleton';
+import { listInventory } from '../api/inventory';
+import { listMenuItems } from '../api/menu';
+import coffeeMenuDefaultImage from '../assets/coffee.svg';
 
 type ProductIngredient = { name: string; quantity: string };
 type Product = {
@@ -127,11 +128,11 @@ const normalizeMenuCategory = (category: string, name: string) => {
   return category;
 };
 
-export function AdminProductsPage({
+export function ProductsManagementPage({
   activeBranch,
   franchisePlan,
 }: {
-  activeBranch: IngredientBranch;
+  activeBranch: Branch;
   franchisePlan?: 'S' | 'M' | 'L';
 }) {
   const plusRef = useRef<PlusIconHandle>(null);
@@ -171,7 +172,7 @@ export function AdminProductsPage({
     [catalogProducts, deferredQuery, filter, franchisePlan],
   );
   const displayedBranches =
-    activeBranch === 'ทุกสาขา' ? ingredientBranches.slice(1) : [activeBranch];
+    activeBranch === 'ทุกสาขา' ? branches.slice(1) : [activeBranch];
   const openAdd = () => {
     setEditing(null);
     setPreview(null);
@@ -233,19 +234,13 @@ export function AdminProductsPage({
     setIsLoading(true);
     const branchCodes =
       activeBranch === 'ทุกสาขา'
-        ? ingredientBranches
+        ? branches
             .slice(1)
             .map(
               (branch) =>
-                ingredientBranchCodes[
-                  branch as Exclude<IngredientBranch, 'ทุกสาขา'>
-                ],
+                branchCodeByBranch[branch as Exclude<Branch, 'ทุกสาขา'>],
             )
-        : [
-            ingredientBranchCodes[
-              activeBranch as Exclude<IngredientBranch, 'ทุกสาขา'>
-            ],
-          ];
+        : [branchCodeByBranch[activeBranch as Exclude<Branch, 'ทุกสาขา'>]];
     Promise.allSettled([
       Promise.all(branchCodes.map((branchCode) => listMenuItems(branchCode))),
       Promise.all(
@@ -427,7 +422,7 @@ export function AdminProductsPage({
               {!visible ? (
                 <Box sx={{ minHeight: 420 }} />
               ) : isLoading || !loaded ? (
-                <AdminProductsSkeleton />
+                <ProductsSkeleton />
               ) : (
                 <Box
                   sx={{
@@ -477,7 +472,9 @@ export function AdminProductsPage({
                               onError={(event) => {
                                 const fallback = menuImageFallback(item);
                                 if (fallback)
-                                  event.currentTarget.src = fallback;
+                                  (
+                                    event.currentTarget as HTMLImageElement
+                                  ).src = fallback;
                                 else event.currentTarget.remove();
                               }}
                               sx={{

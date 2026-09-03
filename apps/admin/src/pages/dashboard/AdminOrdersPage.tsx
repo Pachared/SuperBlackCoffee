@@ -14,7 +14,7 @@ import {
   formatDate,
   type SearchIconHandle,
 } from '@stackbuild/ui';
-import type { IngredientBranch } from '../../components/sidebar/IngredientBranchesSidebar';
+import type { Branch } from '@stackbuild/management';
 import {
   useStockRequests,
   useUpdateStockRequestStatus,
@@ -27,7 +27,7 @@ type SupplyType = 'วัตถุดิบ' | 'สต๊อก';
 type SupplyItem = { name: string; quantity: string };
 type SupplyRequest = {
   id: string;
-  branch: Exclude<IngredientBranch, 'ทุกสาขา'>;
+  branch: Exclude<Branch, 'ทุกสาขา'>;
   type: SupplyType;
   items: SupplyItem[];
   requestedAt: string;
@@ -66,11 +66,7 @@ const actionLabel: Partial<Record<RequestStatus, string>> = {
   preparing: 'ยืนยันจัดเสร็จ',
 };
 
-export function AdminOrdersPage({
-  activeBranch,
-}: {
-  activeBranch: IngredientBranch;
-}) {
+export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
   const searchRef = useRef<SearchIconHandle>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<(typeof statuses)[number]>('ทั้งหมด');
@@ -88,7 +84,7 @@ export function AdminOrdersPage({
     () =>
       apiRequests.map((request) => ({
         id: `REQ-${request.id}`,
-        branch: request.branch.name as Exclude<IngredientBranch, 'ทุกสาขา'>,
+        branch: request.branch.name as Exclude<Branch, 'ทุกสาขา'>,
         type: 'วัตถุดิบ',
         items: request.items.map((item) => ({
           name: item.name,
