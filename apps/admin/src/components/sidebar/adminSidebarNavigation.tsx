@@ -4,7 +4,6 @@ import {
   LayoutGridIcon,
   MapPinHouseIcon,
   MapPinPlusIcon,
-  MessageSquareIcon,
   ReceiptIcon,
   ReceiptTextIcon,
   UsersIcon,
@@ -31,18 +30,7 @@ export const adminSidebarNavigation = [
     icon: <MapPinPlusIcon />,
     group: 'สาขาและแฟรนไชส์',
   },
-  {
-    label: 'จัดการแฟรนไชส์',
-    icon: <MapPinPlusIcon />,
-    group: 'สาขาและแฟรนไชส์',
-  },
   { label: 'ตารางพนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
-  {
-    label: 'แชทลูกค้า',
-    icon: <MessageSquareIcon />,
-    badge: 2,
-    group: 'ติดตามและตรวจสอบ',
-  },
   {
     label: 'ประวัติการทำรายการ',
     icon: <ReceiptTextIcon />,

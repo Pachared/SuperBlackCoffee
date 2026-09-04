@@ -43,7 +43,15 @@ func (h *PlatformHandler) Login(c *gin.Context) {
 	claims.BranchID = user.BranchID
 	plan := ""
 	if user.FranchiseeID != nil {
-		_ = h.db.QueryRowContext(c, `SELECT plan FROM franchisees WHERE id=$1`, *user.FranchiseeID).Scan(&plan)
+		if user.BranchID == nil {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "บัญชีแฟรนไชส์ยังไม่ได้เปิดใช้งาน"})
+			return
+		}
+		err = h.db.QueryRowContext(c, `SELECT f.plan FROM franchisees f JOIN branches b ON b.franchisee_id=f.id WHERE f.id=$1 AND b.id=$2 AND f.status='active' AND b.status='active'`, *user.FranchiseeID, *user.BranchID).Scan(&plan)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "บัญชีแฟรนไชส์ยังไม่ได้เปิดใช้งาน"})
+			return
+		}
 	}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(h.jwtSecret))
 	if err != nil {

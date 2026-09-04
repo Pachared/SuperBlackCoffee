@@ -30,12 +30,7 @@ const cardSx = {
 };
 
 type Page =
-  | 'คำสั่งซื้อ'
-  | 'เมนูและสินค้า'
-  | 'วัตถุดิบ'
-  | 'สต๊อก'
-  | 'เอกสารและคำขอ'
-  | 'ตารางพนักงาน';
+  'คำสั่งซื้อ' | 'เมนูและสินค้า' | 'วัตถุดิบ' | 'สต๊อก' | 'ตารางพนักงาน';
 
 function Metric({
   label,
@@ -429,13 +424,6 @@ export function FranchiseOverviewPage({
                 employees.data?.length ?? 0,
                 'ตารางพนักงาน',
                 'ดูตารางพนักงาน',
-              ],
-              [
-                'เอกสารและการสนับสนุน',
-                'ค้นหาเอกสารและคู่มือการดำเนินงาน',
-                0,
-                'เอกสารและคำขอ',
-                'เปิดเอกสาร',
               ],
             ].map(([title, detail, warningCount, page, action]) => (
               <Card key={title} variant="outlined" sx={{ ...cardSx, p: 2 }}>

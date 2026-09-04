@@ -30,13 +30,13 @@ func registerProtectedRoutes(r *gin.Engine, deps routeDependencies) {
 	protected.GET("/branches", deps.platform.ListBranches)
 	protected.GET("/users", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.ListStaffUsers)
 	protected.GET("/branches/sales", middleware.RequireAuth(deps.secret, "admin"), deps.platform.BranchSales)
-	protected.GET("/staff-schedules", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ListStaffSchedules)
-	protected.POST("/users", middleware.RequireAuth(deps.secret, "admin"), deps.platform.CreateStaffMember)
+	protected.GET("/staff-schedules", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.ListStaffSchedules)
+	protected.POST("/users", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.CreateStaffMember)
 	protected.PATCH("/users/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.UpdateStaffMember)
 	protected.DELETE("/users/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.DeleteStaffMember)
-	protected.POST("/staff-schedules/generate", middleware.RequireAuth(deps.secret, "admin"), deps.platform.GenerateStaffSchedules)
-	protected.PATCH("/staff-schedules/:id", middleware.RequireAuth(deps.secret, "admin"), deps.platform.UpdateStaffShift)
-	protected.POST("/staff-schedules/:id/replace", middleware.RequireAuth(deps.secret, "admin"), deps.platform.ReplaceStaffShift)
+	protected.POST("/staff-schedules/generate", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.GenerateStaffSchedules)
+	protected.PATCH("/staff-schedules/:id", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.UpdateStaffShift)
+	protected.POST("/staff-schedules/:id/replace", middleware.RequireAuth(deps.secret, "admin", "franchise_owner"), deps.platform.ReplaceStaffShift)
 	protected.GET("/inventory", deps.platform.ListInventory)
 	protected.GET("/menu-items", deps.platform.ListMenuItems)
 	protected.POST("/menu-items", middleware.RequireAuth(deps.secret, "admin", "franchise_owner", "branch_manager"), deps.platform.CreateMenuItem)
@@ -68,6 +68,7 @@ func registerAdminRoutes(protected *gin.RouterGroup, deps routeDependencies) {
 	admin.Use(middleware.RequireAuth(deps.secret, "admin"))
 	admin.GET("", deps.platform.ListFranchisees)
 	admin.POST("", deps.platform.CreateFranchisee)
+	admin.PATCH("/:id/status", deps.platform.UpdateFranchiseeStatus)
 }
 
 func health(c *gin.Context) {

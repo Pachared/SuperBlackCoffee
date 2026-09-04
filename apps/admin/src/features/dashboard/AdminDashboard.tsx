@@ -13,7 +13,6 @@ import { AdminDashboardLayout } from '../../layouts/AdminDashboardLayout';
 import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import { AdminAuditSkeleton } from '../../components/skeletons/AdminAuditSkeleton';
 import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
-import { AdminCustomerChatSkeleton } from '../../components/skeletons/AdminCustomerChatSkeleton';
 import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
 import { AdminProcurementSkeleton } from '../../components/skeletons/AdminProcurementSkeleton';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -27,22 +26,10 @@ const AdminBranchesPage = lazy(() =>
     default: module.AdminBranchesPage,
   })),
 );
-const AdminCustomerChatPage = lazy(() =>
-  import('../../pages/dashboard/AdminCustomerChatPage').then((module) => ({
-    default: module.AdminCustomerChatPage,
-  })),
-);
 const AdminFranchiseBranchesPage = lazy(() =>
   import('../../pages/dashboard/AdminFranchiseBranchesPage').then((module) => ({
     default: module.AdminFranchiseBranchesPage,
   })),
-);
-const AdminFranchiseManagementPage = lazy(() =>
-  import('../../pages/dashboard/AdminFranchiseManagementPage').then(
-    (module) => ({
-      default: module.AdminFranchiseManagementPage,
-    }),
-  ),
 );
 const AdminEmployeesPage = lazy(() =>
   import('../../pages/dashboard/management').then((module) => ({
@@ -103,8 +90,6 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
       <ProductsSkeleton />
     ) : page === 'วัตถุดิบ' ? (
       <IngredientsSkeleton />
-    ) : page === 'แชทลูกค้า' ? (
-      <AdminCustomerChatSkeleton />
     ) : page === 'ตารางพนักงาน' ? (
       <EmployeesSkeleton showHeader />
     ) : (
@@ -167,12 +152,8 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminProcurementPage />
   ) : activePage === 'เมนูและสินค้า' ? (
     <AdminProductsPage activeBranch={activeBranch} />
-  ) : activePage === 'แชทลูกค้า' ? (
-    <AdminCustomerChatPage />
   ) : activePage === 'สาขาแฟรนไชส์' ? (
     <AdminFranchiseBranchesPage />
-  ) : activePage === 'จัดการแฟรนไชส์' ? (
-    <AdminFranchiseManagementPage />
   ) : activePage === 'ตารางพนักงาน' ? (
     <AdminEmployeesPage />
   ) : (

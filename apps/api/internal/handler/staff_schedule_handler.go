@@ -28,9 +28,21 @@ func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ตำแหน่งพนักงานไม่ถูกต้อง"})
 		return
 	}
+	claims := middleware.ClaimsFrom(c)
 	var franchiseeID *int64
-	if err := h.db.QueryRowContext(c, `SELECT franchisee_id FROM branches WHERE id=$1`, input.BranchID).Scan(&franchiseeID); err != nil || franchiseeID != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "เลือกได้เฉพาะสาขาของระบบหลัก"})
+	if err := h.db.QueryRowContext(c, `SELECT franchisee_id FROM branches WHERE id=$1`, input.BranchID).Scan(&franchiseeID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบสาขาที่เลือก"})
+		return
+	}
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok || branchID != input.BranchID || claims.FranchiseeID == nil || franchiseeID == nil || *franchiseeID != *claims.FranchiseeID {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "เพิ่มพนักงานได้เฉพาะสาขาแฟรนไชส์ของคุณ"})
+			return
+		}
+	} else if franchiseeID != nil {
+		// Keep the Admin staff workspace separate from franchise staff.
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "เพิ่มพนักงานแฟรนไชส์จากบัญชีแฟรนไชส์ของสาขานั้น"})
 		return
 	}
 	username := strings.ToLower(strings.TrimSpace(input.Username))
@@ -46,7 +58,7 @@ func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 	if input.DefaultEndsAt == "" {
 		input.DefaultEndsAt = "17:00"
 	}
-	err = h.db.QueryRowContext(c, `INSERT INTO users(name,username,email,password_hash,role,branch_id,default_starts_at,default_ends_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, strings.TrimSpace(input.Name), username, username+"@superblackcoffee.local", string(passwordHash), input.Role, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt).Scan(&id)
+	err = h.db.QueryRowContext(c, `INSERT INTO users(name,username,email,password_hash,role,franchisee_id,branch_id,default_starts_at,default_ends_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, strings.TrimSpace(input.Name), username, username+"@superblackcoffee.local", string(passwordHash), input.Role, franchiseeID, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt).Scan(&id)
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"success": false, "message": "username นี้ถูกใช้งานแล้ว หรือไม่พบสาขาที่เลือก"})
 		return
@@ -120,7 +132,19 @@ func (h *PlatformHandler) ListStaffSchedules(c *gin.Context) {
 		return
 	}
 	nextMonth := month.AddDate(0, 1, 0)
-	rows, err := h.db.QueryContext(c, `SELECT s.id,s.user_id,u.name,s.branch_id,s.shift_date,s.starts_at,s.ends_at,s.status,COALESCE(s.leave_type,'') FROM staff_shifts s JOIN users u ON u.id=s.user_id JOIN branches b ON b.id=s.branch_id WHERE b.franchisee_id IS NULL AND u.franchisee_id IS NULL AND s.shift_date >= $1 AND s.shift_date < $2 ORDER BY s.shift_date,s.starts_at,u.name`, month, nextMonth)
+	claims := middleware.ClaimsFrom(c)
+	query := `SELECT s.id,s.user_id,u.name,s.branch_id,s.shift_date,s.starts_at,s.ends_at,s.status,COALESCE(s.leave_type,'') FROM staff_shifts s JOIN users u ON u.id=s.user_id JOIN branches b ON b.id=s.branch_id WHERE b.franchisee_id IS NULL AND u.franchisee_id IS NULL AND s.shift_date >= $1 AND s.shift_date < $2`
+	args := []any{month, nextMonth}
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok || claims.FranchiseeID == nil {
+			return
+		}
+		query = `SELECT s.id,s.user_id,u.name,s.branch_id,s.shift_date,s.starts_at,s.ends_at,s.status,COALESCE(s.leave_type,'') FROM staff_shifts s JOIN users u ON u.id=s.user_id JOIN branches b ON b.id=s.branch_id WHERE b.franchisee_id=$1 AND u.franchisee_id=$1 AND s.branch_id=$2 AND s.shift_date >= $3 AND s.shift_date < $4`
+		args = []any{*claims.FranchiseeID, branchID, month, nextMonth}
+	}
+	query += ` ORDER BY s.shift_date,s.starts_at,u.name`
+	rows, err := h.db.QueryContext(c, query, args...)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถโหลดตารางงานได้"})
 		return
@@ -169,7 +193,19 @@ func (h *PlatformHandler) UpdateStaffShift(c *gin.Context) {
 			return
 		}
 	}
-	result, err := h.db.ExecContext(c, `UPDATE staff_shifts SET shift_date=COALESCE($1,shift_date),branch_id=COALESCE($2,branch_id),status=COALESCE($3,status),leave_type=CASE WHEN COALESCE($3,status)='scheduled' THEN NULL ELSE COALESCE($4,leave_type) END WHERE id=$5`, input.ShiftDate, input.BranchID, input.Status, input.LeaveType, c.Param("id"))
+	claims := middleware.ClaimsFrom(c)
+	query := `UPDATE staff_shifts SET shift_date=COALESCE($1,shift_date),branch_id=COALESCE($2,branch_id),status=COALESCE($3,status),leave_type=CASE WHEN COALESCE($3,status)='scheduled' THEN NULL ELSE COALESCE($4,leave_type) END WHERE id=$5`
+	args := []any{input.ShiftDate, input.BranchID, input.Status, input.LeaveType, c.Param("id")}
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok || (input.BranchID != nil && *input.BranchID != branchID) {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "แก้ไขได้เฉพาะตารางของสาขาแฟรนไชส์คุณ"})
+			return
+		}
+		query += ` AND branch_id=$6`
+		args = append(args, branchID)
+	}
+	result, err := h.db.ExecContext(c, query, args...)
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"success": false, "message": "ไม่สามารถย้ายหรือแก้ไขกะงานได้"})
 		return
@@ -199,11 +235,32 @@ func (h *PlatformHandler) ReplaceStaffShift(c *gin.Context) {
 	defer tx.Rollback()
 	var sourceUserID int64
 	var sourceStatus, targetStatus string
-	if err := tx.QueryRowContext(c, `SELECT user_id,status FROM staff_shifts WHERE id=$1 FOR UPDATE`, input.SourceShiftID).Scan(&sourceUserID, &sourceStatus); err != nil || sourceStatus != "scheduled" {
+	claims := middleware.ClaimsFrom(c)
+	sourceQuery := `SELECT user_id,status FROM staff_shifts WHERE id=$1`
+	targetQuery := `SELECT status FROM staff_shifts WHERE id=$1`
+	var scopeArgs []any
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok {
+			return
+		}
+		sourceQuery += ` AND branch_id=$2`
+		targetQuery += ` AND branch_id=$2`
+		scopeArgs = []any{branchID}
+	}
+	sourceQuery += ` FOR UPDATE`
+	targetQuery += ` FOR UPDATE`
+	sourceArgs := []any{input.SourceShiftID}
+	targetArgs := []any{targetID}
+	if len(scopeArgs) > 0 {
+		sourceArgs = append(sourceArgs, scopeArgs...)
+		targetArgs = append(targetArgs, scopeArgs...)
+	}
+	if err := tx.QueryRowContext(c, sourceQuery, sourceArgs...).Scan(&sourceUserID, &sourceStatus); err != nil || sourceStatus != "scheduled" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "เลือกได้เฉพาะกะที่กำลังทำงาน"})
 		return
 	}
-	if err := tx.QueryRowContext(c, `SELECT status FROM staff_shifts WHERE id=$1 FOR UPDATE`, targetID).Scan(&targetStatus); err != nil || targetStatus == "scheduled" {
+	if err := tx.QueryRowContext(c, targetQuery, targetArgs...).Scan(&targetStatus); err != nil || targetStatus == "scheduled" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "วางทดแทนได้เฉพาะกะที่ลางานหรือหยุด"})
 		return
 	}
@@ -236,14 +293,32 @@ func (h *PlatformHandler) GenerateStaffSchedules(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "message": "month ต้องอยู่ในรูปแบบ YYYY-MM"})
 		return
 	}
+	claims := middleware.ClaimsFrom(c)
+	if claims.Role == "franchise_owner" {
+		branchID, ok := h.branchScope(c)
+		if !ok || input.BranchID != branchID {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "จัดตารางได้เฉพาะสาขาแฟรนไชส์ของคุณ"})
+			return
+		}
+	}
 	monthEnd := month.AddDate(0, 1, 0)
-	result, err := h.db.ExecContext(c, `INSERT INTO staff_shifts(user_id,branch_id,shift_date,starts_at,ends_at,status,leave_type)
+	query := `INSERT INTO staff_shifts(user_id,branch_id,shift_date,starts_at,ends_at,status,leave_type)
 SELECT u.id,u.branch_id,d::date,'08:00','17:00',
   CASE WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'day_off' ELSE 'scheduled' END,
   CASE WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'วันหยุดประจำสัปดาห์' ELSE NULL END
 FROM users u JOIN branches b ON b.id=u.branch_id CROSS JOIN generate_series($1::date,$2::date - INTERVAL '1 day',INTERVAL '1 day') d
-WHERE u.role IN ('cashier','branch_manager') AND u.franchisee_id IS NULL AND b.franchisee_id IS NULL AND u.branch_id=$3
-ON CONFLICT (user_id,shift_date) DO NOTHING`, month, monthEnd, input.BranchID)
+WHERE u.role IN ('cashier','branch_manager') AND u.branch_id=$3`
+	if claims.Role == "franchise_owner" {
+		query += ` AND u.franchisee_id=$4 AND b.franchisee_id=$4`
+	} else {
+		query += ` AND u.franchisee_id IS NULL AND b.franchisee_id IS NULL`
+	}
+	query += ` ON CONFLICT (user_id,shift_date) DO NOTHING`
+	args := []any{month, monthEnd, input.BranchID}
+	if claims.Role == "franchise_owner" {
+		args = append(args, *claims.FranchiseeID)
+	}
+	result, err := h.db.ExecContext(c, query, args...)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถจัดตารางอัตโนมัติได้"})
 		return

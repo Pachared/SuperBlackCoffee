@@ -8,9 +8,7 @@ export const adminPagePaths = {
   จัดซื้อ: '/procurement',
   'สาขา SBC': '/branches',
   สาขาแฟรนไชส์: '/franchise-branches',
-  จัดการแฟรนไชส์: '/franchise-management',
   ตารางพนักงาน: '/employees',
-  แชทลูกค้า: '/customer-chat',
 } as const;
 
 export type AdminPage = keyof typeof adminPagePaths;

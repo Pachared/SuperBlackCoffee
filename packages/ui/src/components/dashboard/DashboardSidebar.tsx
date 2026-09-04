@@ -465,10 +465,12 @@ export function DashboardSidebar({
             <Box
               sx={{
                 position: 'absolute',
-                left: 22,
+                left: collapsed ? '50%' : 14,
                 top: '50%',
                 display: 'flex',
-                transform: 'translateY(-50%)',
+                transform: collapsed
+                  ? 'translate(-50%, -50%)'
+                  : 'translateY(-50%)',
                 transition: 'color .2s ease',
               }}
             >
@@ -483,7 +485,7 @@ export function DashboardSidebar({
                 component="span"
                 sx={{
                   position: 'absolute',
-                  left: 50,
+                  left: 42,
                   top: '50%',
                   display: 'inline-flex',
                   alignItems: 'center',

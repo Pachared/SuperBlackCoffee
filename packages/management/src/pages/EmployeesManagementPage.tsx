@@ -27,6 +27,7 @@ import {
   deleteEmployee,
   listEmployees,
   updateEmployee,
+  type Employee,
 } from '../api/users';
 import { listBranches } from '../api/branches';
 import { EmployeesSkeleton } from '../components/skeletons/EmployeesSkeleton';
@@ -1215,18 +1216,49 @@ export function EmployeesManagementPage({
                 return;
               }
               if (editingEmployeeId !== null) {
+                const updatedEmployeeId = editingEmployeeId;
+                const updatedName = newEmployeeName.trim();
+                const updatedStartsAt = defaultStartsAt;
+                const updatedEndsAt = defaultEndsAt;
                 void updateEmployee(editingEmployeeId, {
-                  name: newEmployeeName,
+                  name: updatedName,
                   role: newEmployeeRole,
                   branchId: Number(newEmployeeBranchId),
-                  defaultStartsAt,
-                  defaultEndsAt,
+                  defaultStartsAt: updatedStartsAt,
+                  defaultEndsAt: updatedEndsAt,
                 }).then(() => {
+                  queryClient.setQueryData<Employee[]>(
+                    ['employees'],
+                    (current) =>
+                      current?.map((employee) =>
+                        employee.id === updatedEmployeeId
+                          ? {
+                              ...employee,
+                              name: updatedName,
+                              role: newEmployeeRole,
+                              branchId: Number(newEmployeeBranchId),
+                              defaultStartsAt: updatedStartsAt,
+                              defaultEndsAt: updatedEndsAt,
+                            }
+                          : employee,
+                      ),
+                  );
+                  queryClient.setQueryData<StaffShift[]>(
+                    ['staff-schedules', monthKey],
+                    (current) =>
+                      current?.map((shift) =>
+                        shift.userId === updatedEmployeeId
+                          ? {
+                              ...shift,
+                              name: updatedName,
+                              startsAt: updatedStartsAt,
+                              endsAt: updatedEndsAt,
+                            }
+                          : shift,
+                      ),
+                  );
                   setEditingEmployeeId(null);
                   setIsEmployeeDrawerOpen(false);
-                  void queryClient.invalidateQueries({
-                    queryKey: ['employees'],
-                  });
                 });
               } else createEmployeeMutation.mutate();
             }}
@@ -1246,7 +1278,7 @@ export function EmployeesManagementPage({
           >
             <TextField
               required
-              label="ชื่อ-นามสกุล"
+              label="ชื่อ"
               value={newEmployeeName}
               onChange={(event) => setNewEmployeeName(event.target.value)}
             />
@@ -1407,9 +1439,11 @@ export function EmployeesManagementPage({
                 disabled={createEmployeeMutation.isPending}
                 sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
               >
-                {createEmployeeMutation.isPending
-                  ? 'กำลังเพิ่ม...'
-                  : 'เพิ่มพนักงาน'}
+                {editingEmployeeId !== null
+                  ? 'แก้ไขพนักงาน'
+                  : createEmployeeMutation.isPending
+                    ? 'กำลังเพิ่ม...'
+                    : 'เพิ่มพนักงาน'}
               </Button>
             </Box>
           </Box>

@@ -12,7 +12,14 @@ export type Supplier = {
 
 export type SupplierInput = Omit<Supplier, 'id'>;
 
-export type Branch = { id: number; name: string; code: string };
+export type Branch = {
+  id: number;
+  name: string;
+  code: string;
+  status?: string;
+  franchiseeId?: number;
+  franchiseeName?: string;
+};
 
 export type PurchaseOrderItem = {
   id: number;

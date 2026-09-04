@@ -1,0 +1,148 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { IngredientsManagementPage } from '../IngredientsManagementPage';
+import { ProductsManagementPage } from '../ProductsManagementPage';
+import { StockManagementPage } from '../StockManagementPage';
+import { listInventory } from '../../api/inventory';
+import { listMenuItems } from '../../api/menu';
+import { createStockRequest } from '../../api/stock-requests';
+
+vi.mock('../../api/inventory', () => ({ listInventory: vi.fn() }));
+vi.mock('../../api/menu', () => ({ listMenuItems: vi.fn() }));
+vi.mock('../../api/stock-requests', () => ({ createStockRequest: vi.fn() }));
+
+const mockedListInventory = vi.mocked(listInventory);
+const mockedListMenuItems = vi.mocked(listMenuItems);
+const mockedCreateStockRequest = vi.mocked(createStockRequest);
+
+const ingredient = {
+  id: 1,
+  name: 'เมล็ดกาแฟทดสอบ',
+  category: 'coffee',
+  kind: 'ingredient' as const,
+  quantity: 4,
+  unit: 'ถุง',
+  reorderLevel: 5,
+  unitCost: 125,
+  status: 'low' as const,
+  imageUrl: '',
+};
+
+const renderPage = (page: React.ReactNode) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{page}</QueryClientProvider>,
+  );
+};
+
+describe('inventory management pages', () => {
+  beforeEach(() => {
+    mockedListInventory.mockImplementation(async (kind) =>
+      kind === 'ingredient' ? [ingredient] : [{ ...ingredient, kind: 'stock' }],
+    );
+    mockedListMenuItems.mockResolvedValue([
+      {
+        id: 1,
+        name: 'อเมริกาโน่ทดสอบ',
+        category: 'เมนูกาแฟเย็น',
+        storePrice: 60,
+        storePriceAvailable: true,
+        linemanPrice: 70,
+        linemanPriceAvailable: true,
+        linemanCostPrice: 50,
+        costPrice: 40,
+        status: 'available',
+        ingredients: [],
+        imageUrl: '',
+      },
+    ]);
+    mockedCreateStockRequest.mockResolvedValue({ id: 1, status: 'pending' });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('shows only permitted product controls and categories for a read-only S franchise', async () => {
+    renderPage(
+      <ProductsManagementPage
+        activeBranch="อยุธยา"
+        franchisePlan="S"
+        readOnly
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText('อเมริกาโน่ทดสอบ')).toBeTruthy(),
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'เพิ่มเมนูและสินค้า' }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'อาหาร' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'เบเกอรี่' })).toBeNull();
+  });
+
+  it('adds ingredients to the franchise cart and submits the exact request', async () => {
+    renderPage(
+      <IngredientsManagementPage
+        activeBranch="อยุธยา"
+        readOnly
+        allowOrdering
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText(ingredient.name)).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'สั่งวัตถุดิบ' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ตะกร้าวัตถุดิบ' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'ยืนยันสั่งวัตถุดิบ (1)' }),
+      ).toBeTruthy(),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'ยืนยันสั่งวัตถุดิบ (1)' }),
+    );
+
+    await waitFor(() =>
+      expect(mockedCreateStockRequest).toHaveBeenCalledWith(
+        {
+          note: 'คำขอวัตถุดิบจาก Franchise',
+          items: [
+            {
+              inventoryItemId: ingredient.id,
+              name: ingredient.name,
+              quantity: 1,
+              unit: ingredient.unit,
+            },
+          ],
+        },
+        expect.anything(),
+      ),
+    );
+  });
+
+  it('keeps stock data visible but hides stock maintenance actions in read-only mode', async () => {
+    renderPage(<StockManagementPage activeBranch="อยุธยา" readOnly />);
+
+    await waitFor(() => expect(screen.getByText(ingredient.name)).toBeTruthy());
+
+    expect(
+      screen.getByText('คงเหลือ 4 ถุง · ต้นทุน 125.00 บาท/ถุง'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'เพิ่มสต๊อก' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'แก้ไขสต๊อก' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ลบสต๊อก' })).toBeNull();
+  });
+});

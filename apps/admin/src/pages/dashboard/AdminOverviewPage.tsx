@@ -17,7 +17,6 @@ import {
 } from '@stackbuild/management';
 import { useDashboardSummary } from '../../hooks/useDashboardSummary';
 import { useStockRequests } from '../../hooks/useStockRequests';
-import { useWebsiteLeads } from '../../hooks/useWebsiteLeads';
 import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewSkeleton';
 import type { AdminPage } from '../../routes/adminRoutes';
 import { listBranchSales, listInventory, type BranchSales } from '../../api';
@@ -47,12 +46,6 @@ const overviewActions: OverviewAction[] = [
     description: 'เพิ่ม แก้ไข หรือปิดการขายสินค้า',
     page: 'เมนูและสินค้า',
     marker: '03',
-  },
-  {
-    title: 'อ่านข้อความลูกค้า',
-    description: 'ติดตามข้อความและลูกค้าใหม่จากเว็บไซต์',
-    page: 'แชทลูกค้า',
-    marker: '04',
   },
 ];
 
@@ -190,7 +183,6 @@ export function AdminOverviewPage({
 }) {
   const dashboard = useDashboardSummary();
   const stockRequests = useStockRequests();
-  const websiteLeads = useWebsiteLeads();
   const [selectedBranch, setSelectedBranch] = useState<Branch>('ทุกสาขา');
   const branchSales = useQuery({
     queryKey: ['overview-branch-sales'],
@@ -220,27 +212,21 @@ export function AdminOverviewPage({
   const isLoading =
     dashboard.isLoading ||
     stockRequests.isLoading ||
-    websiteLeads.isLoading ||
     branchSales.isLoading ||
     branchStock.isLoading;
   const followUps = useMemo(() => {
     const requests = stockRequests.data ?? [];
-    const leads = websiteLeads.data ?? [];
     return {
       pendingStock: requests.filter((request) => request.status === 'pending')
         .length,
       activeStock: requests.filter((request) =>
         ['approved', 'preparing'].includes(request.status),
       ).length,
-      newLeads: leads.filter((lead) => lead.status === 'new').length,
-      contactedLeads: leads.filter((lead) => lead.status === 'contacted')
-        .length,
     };
-  }, [stockRequests.data, websiteLeads.data]);
+  }, [stockRequests.data]);
   const hasError =
     dashboard.isError ||
     stockRequests.isError ||
-    websiteLeads.isError ||
     branchSales.isError ||
     branchStock.isError;
   const selectedBranchCode =
@@ -675,20 +661,6 @@ export function AdminOverviewPage({
                     count={followUps.activeStock}
                     tone="#4c8f70"
                     onClick={() => onNavigate('สต๊อก')}
-                  />
-                  <FollowUpRow
-                    title="ข้อความลูกค้าใหม่"
-                    detail="ข้อความจากแบบฟอร์มเว็บไซต์"
-                    count={followUps.newLeads}
-                    tone="#ad4939"
-                    onClick={() => onNavigate('แชทลูกค้า')}
-                  />
-                  <FollowUpRow
-                    title="ลูกค้าที่รอติดตาม"
-                    detail="ติดต่อแล้วแต่ยังไม่ปิดเรื่อง"
-                    count={followUps.contactedLeads}
-                    tone="#805637"
-                    onClick={() => onNavigate('แชทลูกค้า')}
                   />
                 </Stack>
               </Box>

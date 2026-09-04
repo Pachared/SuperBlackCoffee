@@ -21,7 +21,6 @@ import {
   navigationForPlan,
   type FranchisePlan,
 } from './components/sidebar/franchiseSidebarNavigation';
-import { FranchiseEmptyPage } from './pages/dashboard/FranchiseEmptyPage';
 import { FranchiseIngredientRequestsPage } from './pages/dashboard/FranchiseIngredientRequestsPage';
 import { FranchiseOverviewPage } from './pages/dashboard/FranchiseOverviewPage';
 
@@ -147,15 +146,11 @@ export default function App() {
             <StockManagementPage activeBranch={franchiseBranch} readOnly />
           ) : activePage === 'ตารางพนักงาน' ? (
             <EmployeesManagementPage franchiseMode />
-          ) : (
+          ) : activePage === 'ภาพรวม' ? (
             <DashboardMain>
-              {activePage === 'ภาพรวม' ? (
-                <FranchiseOverviewPage plan={plan} onNavigate={navigate} />
-              ) : (
-                <FranchiseEmptyPage title={activePage} />
-              )}
+              <FranchiseOverviewPage plan={plan} onNavigate={navigate} />
             </DashboardMain>
-          )}
+          ) : null}
         </Box>
       )}
     </SbcThemeProvider>

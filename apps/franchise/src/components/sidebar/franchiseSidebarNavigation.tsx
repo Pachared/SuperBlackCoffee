@@ -14,16 +14,6 @@ export const navigation = [
   { label: 'เมนูและสินค้า', icon: <ReceiptTextIcon />, group: 'สินค้าและคลัง' },
   { label: 'สต๊อก', icon: <BoxIcon />, group: 'สินค้าและคลัง' },
   { label: 'วัตถุดิบ', icon: <BoxesIcon />, group: 'สินค้าและคลัง' },
-  {
-    label: 'เอกสารและคำขอ',
-    icon: <ReceiptIcon />,
-    group: 'เอกสารและการสนับสนุน',
-  },
-  {
-    label: 'คู่มือการดำเนินงาน',
-    icon: <BoxIcon />,
-    group: 'เอกสารและการสนับสนุน',
-  },
   { label: 'ตารางพนักงาน', icon: <UsersIcon />, group: 'บุคลากร' },
 ] as const;
 
@@ -37,8 +27,6 @@ export const franchisePagePaths = {
   เมนูและสินค้า: '/products',
   สต๊อก: '/stock',
   วัตถุดิบ: '/ingredients',
-  เอกสารและคำขอ: '/documents',
-  คู่มือการดำเนินงาน: '/operations-guide',
   ตารางพนักงาน: '/employees',
 } as const;
 

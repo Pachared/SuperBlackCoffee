@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -17,6 +17,14 @@ import {
   XIcon,
   type SearchIconHandle,
 } from '@stackbuild/ui';
+import {
+  createFranchisee,
+  listBranches,
+  listFranchisees,
+  updateFranchiseeStatus,
+  type Branch,
+  type Franchisee,
+} from '../../api';
 
 type FranchisePlan = 'S' | 'M' | 'L';
 
@@ -59,30 +67,140 @@ const plans: Record<
   },
 };
 
-const franchisees = [
-  {
-    name: 'คุณกฤตภาส จันทร์ดี',
-    branch: 'สาขารัชดา',
-    plan: 'S' as FranchisePlan,
-    username: 'kritapas',
-    status: 'ใช้งานแล้ว',
-  },
-];
+type FranchiseBranchCard = {
+  id: number;
+  franchiseeId: number;
+  name: string;
+  branch: string;
+  plan: FranchisePlan;
+  status: string;
+};
+
+const statusLabel: Record<string, string> = {
+  active: 'ใช้งานแล้ว',
+  inactive: 'ปิดใช้งาน',
+  invited: 'รอเปิดใช้งาน',
+};
+
+const toCards = (franchisees: Franchisee[], branches: Branch[]) =>
+  branches
+    .filter((branch) => branch.franchiseeId !== undefined)
+    .map((branch) => {
+      const franchisee = franchisees.find(
+        (item) => item.id === branch.franchiseeId,
+      );
+      return {
+        id: branch.id,
+        franchiseeId: branch.franchiseeId!,
+        name: franchisee?.name ?? branch.franchiseeName ?? 'แฟรนไชส์',
+        branch: branch.name,
+        plan: franchisee?.plan ?? 'S',
+        status:
+          statusLabel[franchisee?.status ?? branch.status ?? 'inactive'] ??
+          'ปิดใช้งาน',
+      };
+    });
 
 export function AdminFranchiseBranchesPage() {
   const searchIconRef = useRef<SearchIconHandle>(null);
-  const [selectedPlan, setSelectedPlan] = useState<FranchisePlan>('S');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    plan: 'S' as FranchisePlan,
+    branchName: '',
+    branchCode: '',
+    username: '',
+    password: '',
+  });
+  const [saveError, setSaveError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [activatingId, setActivatingId] = useState<number | null>(null);
+  const [activationError, setActivationError] = useState('');
+  const [franchisees, setFranchisees] = useState<FranchiseBranchCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(false);
+    void Promise.all([listFranchisees(), listBranches()])
+      .then(([owners, branches]) => {
+        if (!cancelled) setFranchisees(toCards(owners, branches));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFranchisees([]);
+          setLoadError(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const visibleFranchisees = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('th-TH');
     if (!normalizedQuery) return franchisees;
     return franchisees.filter((franchisee) =>
-      `${franchisee.name} ${franchisee.branch} ${franchisee.username}`
+      `${franchisee.name} ${franchisee.branch}`
         .toLocaleLowerCase('th-TH')
         .includes(normalizedQuery),
     );
-  }, [query]);
+  }, [franchisees, query]);
+  const updateForm = (key: keyof typeof form, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
+  const submit = async () => {
+    setSaveError('');
+    setIsSaving(true);
+    try {
+      await createFranchisee(form);
+      const [owners, branches] = await Promise.all([
+        listFranchisees(),
+        listBranches(),
+      ]);
+      setFranchisees(toCards(owners, branches));
+      setForm({
+        name: '',
+        email: '',
+        plan: 'S',
+        branchName: '',
+        branchCode: '',
+        username: '',
+        password: '',
+      });
+      setIsDrawerOpen(false);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : 'ไม่สามารถสร้างแฟรนไชส์ได้',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const activateFranchisee = async (franchiseeId: number) => {
+    setActivationError('');
+    setActivatingId(franchiseeId);
+    try {
+      await updateFranchiseeStatus(franchiseeId, 'active');
+      setFranchisees((current) =>
+        current.map((item) =>
+          item.franchiseeId === franchiseeId
+            ? { ...item, status: 'ใช้งานแล้ว' }
+            : item,
+        ),
+      );
+    } catch (error) {
+      setActivationError(
+        error instanceof Error ? error.message : 'ไม่สามารถเปิดใช้งานได้',
+      );
+    } finally {
+      setActivatingId(null);
+    }
+  };
 
   return (
     <DashboardMain>
@@ -187,7 +305,7 @@ export function AdminFranchiseBranchesPage() {
       >
         {visibleFranchisees.map((franchisee) => (
           <Card
-            key={franchisee.username}
+            key={franchisee.id}
             variant="outlined"
             sx={{ borderRadius: '15px', borderColor: '#e8ddd5' }}
           >
@@ -266,14 +384,62 @@ export function AdminFranchiseBranchesPage() {
                     overflowWrap: 'anywhere',
                   }}
                 >
-                  ชื่อผู้ใช้: {franchisee.username}
+                  บัญชีผู้ดูแล: {franchisee.name}
                 </Typography>
+                {franchisee.status !== 'ใช้งานแล้ว' ? (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    disabled={activatingId === franchisee.franchiseeId}
+                    onClick={() =>
+                      void activateFranchisee(franchisee.franchiseeId)
+                    }
+                    sx={{
+                      mt: 1.25,
+                      minHeight: 32,
+                      borderRadius: '10px',
+                      bgcolor: '#2d6d47',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 12,
+                      boxShadow: 'none',
+                      '&:hover': { bgcolor: '#245a3b', boxShadow: 'none' },
+                    }}
+                  >
+                    {activatingId === franchisee.franchiseeId
+                      ? 'กำลังเปิดใช้งาน...'
+                      : 'เปิดใช้งาน'}
+                  </Button>
+                ) : null}
               </Box>
             </Box>
           </Card>
         ))}
       </Box>
-      {visibleFranchisees.length === 0 && (
+      {isLoading && (
+        <Typography
+          sx={{
+            pt: 4,
+            textAlign: 'center',
+            color: 'text.secondary',
+            fontFamily: 'Kanit, sans-serif',
+          }}
+        >
+          กำลังโหลดข้อมูลสาขาแฟรนไชส์…
+        </Typography>
+      )}
+      {loadError && (
+        <Typography
+          sx={{
+            pt: 4,
+            textAlign: 'center',
+            color: 'error.main',
+            fontFamily: 'Kanit, sans-serif',
+          }}
+        >
+          ไม่สามารถโหลดข้อมูลสาขาแฟรนไชส์ได้
+        </Typography>
+      )}
+      {!isLoading && !loadError && visibleFranchisees.length === 0 && (
         <Typography
           sx={{
             pt: 4,
@@ -285,6 +451,13 @@ export function AdminFranchiseBranchesPage() {
           ไม่พบข้อมูลสาขาแฟรนไชส์
         </Typography>
       )}
+      {activationError ? (
+        <Typography
+          sx={{ mt: 1.5, color: 'error.main', fontFamily: 'Kanit, sans-serif' }}
+        >
+          {activationError}
+        </Typography>
+      ) : null}
       <Drawer
         anchor="bottom"
         open={isDrawerOpen}
@@ -309,7 +482,7 @@ export function AdminFranchiseBranchesPage() {
           component="form"
           onSubmit={(event) => {
             event.preventDefault();
-            setIsDrawerOpen(false);
+            void submit();
           }}
           sx={{
             width: '100%',
@@ -393,14 +566,39 @@ export function AdminFranchiseBranchesPage() {
             <TextField
               required
               label="ชื่อผู้ซื้อแฟรนไชส์ / บริษัท"
+              value={form.name}
+              onChange={(event) => updateForm('name', event.target.value)}
               fullWidth
             />
-            <TextField required label="ชื่อสาขา" fullWidth />
+            <TextField
+              required
+              label="อีเมล"
+              type="email"
+              value={form.email}
+              onChange={(event) => updateForm('email', event.target.value)}
+              fullWidth
+            />
+            <TextField
+              required
+              label="ชื่อสาขา"
+              value={form.branchName}
+              onChange={(event) => updateForm('branchName', event.target.value)}
+              fullWidth
+            />
+            <TextField
+              required
+              label="รหัสสาขา"
+              value={form.branchCode}
+              onChange={(event) => updateForm('branchCode', event.target.value)}
+              fullWidth
+            />
             <TextField
               required
               label="ชื่อผู้ใช้สำหรับเข้าใช้ระบบ"
               name="username"
               autoComplete="username"
+              value={form.username}
+              onChange={(event) => updateForm('username', event.target.value)}
               fullWidth
             />
             <TextField
@@ -409,16 +607,18 @@ export function AdminFranchiseBranchesPage() {
               type="password"
               name="password"
               autoComplete="new-password"
+              value={form.password}
+              onChange={(event) => updateForm('password', event.target.value)}
               fullWidth
             />
             <TextField
               required
               select
               label="รูปแบบแฟรนไชส์"
-              defaultValue={selectedPlan}
+              value={form.plan}
               fullWidth
               onChange={(event) =>
-                setSelectedPlan(event.target.value as FranchisePlan)
+                updateForm('plan', event.target.value as FranchisePlan)
               }
             >
               {(Object.keys(plans) as FranchisePlan[]).map((plan) => (
@@ -427,6 +627,13 @@ export function AdminFranchiseBranchesPage() {
                 </MenuItem>
               ))}
             </TextField>
+            {saveError ? (
+              <Typography
+                sx={{ gridColumn: { sm: '1 / -1' }, color: 'error.main' }}
+              >
+                {saveError}
+              </Typography>
+            ) : null}
             <Box
               sx={{
                 display: 'flex',
@@ -450,6 +657,15 @@ export function AdminFranchiseBranchesPage() {
               <Button
                 type="submit"
                 variant="contained"
+                disabled={
+                  isSaving ||
+                  !form.name ||
+                  !form.email ||
+                  !form.branchName ||
+                  !form.branchCode ||
+                  !form.username ||
+                  form.password.length < 8
+                }
                 sx={{
                   minHeight: 40,
                   borderRadius: '12px',
@@ -459,7 +675,7 @@ export function AdminFranchiseBranchesPage() {
                   '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
                 }}
               >
-                สร้างและส่งคำเชิญ
+                {isSaving ? 'กำลังสร้างบัญชี...' : 'สร้างและส่งคำเชิญ'}
               </Button>
             </Box>
           </Box>
