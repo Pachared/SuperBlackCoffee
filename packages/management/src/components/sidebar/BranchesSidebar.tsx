@@ -17,10 +17,14 @@ export const branchCodeByBranch: Record<Exclude<Branch, 'ทุกสาขา'>
 export function BranchesSidebar({
   activeBranch,
   onBranchChange,
+  branchOptions = branches,
+  allBranchLabel = 'ทุกสาขา',
   visible = true,
 }: {
   activeBranch: Branch;
   onBranchChange: (branch: Branch) => void;
+  branchOptions?: readonly string[];
+  allBranchLabel?: string;
   visible?: boolean;
 }) {
   const [isScrolling, setIsScrolling] = useState(false);
@@ -69,11 +73,11 @@ export function BranchesSidebar({
       }}
     >
       <List disablePadding>
-        {branches.map((branch) => (
+        {branchOptions.map((branch) => (
           <ListItemButton
             key={branch}
             selected={branch === activeBranch}
-            onClick={() => onBranchChange(branch)}
+            onClick={() => onBranchChange(branch as Branch)}
             sx={{
               minHeight: 42,
               mb: 0.5,
@@ -96,7 +100,7 @@ export function BranchesSidebar({
                     fontWeight: 500,
                   }}
                 >
-                  {branch}
+                  {branch === 'ทุกสาขา' ? allBranchLabel : branch}
                 </Typography>
               }
             />

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "latest",
+    "axios": "latest",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "@mui/material": "latest",
@@ -18,7 +19,8 @@
     "@emotion/styled": "latest",
     "react-router-dom": "latest",
     "@stackbuild/ui": "workspace:*",
-    "@stackbuild/management": "workspace:*"
+    "@stackbuild/management": "workspace:*",
+    "@stackbuild/types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "latest",

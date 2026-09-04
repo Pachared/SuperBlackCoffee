@@ -302,7 +302,9 @@ export function AdminOverviewPage({
                 sx={{
                   minHeight: 34,
                   borderRadius: '12px',
-                  borderColor: '#d8c8bd',
+                  border: '1px solid',
+                  borderColor:
+                    selectedBranch === branch ? '#201914' : '#d8c8bd',
                   bgcolor: selectedBranch === branch ? '#201914' : '#fff',
                   color: selectedBranch === branch ? '#fff' : '#5f4b3d',
                   fontFamily: 'Kanit, sans-serif',

@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Chip,
+  Divider,
   Drawer,
   InputAdornment,
   MenuItem,
@@ -380,7 +381,8 @@ export function ProductsManagementPage({
             sx={{
               minHeight: 34,
               borderRadius: '12px',
-              borderColor: '#d8c8bd',
+              border: '1px solid',
+              borderColor: filter === item ? '#201914' : '#d8c8bd',
               bgcolor: filter === item ? '#201914' : '#fff',
               color: filter === item ? '#fff' : '#5f4b3d',
               fontFamily: 'Kanit, sans-serif',
@@ -831,9 +833,8 @@ export function ProductsManagementPage({
             sx: {
               left: { md: '280px' },
               width: { md: 'calc(100% - 304px)' },
-              minHeight: { sm: 520 },
-              maxHeight: '82vh',
-              overflowY: 'auto',
+              height: { xs: '82vh', sm: 'min(82vh, 720px)' },
+              overflow: 'hidden',
               borderRadius: '24px 24px 0 0',
               bgcolor: '#fffaf7',
               boxShadow: '0 -12px 32px rgba(50,35,25,.18)',
@@ -841,7 +842,18 @@ export function ProductsManagementPage({
           },
         }}
       >
-        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 2.5, sm: 4 },
+            pt: 1.5,
+            pb: 3.5,
+          }}
+        >
           <Box
             sx={{
               width: 44,
@@ -901,336 +913,350 @@ export function ProductsManagementPage({
               ? 'แก้ไขข้อมูลสินค้าในเมนู'
               : 'กรอกข้อมูลเพื่อเพิ่มสินค้าใหม่'}
           </Typography>
-          <Box
-            component="form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setDrawerOpen(false);
-            }}
+          <Divider
             sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                md: 'minmax(0, 1fr) minmax(0, 2fr)',
-              },
-              gap: 2.5,
-              mt: 3,
-              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
             }}
+          />
+          <Box
+            sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 2.25, pr: 0.5 }}
           >
             <Box
-              component="label"
-              sx={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                aspectRatio: '1 / 1',
-                overflow: 'hidden',
-                border: '1.5px dashed #c9b6a9',
-                borderRadius: '16px',
-                bgcolor: '#f7eee8',
-                cursor: 'pointer',
+              component="form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setDrawerOpen(false);
               }}
-            >
-              {preview ||
-              editing?.imageUrl ||
-              (editing && isCoffeeMenu(editing.category)) ? (
-                <Box
-                  component="img"
-                  src={
-                    preview ??
-                    editing?.imageUrl ??
-                    (editing ? menuImageFallback(editing) : undefined)
-                  }
-                  alt="ตัวอย่างรูปสินค้า"
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <Typography sx={{ fontFamily: 'Kanit, sans-serif' }}>
-                  + เพิ่มรูปสินค้า
-                </Typography>
-              )}
-              {editing && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 1,
-                    display: 'grid',
-                    placeItems: 'center',
-                    bgcolor: 'rgba(32, 25, 20, .42)',
-                    color: '#fff',
-                    fontFamily: 'Kanit, sans-serif',
-                  }}
-                >
-                  เปลี่ยนรูปสินค้า
-                </Box>
-              )}
-              <input
-                hidden
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) setPreview(URL.createObjectURL(file));
-                }}
-              />
-            </Box>
-            <Box
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
+                  md: 'minmax(0, 1fr) minmax(0, 2fr)',
                 },
-                gap: 2,
+                gap: 2.5,
+                mt: 0,
+                '& .MuiOutlinedInput-root': { borderRadius: '12px' },
               }}
             >
-              <TextField
-                required
-                fullWidth
-                label="ชื่อสินค้า"
-                defaultValue={editing?.name}
-                sx={{ gridColumn: { sm: '1 / -1' } }}
-              />
-              <TextField
-                required
-                select
-                fullWidth
-                label="หมวดหมู่"
-                defaultValue="เมนูร้อน"
-              >
-                <MenuItem value="เมนูร้อน">เมนูร้อน</MenuItem>
-                <MenuItem value="เมนูกาแฟเย็น">เมนูกาแฟเย็น</MenuItem>
-                <MenuItem value="เมนูชา">เมนูชา</MenuItem>
-                <MenuItem value="โซดา">โซดา</MenuItem>
-                <MenuItem value="เมนูปั่น">เมนูปั่น</MenuItem>
-                <MenuItem value="เมนูอโวคาโด">เมนูอโวคาโด</MenuItem>
-                <MenuItem value="เมนูชาร้อน">เมนูชาร้อน</MenuItem>
-                <MenuItem value="อาหาร">อาหาร</MenuItem>
-                <MenuItem value="เบเกอรี่">เบเกอรี่</MenuItem>
-              </TextField>
-              <TextField
-                required
-                fullWidth
-                label="ราคาหน้าร้าน"
-                type="number"
-                defaultValue={editing?.storePrice}
-              />
-              <TextField
-                required
-                fullWidth
-                label="ราคา LINE MAN"
-                type="number"
-                defaultValue={editing?.lineManPrice}
-              />
-              <TextField
-                required
-                fullWidth
-                label="ราคาต้นทุน LINE MAN"
-                type="number"
-                defaultValue={editing?.lineManCostPrice}
-                helperText="อ้างอิงต้นทุนจากสูตร LINE MAN"
-              />
-              <TextField
-                required
-                fullWidth
-                label="ราคาต้นทุนหน้าร้าน"
-                type="number"
-                defaultValue={editing?.costPrice}
-                helperText="ใช้คำนวณกำไร/ขาดทุนสำหรับหน้าร้าน"
-              />
-              <TextField
-                required
-                select
-                fullWidth
-                label="สถานะ"
-                defaultValue="available"
-              >
-                <MenuItem value="available">พร้อมขาย</MenuItem>
-                <MenuItem value="soldout">หมดชั่วคราว</MenuItem>
-              </TextField>
               <Box
+                component="label"
                 sx={{
-                  gridColumn: { sm: '1 / -1' },
-                  p: 2,
-                  border: '1px solid #e8ddd5',
-                  borderRadius: '12px',
-                  bgcolor: '#fff',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  aspectRatio: '1 / 1',
+                  overflow: 'hidden',
+                  border: '1.5px dashed #c9b6a9',
+                  borderRadius: '16px',
+                  bgcolor: '#f7eee8',
+                  cursor: 'pointer',
                 }}
               >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: 2,
-                    mb: 2,
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      sx={{
-                        color: '#3c2d24',
-                        fontFamily: 'Kanit, sans-serif',
-                        fontSize: 15,
-                        fontWeight: 600,
-                      }}
-                    >
-                      วัตถุดิบและส่วนผสม
-                    </Typography>
-                    <Typography
-                      sx={{
-                        color: 'text.secondary',
-                        fontFamily: 'Kanit, sans-serif',
-                        fontSize: 11,
-                      }}
-                    >
-                      ระบุวัตถุดิบที่ใช้ต่อ 1 เมนู
-                    </Typography>
-                  </Box>
-                  <Button
-                    size="small"
-                    onClick={() =>
-                      setProductIngredients((items) => [
-                        ...items,
-                        { name: '', quantity: '' },
-                      ])
+                {preview ||
+                editing?.imageUrl ||
+                (editing && isCoffeeMenu(editing.category)) ? (
+                  <Box
+                    component="img"
+                    src={
+                      preview ??
+                      editing?.imageUrl ??
+                      (editing ? menuImageFallback(editing) : undefined)
                     }
+                    alt="ตัวอย่างรูปสินค้า"
                     sx={{
-                      minHeight: 34,
-                      borderRadius: '10px',
-                      color: '#805637',
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <Typography sx={{ fontFamily: 'Kanit, sans-serif' }}>
+                    + เพิ่มรูปสินค้า
+                  </Typography>
+                )}
+                {editing && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 1,
+                      display: 'grid',
+                      placeItems: 'center',
+                      bgcolor: 'rgba(32, 25, 20, .42)',
+                      color: '#fff',
                       fontFamily: 'Kanit, sans-serif',
-                      fontSize: 12,
-                      fontWeight: 600,
                     }}
                   >
-                    + เพิ่มส่วนผสม
-                  </Button>
-                </Box>
-                <Box sx={{ display: 'grid', gap: 2 }}>
-                  {productIngredients.map((ingredient, index) => (
-                    <Box
-                      key={`${ingredient.name}-${index}`}
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns:
-                          'minmax(0, 1fr) minmax(110px, .55fr) 40px',
-                        gap: 2,
-                        alignItems: 'center',
-                      }}
-                    >
-                      <TextField
-                        select
-                        value={ingredient.name}
-                        onChange={(event) =>
-                          setProductIngredients((items) =>
-                            items.map((item, itemIndex) =>
-                              itemIndex === index
-                                ? { ...item, name: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                        placeholder="เลือกวัตถุดิบ"
-                        slotProps={{
-                          select: {
-                            displayEmpty: true,
-                            renderValue: (value) =>
-                              typeof value === 'string' && value
-                                ? value
-                                : 'เลือกวัตถุดิบ',
-                          },
-                        }}
-                      >
-                        <MenuItem value="" disabled>
-                          เลือกวัตถุดิบ
-                        </MenuItem>
-                        {availableIngredients.map((name) => (
-                          <MenuItem key={name} value={name}>
-                            {name}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        value={ingredient.quantity}
-                        onChange={(event) =>
-                          setProductIngredients((items) =>
-                            items.map((item, itemIndex) =>
-                              itemIndex === index
-                                ? { ...item, quantity: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                        placeholder="ปริมาณ"
-                      />
-                      <Button
-                        aria-label="ลบส่วนผสม"
-                        disabled={productIngredients.length === 1}
-                        onClick={() =>
-                          setProductIngredients((items) =>
-                            items.filter((_, itemIndex) => itemIndex !== index),
-                          )
-                        }
-                        sx={{
-                          minWidth: 40,
-                          width: 40,
-                          height: 40,
-                          p: 0,
-                          borderRadius: '10px',
-                          bgcolor: '#fff0ee',
-                          color: '#b42318',
-                          '&:hover': { bgcolor: '#fbded9' },
-                        }}
-                      >
-                        <XIcon size={18} />
-                      </Button>
-                    </Box>
-                  ))}
-                </Box>
+                    เปลี่ยนรูปสินค้า
+                  </Box>
+                )}
+                <input
+                  hidden
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) setPreview(URL.createObjectURL(file));
+                  }}
+                />
               </Box>
               <Box
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 1.25,
-                  mt: 1,
-                  gridColumn: { sm: '1 / -1' },
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                  },
+                  gap: 2,
                 }}
               >
-                <Button
-                  variant="outlined"
-                  onClick={() => setDrawerOpen(false)}
+                <TextField
+                  required
+                  fullWidth
+                  label="ชื่อสินค้า"
+                  defaultValue={editing?.name}
+                  sx={{ gridColumn: { sm: '1 / -1' } }}
+                />
+                <TextField
+                  required
+                  select
+                  fullWidth
+                  label="หมวดหมู่"
+                  defaultValue="เมนูร้อน"
+                >
+                  <MenuItem value="เมนูร้อน">เมนูร้อน</MenuItem>
+                  <MenuItem value="เมนูกาแฟเย็น">เมนูกาแฟเย็น</MenuItem>
+                  <MenuItem value="เมนูชา">เมนูชา</MenuItem>
+                  <MenuItem value="โซดา">โซดา</MenuItem>
+                  <MenuItem value="เมนูปั่น">เมนูปั่น</MenuItem>
+                  <MenuItem value="เมนูอโวคาโด">เมนูอโวคาโด</MenuItem>
+                  <MenuItem value="เมนูชาร้อน">เมนูชาร้อน</MenuItem>
+                  <MenuItem value="อาหาร">อาหาร</MenuItem>
+                  <MenuItem value="เบเกอรี่">เบเกอรี่</MenuItem>
+                </TextField>
+                <TextField
+                  required
+                  fullWidth
+                  label="ราคาหน้าร้าน"
+                  type="number"
+                  defaultValue={editing?.storePrice}
+                />
+                <TextField
+                  required
+                  fullWidth
+                  label="ราคา LINE MAN"
+                  type="number"
+                  defaultValue={editing?.lineManPrice}
+                />
+                <TextField
+                  required
+                  fullWidth
+                  label="ราคาต้นทุน LINE MAN"
+                  type="number"
+                  defaultValue={editing?.lineManCostPrice}
+                  helperText="อ้างอิงต้นทุนจากสูตร LINE MAN"
+                />
+                <TextField
+                  required
+                  fullWidth
+                  label="ราคาต้นทุนหน้าร้าน"
+                  type="number"
+                  defaultValue={editing?.costPrice}
+                  helperText="ใช้คำนวณกำไร/ขาดทุนสำหรับหน้าร้าน"
+                />
+                <TextField
+                  required
+                  select
+                  fullWidth
+                  label="สถานะ"
+                  defaultValue="available"
+                >
+                  <MenuItem value="available">พร้อมขาย</MenuItem>
+                  <MenuItem value="soldout">หมดชั่วคราว</MenuItem>
+                </TextField>
+                <Box
                   sx={{
-                    minHeight: 40,
+                    gridColumn: { sm: '1 / -1' },
+                    p: 2,
+                    border: '1px solid #e8ddd5',
                     borderRadius: '12px',
-                    color: '#5f4b3d',
-                    fontFamily: 'Kanit, sans-serif',
+                    bgcolor: '#fff',
                   }}
                 >
-                  {editing ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 2,
+                      mb: 2,
+                    }}
+                  >
+                    <Box>
+                      <Typography
+                        sx={{
+                          color: '#3c2d24',
+                          fontFamily: 'Kanit, sans-serif',
+                          fontSize: 15,
+                          fontWeight: 600,
+                        }}
+                      >
+                        วัตถุดิบและส่วนผสม
+                      </Typography>
+                      <Typography
+                        sx={{
+                          color: 'text.secondary',
+                          fontFamily: 'Kanit, sans-serif',
+                          fontSize: 11,
+                        }}
+                      >
+                        ระบุวัตถุดิบที่ใช้ต่อ 1 เมนู
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      onClick={() =>
+                        setProductIngredients((items) => [
+                          ...items,
+                          { name: '', quantity: '' },
+                        ])
+                      }
+                      sx={{
+                        minHeight: 34,
+                        borderRadius: '10px',
+                        color: '#805637',
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      + เพิ่มส่วนผสม
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: 'grid', gap: 2 }}>
+                    {productIngredients.map((ingredient, index) => (
+                      <Box
+                        key={`${ingredient.name}-${index}`}
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns:
+                            'minmax(0, 1fr) minmax(110px, .55fr) 40px',
+                          gap: 2,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <TextField
+                          select
+                          value={ingredient.name}
+                          onChange={(event) =>
+                            setProductIngredients((items) =>
+                              items.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? { ...item, name: event.target.value }
+                                  : item,
+                              ),
+                            )
+                          }
+                          placeholder="เลือกวัตถุดิบ"
+                          slotProps={{
+                            select: {
+                              displayEmpty: true,
+                              renderValue: (value) =>
+                                typeof value === 'string' && value
+                                  ? value
+                                  : 'เลือกวัตถุดิบ',
+                            },
+                          }}
+                        >
+                          <MenuItem value="" disabled>
+                            เลือกวัตถุดิบ
+                          </MenuItem>
+                          {availableIngredients.map((name) => (
+                            <MenuItem key={name} value={name}>
+                              {name}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                        <TextField
+                          value={ingredient.quantity}
+                          onChange={(event) =>
+                            setProductIngredients((items) =>
+                              items.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? { ...item, quantity: event.target.value }
+                                  : item,
+                              ),
+                            )
+                          }
+                          placeholder="ปริมาณ"
+                        />
+                        <Button
+                          aria-label="ลบส่วนผสม"
+                          disabled={productIngredients.length === 1}
+                          onClick={() =>
+                            setProductIngredients((items) =>
+                              items.filter(
+                                (_, itemIndex) => itemIndex !== index,
+                              ),
+                            )
+                          }
+                          sx={{
+                            minWidth: 40,
+                            width: 40,
+                            height: 40,
+                            p: 0,
+                            borderRadius: '10px',
+                            bgcolor: '#fff0ee',
+                            color: '#b42318',
+                            '&:hover': { bgcolor: '#fbded9' },
+                          }}
+                        >
+                          <XIcon size={18} />
+                        </Button>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+                <Box
                   sx={{
-                    minHeight: 40,
-                    borderRadius: '12px',
-                    bgcolor: '#201914',
-                    fontFamily: 'Kanit, sans-serif',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 1.25,
+                    mt: 1,
+                    gridColumn: { sm: '1 / -1' },
                   }}
                 >
-                  {editing ? 'บันทึกการแก้ไข' : 'บันทึกสินค้า'}
-                </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setDrawerOpen(false)}
+                    sx={{
+                      minHeight: 40,
+                      borderRadius: '12px',
+                      color: '#5f4b3d',
+                      fontFamily: 'Kanit, sans-serif',
+                    }}
+                  >
+                    {editing ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                      minHeight: 40,
+                      borderRadius: '12px',
+                      bgcolor: '#201914',
+                      fontFamily: 'Kanit, sans-serif',
+                    }}
+                  >
+                    {editing ? 'บันทึกการแก้ไข' : 'บันทึกสินค้า'}
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </Box>

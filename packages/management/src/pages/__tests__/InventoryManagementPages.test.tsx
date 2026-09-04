@@ -108,12 +108,10 @@ describe('inventory management pages', () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: 'ยืนยันสั่งวัตถุดิบ (1)' }),
+        screen.getByRole('button', { name: 'ยืนยันสั่งวัตถุดิบ' }),
       ).toBeTruthy(),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'ยืนยันสั่งวัตถุดิบ (1)' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'ยืนยันสั่งวัตถุดิบ' }));
 
     await waitFor(() =>
       expect(mockedCreateStockRequest).toHaveBeenCalledWith(

@@ -1,4 +1,29 @@
-import { Box, Card, Divider, Skeleton } from '@mui/material';
+import { Box, Button, Card, Divider, Skeleton } from '@mui/material';
+
+function ScheduleActionSkeleton({ label }: { label: string }) {
+  return (
+    <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+      <Button
+        aria-hidden
+        size="small"
+        tabIndex={-1}
+        sx={{ visibility: 'hidden', pointerEvents: 'none' }}
+      >
+        {label}
+      </Button>
+      <Skeleton
+        variant="rounded"
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          borderRadius: '12px',
+        }}
+      />
+    </Box>
+  );
+}
 
 export function EmployeesSkeleton({
   franchiseMode = false,
@@ -25,32 +50,16 @@ export function EmployeesSkeleton({
             <Skeleton variant="text" width={340} height={24} />
           </Box>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {[138, 110, 142].map((width, index) => (
-              <Skeleton
-                key={index}
-                variant="rounded"
-                width={width}
-                height={40}
-                sx={{ borderRadius: '12px' }}
-              />
+            {['เดือนก่อน', 'เดือนนี้', 'เดือนถัดไป'].map((label) => (
+              <ScheduleActionSkeleton key={label} label={label} />
             ))}
             <Divider
               orientation="vertical"
               flexItem
               sx={{ mx: 0.5, borderColor: '#d8cec7' }}
             />
-            <Skeleton
-              variant="rounded"
-              width={190}
-              height={40}
-              sx={{ borderRadius: '12px' }}
-            />
-            <Skeleton
-              variant="rounded"
-              width={140}
-              height={40}
-              sx={{ borderRadius: '12px' }}
-            />
+            <ScheduleActionSkeleton label="จัดตารางอัตโนมัติ" />
+            <ScheduleActionSkeleton label="เพิ่มพนักงาน" />
           </Box>
         </Box>
       ) : null}

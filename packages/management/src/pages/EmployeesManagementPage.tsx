@@ -108,8 +108,10 @@ function usesFirstShift(date: string, employeeId: number) {
 
 export function EmployeesManagementPage({
   franchiseMode = false,
+  suppressLoadingHeader = false,
 }: {
   franchiseMode?: boolean;
+  suppressLoadingHeader?: boolean;
 } = {}) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
@@ -169,6 +171,7 @@ export function EmployeesManagementPage({
     holidays.isFetching ||
     branches.isLoading ||
     branches.isFetching;
+  const showLoadingHeader = pageLoading && !suppressLoadingHeader;
   useEffect(() => {
     if (
       isFetching ||
@@ -331,7 +334,7 @@ export function EmployeesManagementPage({
           mb: 2.5,
         }}
       >
-        {pageLoading ? (
+        {showLoadingHeader ? (
           <Box>
             <Skeleton variant="text" width={220} height={42} />
             <Skeleton variant="text" width={340} height={24} />
@@ -359,7 +362,7 @@ export function EmployeesManagementPage({
             </Typography>
           </Box>
         )}
-        {pageLoading ? (
+        {showLoadingHeader ? (
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {[138, 110, 142].map((width, index) => (
               <Skeleton
@@ -901,6 +904,9 @@ export function EmployeesManagementPage({
                     const isToday = isSameDay(day, today);
                     const shifts = shiftsByDate.get(dateKey(day)) ?? [];
                     const holiday = holidaysByDate.get(dateKey(day));
+                    const visibleShifts = holiday
+                      ? shifts.filter((shift) => isWorkingShift(shift.status))
+                      : shifts;
                     return (
                       <Box
                         key={day.toISOString()}
@@ -960,7 +966,7 @@ export function EmployeesManagementPage({
                             ยังไม่มีตารางกะ
                           </Typography>
                         ) : null}
-                        {shifts.map((shift) => (
+                        {visibleShifts.map((shift) => (
                           <Box
                             key={shift.id}
                             component="button"
@@ -1045,9 +1051,8 @@ export function EmployeesManagementPage({
             sx: {
               left: { md: '280px' },
               width: { md: 'calc(100% - 304px)' },
-              minHeight: { sm: 440 },
-              maxHeight: '82vh',
-              overflowY: 'auto',
+              height: { xs: '82vh', sm: 'min(82vh, 620px)' },
+              overflow: 'hidden',
               borderRadius: '24px 24px 0 0',
               bgcolor: '#fffaf7',
               boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
@@ -1055,7 +1060,18 @@ export function EmployeesManagementPage({
           },
         }}
       >
-        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 2.5, sm: 4 },
+            pt: 1.5,
+            pb: 3.5,
+          }}
+        >
           <Box
             sx={{
               width: 44,
@@ -1106,89 +1122,101 @@ export function EmployeesManagementPage({
               <XIcon size={20} />
             </Button>
           </Box>
-          <Box
+          <Divider
             sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(3, minmax(0, 1fr))',
-              },
-              gap: 2,
-              mt: 3,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                bgcolor: '#fff',
-              },
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
             }}
+          />
+          <Box
+            sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 2.25, pr: 0.5 }}
           >
-            <TextField
-              label="ย้ายไปวันที่"
-              type="date"
-              value={editDate}
-              onChange={(event) => setEditDate(event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            {!franchiseMode && (
-              <FormControl>
-                <InputLabel id="schedule-branch-label">สาขา</InputLabel>
-                <Select
-                  labelId="schedule-branch-label"
-                  label="สาขา"
-                  value={editBranchId}
-                  onChange={(event) => setEditBranchId(event.target.value)}
-                >
-                  {workspaceBranches.map((branch) => (
-                    <MenuItem key={branch.id} value={String(branch.id)}>
-                      {branch.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-            <FormControl>
-              <InputLabel id="schedule-status-label">สถานะ</InputLabel>
-              <Select
-                labelId="schedule-status-label"
-                label="สถานะ"
-                value={editStatus}
-                onChange={(event) =>
-                  setEditStatus(event.target.value as StaffShift['status'])
-                }
-              >
-                {(Object.keys(leaveLabels) as StaffShift['status'][]).map(
-                  (status) => (
-                    <MenuItem key={status} value={status}>
-                      {leaveLabels[status]}
-                    </MenuItem>
-                  ),
-                )}
-              </Select>
-            </FormControl>
-            {updateShift.error ? (
-              <Typography
-                color="error"
-                sx={{ fontSize: 13, gridColumn: '1 / -1' }}
-              >
-                {updateShift.error.message}
-              </Typography>
-            ) : null}
             <Box
               sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 1.25,
-                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(3, minmax(0, 1fr))',
+                },
+                gap: 2,
+                mt: 0,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                  bgcolor: '#fff',
+                },
               }}
             >
-              <Button onClick={() => setSelectedShift(null)}>ยกเลิก</Button>
-              <Button
-                variant="contained"
-                onClick={() => updateShift.mutate()}
-                disabled={updateShift.isPending}
-                sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
+              <TextField
+                label="ย้ายไปวันที่"
+                type="date"
+                value={editDate}
+                onChange={(event) => setEditDate(event.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              {!franchiseMode && (
+                <FormControl>
+                  <InputLabel id="schedule-branch-label">สาขา</InputLabel>
+                  <Select
+                    labelId="schedule-branch-label"
+                    label="สาขา"
+                    value={editBranchId}
+                    onChange={(event) => setEditBranchId(event.target.value)}
+                  >
+                    {workspaceBranches.map((branch) => (
+                      <MenuItem key={branch.id} value={String(branch.id)}>
+                        {branch.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+              <FormControl>
+                <InputLabel id="schedule-status-label">สถานะ</InputLabel>
+                <Select
+                  labelId="schedule-status-label"
+                  label="สถานะ"
+                  value={editStatus}
+                  onChange={(event) =>
+                    setEditStatus(event.target.value as StaffShift['status'])
+                  }
+                >
+                  {(Object.keys(leaveLabels) as StaffShift['status'][]).map(
+                    (status) => (
+                      <MenuItem key={status} value={status}>
+                        {leaveLabels[status]}
+                      </MenuItem>
+                    ),
+                  )}
+                </Select>
+              </FormControl>
+              {updateShift.error ? (
+                <Typography
+                  color="error"
+                  sx={{ fontSize: 13, gridColumn: '1 / -1' }}
+                >
+                  {updateShift.error.message}
+                </Typography>
+              ) : null}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 1.25,
+                  gridColumn: '1 / -1',
+                }}
               >
-                {updateShift.isPending ? 'กำลังบันทึก...' : 'บันทึกกะงาน'}
-              </Button>
+                <Button onClick={() => setSelectedShift(null)}>ยกเลิก</Button>
+                <Button
+                  variant="contained"
+                  onClick={() => updateShift.mutate()}
+                  disabled={updateShift.isPending}
+                  sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
+                >
+                  {updateShift.isPending ? 'กำลังบันทึก...' : 'บันทึกกะงาน'}
+                </Button>
+              </Box>
             </Box>
           </Box>
         </Box>
@@ -1204,8 +1232,8 @@ export function EmployeesManagementPage({
             sx: {
               left: { md: '280px' },
               width: { md: 'calc(100% - 304px)' },
-              maxHeight: '82vh',
-              overflowY: 'auto',
+              height: { xs: '82vh', sm: 'min(82vh, 720px)' },
+              overflow: 'hidden',
               borderRadius: '24px 24px 0 0',
               bgcolor: '#fffaf7',
               boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
@@ -1213,7 +1241,18 @@ export function EmployeesManagementPage({
           },
         }}
       >
-        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 2.5, sm: 4 },
+            pt: 1.5,
+            pb: 3.5,
+          }}
+        >
           <Box
             sx={{
               width: 44,
@@ -1263,367 +1302,395 @@ export function EmployeesManagementPage({
               <XIcon size={20} />
             </Button>
           </Box>
-          <Box
-            component="form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (
-                !defaultStartsAt ||
-                !defaultEndsAt ||
-                defaultStartsAt === '00:00' ||
-                defaultEndsAt === '00:00' ||
-                (editingEmployeeId === null &&
-                  (!defaultSecondStartsAt ||
-                    !defaultSecondEndsAt ||
-                    defaultSecondStartsAt === '00:00' ||
-                    defaultSecondEndsAt === '00:00'))
-              ) {
-                window.alert(
-                  'กรุณาระบุเวลาเข้างานและเวลาออกงานให้ครบทั้ง 2 กะก่อนบันทึก',
-                );
-                return;
-              }
-              if (editingEmployeeId !== null) {
-                const updatedEmployeeId = editingEmployeeId;
-                const updatedName = newEmployeeName.trim();
-                const updatedStartsAt = defaultStartsAt;
-                const updatedEndsAt = defaultEndsAt;
-                const updatedSecondStartsAt = defaultSecondStartsAt;
-                const updatedSecondEndsAt = defaultSecondEndsAt;
-                void updateEmployee(editingEmployeeId, {
-                  name: updatedName,
-                  role: newEmployeeRole,
-                  branchId: Number(newEmployeeBranchId),
-                  defaultStartsAt: updatedStartsAt,
-                  defaultEndsAt: updatedEndsAt,
-                  defaultSecondStartsAt: updatedSecondStartsAt,
-                  defaultSecondEndsAt: updatedSecondEndsAt,
-                }).then(() => {
-                  queryClient.setQueryData<Employee[]>(
-                    ['employees'],
-                    (current) =>
-                      current?.map((employee) =>
-                        employee.id === updatedEmployeeId
-                          ? {
-                              ...employee,
-                              name: updatedName,
-                              role: newEmployeeRole,
-                              branchId: Number(newEmployeeBranchId),
-                              defaultStartsAt: updatedStartsAt,
-                              defaultEndsAt: updatedEndsAt,
-                              defaultSecondStartsAt: updatedSecondStartsAt,
-                              defaultSecondEndsAt: updatedSecondEndsAt,
-                            }
-                          : employee,
-                      ),
-                  );
-                  queryClient.setQueryData<StaffShift[]>(
-                    ['staff-schedules', monthKey],
-                    (current) =>
-                      current?.map((shift) =>
-                        shift.userId !== updatedEmployeeId
-                          ? shift
-                          : {
-                              ...shift,
-                              name: updatedName,
-                              startsAt: usesFirstShift(shift.date, shift.userId)
-                                ? updatedStartsAt
-                                : updatedSecondStartsAt || updatedStartsAt,
-                              endsAt: usesFirstShift(shift.date, shift.userId)
-                                ? updatedEndsAt
-                                : updatedSecondEndsAt || updatedEndsAt,
-                            },
-                      ),
-                  );
-                  setEditingEmployeeId(null);
-                  setIsEmployeeDrawerOpen(false);
-                });
-              } else createEmployeeMutation.mutate();
-            }}
+          <Divider
             sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-              },
-              gap: 2,
-              mt: 3,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                bgcolor: '#fff',
-              },
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
             }}
+          />
+          <Box
+            sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 2.25, pr: 0.5 }}
           >
-            <TextField
-              required
-              label="ชื่อ"
-              value={newEmployeeName}
-              onChange={(event) => setNewEmployeeName(event.target.value)}
-            />
-            {!franchiseMode && (
+            <Box
+              component="form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (
+                  !defaultStartsAt ||
+                  !defaultEndsAt ||
+                  defaultStartsAt === '00:00' ||
+                  defaultEndsAt === '00:00' ||
+                  (editingEmployeeId === null &&
+                    (!defaultSecondStartsAt ||
+                      !defaultSecondEndsAt ||
+                      defaultSecondStartsAt === '00:00' ||
+                      defaultSecondEndsAt === '00:00'))
+                ) {
+                  window.alert(
+                    'กรุณาระบุเวลาเข้างานและเวลาออกงานให้ครบทั้ง 2 กะก่อนบันทึก',
+                  );
+                  return;
+                }
+                if (editingEmployeeId !== null) {
+                  const updatedEmployeeId = editingEmployeeId;
+                  const updatedName = newEmployeeName.trim();
+                  const updatedStartsAt = defaultStartsAt;
+                  const updatedEndsAt = defaultEndsAt;
+                  const updatedSecondStartsAt = defaultSecondStartsAt;
+                  const updatedSecondEndsAt = defaultSecondEndsAt;
+                  void updateEmployee(editingEmployeeId, {
+                    name: updatedName,
+                    role: newEmployeeRole,
+                    branchId: Number(newEmployeeBranchId),
+                    defaultStartsAt: updatedStartsAt,
+                    defaultEndsAt: updatedEndsAt,
+                    defaultSecondStartsAt: updatedSecondStartsAt,
+                    defaultSecondEndsAt: updatedSecondEndsAt,
+                  }).then(() => {
+                    queryClient.setQueryData<Employee[]>(
+                      ['employees'],
+                      (current) =>
+                        current?.map((employee) =>
+                          employee.id === updatedEmployeeId
+                            ? {
+                                ...employee,
+                                name: updatedName,
+                                role: newEmployeeRole,
+                                branchId: Number(newEmployeeBranchId),
+                                defaultStartsAt: updatedStartsAt,
+                                defaultEndsAt: updatedEndsAt,
+                                defaultSecondStartsAt: updatedSecondStartsAt,
+                                defaultSecondEndsAt: updatedSecondEndsAt,
+                              }
+                            : employee,
+                        ),
+                    );
+                    queryClient.setQueryData<StaffShift[]>(
+                      ['staff-schedules', monthKey],
+                      (current) =>
+                        current?.map((shift) =>
+                          shift.userId !== updatedEmployeeId
+                            ? shift
+                            : {
+                                ...shift,
+                                name: updatedName,
+                                startsAt: usesFirstShift(
+                                  shift.date,
+                                  shift.userId,
+                                )
+                                  ? updatedStartsAt
+                                  : updatedSecondStartsAt || updatedStartsAt,
+                                endsAt: usesFirstShift(shift.date, shift.userId)
+                                  ? updatedEndsAt
+                                  : updatedSecondEndsAt || updatedEndsAt,
+                              },
+                        ),
+                    );
+                    setEditingEmployeeId(null);
+                    setIsEmployeeDrawerOpen(false);
+                  });
+                } else createEmployeeMutation.mutate();
+              }}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                },
+                gap: 2,
+                mt: 0,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                  bgcolor: '#fff',
+                },
+              }}
+            >
+              <TextField
+                required
+                label="ชื่อ"
+                value={newEmployeeName}
+                onChange={(event) => setNewEmployeeName(event.target.value)}
+              />
+              {!franchiseMode && (
+                <FormControl required>
+                  <InputLabel id="new-employee-branch-label">สาขา</InputLabel>
+                  <Select
+                    labelId="new-employee-branch-label"
+                    label="สาขา"
+                    value={newEmployeeBranchId}
+                    onChange={(event) =>
+                      setNewEmployeeBranchId(event.target.value)
+                    }
+                  >
+                    {workspaceBranches.map((branch) => (
+                      <MenuItem key={branch.id} value={String(branch.id)}>
+                        {branch.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
               <FormControl required>
-                <InputLabel id="new-employee-branch-label">สาขา</InputLabel>
+                <InputLabel id="new-employee-role-label">ตำแหน่ง</InputLabel>
                 <Select
-                  labelId="new-employee-branch-label"
-                  label="สาขา"
-                  value={newEmployeeBranchId}
+                  labelId="new-employee-role-label"
+                  label="ตำแหน่ง"
+                  value={newEmployeeRole}
                   onChange={(event) =>
-                    setNewEmployeeBranchId(event.target.value)
+                    setNewEmployeeRole(
+                      event.target.value as 'branch_manager' | 'cashier',
+                    )
                   }
                 >
-                  {workspaceBranches.map((branch) => (
-                    <MenuItem key={branch.id} value={String(branch.id)}>
-                      {branch.name}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="cashier">แคชเชียร์</MenuItem>
+                  <MenuItem value="branch_manager">ผู้จัดการสาขา</MenuItem>
                 </Select>
               </FormControl>
-            )}
-            <FormControl required>
-              <InputLabel id="new-employee-role-label">ตำแหน่ง</InputLabel>
-              <Select
-                labelId="new-employee-role-label"
-                label="ตำแหน่ง"
-                value={newEmployeeRole}
-                onChange={(event) =>
-                  setNewEmployeeRole(
-                    event.target.value as 'branch_manager' | 'cashier',
-                  )
-                }
-              >
-                <MenuItem value="cashier">แคชเชียร์</MenuItem>
-                <MenuItem value="branch_manager">ผู้จัดการสาขา</MenuItem>
-              </Select>
-            </FormControl>
-            <Box sx={{ gridColumn: '1 / -1', mt: 0.5 }}>
-              <Divider sx={{ borderColor: '#d8cec7', mb: 1.5 }} />
-              <Typography
-                sx={{ color: '#3c2d24', fontSize: 14, fontWeight: 600, mb: 1 }}
-              >
-                เวลาทำงานประจำ · กะที่ 1
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                gridColumn: { xs: '1', sm: '1 / -1' },
-              }}
-            >
-              <Box sx={{ flex: 1, position: 'relative' }}>
-                <TextField
-                  required
-                  fullWidth
-                  label="เวลาเข้างาน"
-                  type="time"
-                  value={defaultStartsAt}
-                  onChange={(event) => setDefaultStartsAt(event.target.value)}
-                  onMouseEnter={() => setHoveredTimeField('start')}
-                  onMouseLeave={() => setHoveredTimeField(null)}
+              <Box sx={{ gridColumn: '1 / -1', mt: 0.5 }}>
+                <Divider sx={{ borderColor: '#d8cec7', mb: 1.5 }} />
+                <Typography
                   sx={{
-                    '& input::-webkit-calendar-picker-indicator': {
-                      opacity: 0,
-                    },
-                  }}
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                    htmlInput: {
-                      onClick: (event: MouseEvent<HTMLInputElement>) =>
-                        event.currentTarget.showPicker?.(),
-                    },
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: '0 16px 0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
                     color: '#3c2d24',
-                    pointerEvents: 'none',
-                    zIndex: 2,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    mb: 1,
                   }}
                 >
-                  <ClockIcon
-                    size={20}
-                    animated={hoveredTimeField === 'start'}
+                  เวลาทำงานประจำ · กะที่ 1
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  gridColumn: { xs: '1', sm: '1 / -1' },
+                }}
+              >
+                <Box sx={{ flex: 1, position: 'relative' }}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="เวลาเข้างาน"
+                    type="time"
+                    value={defaultStartsAt}
+                    onChange={(event) => setDefaultStartsAt(event.target.value)}
+                    onMouseEnter={() => setHoveredTimeField('start')}
+                    onMouseLeave={() => setHoveredTimeField(null)}
+                    sx={{
+                      '& input::-webkit-calendar-picker-indicator': {
+                        opacity: 0,
+                      },
+                    }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: {
+                        onClick: (event: MouseEvent<HTMLInputElement>) =>
+                          event.currentTarget.showPicker?.(),
+                      },
+                    }}
                   />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: '0 16px 0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#3c2d24',
+                      pointerEvents: 'none',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ClockIcon
+                      size={20}
+                      animated={hoveredTimeField === 'start'}
+                    />
+                  </Box>
                 </Box>
-              </Box>
-              <Box sx={{ flex: 1, position: 'relative' }}>
-                <TextField
-                  required
-                  fullWidth
-                  label="เวลาออกงาน"
-                  type="time"
-                  value={defaultEndsAt}
-                  onChange={(event) => setDefaultEndsAt(event.target.value)}
-                  onMouseEnter={() => setHoveredTimeField('end')}
-                  onMouseLeave={() => setHoveredTimeField(null)}
-                  sx={{
-                    '& input::-webkit-calendar-picker-indicator': {
-                      opacity: 0,
-                    },
-                  }}
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                    htmlInput: {
-                      onClick: (event: MouseEvent<HTMLInputElement>) =>
-                        event.currentTarget.showPicker?.(),
-                    },
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: '0 16px 0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: '#3c2d24',
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                  }}
-                >
-                  <ClockIcon size={20} animated={hoveredTimeField === 'end'} />
-                </Box>
-              </Box>
-            </Box>
-            <Box sx={{ gridColumn: '1 / -1', mt: 0.5 }}>
-              <Divider sx={{ borderColor: '#e4dad4', mb: 1.5 }} />
-              <Typography
-                sx={{ color: '#3c2d24', fontSize: 13, fontWeight: 600, mb: 1 }}
-              >
-                กะที่ 2 {editingEmployeeId !== null ? '(ถ้ามี)' : '*'}
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                gridColumn: { xs: '1', sm: '1 / -1' },
-              }}
-            >
-              <Box sx={{ flex: 1, position: 'relative' }}>
-                <TextField
-                  required={editingEmployeeId === null}
-                  fullWidth
-                  label="เวลาเข้างาน กะที่ 2"
-                  type="time"
-                  value={defaultSecondStartsAt}
-                  onChange={(event) =>
-                    setDefaultSecondStartsAt(event.target.value)
-                  }
-                  onMouseEnter={() => setHoveredTimeField('secondStart')}
-                  onMouseLeave={() => setHoveredTimeField(null)}
-                  sx={{
-                    '& input::-webkit-calendar-picker-indicator': {
-                      opacity: 0,
-                    },
-                  }}
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                    htmlInput: {
-                      onClick: (event: MouseEvent<HTMLInputElement>) =>
-                        event.currentTarget.showPicker?.(),
-                    },
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: '0 16px 0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: '#3c2d24',
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                  }}
-                >
-                  <ClockIcon
-                    size={20}
-                    animated={hoveredTimeField === 'secondStart'}
+                <Box sx={{ flex: 1, position: 'relative' }}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="เวลาออกงาน"
+                    type="time"
+                    value={defaultEndsAt}
+                    onChange={(event) => setDefaultEndsAt(event.target.value)}
+                    onMouseEnter={() => setHoveredTimeField('end')}
+                    onMouseLeave={() => setHoveredTimeField(null)}
+                    sx={{
+                      '& input::-webkit-calendar-picker-indicator': {
+                        opacity: 0,
+                      },
+                    }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: {
+                        onClick: (event: MouseEvent<HTMLInputElement>) =>
+                          event.currentTarget.showPicker?.(),
+                      },
+                    }}
                   />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: '0 16px 0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#3c2d24',
+                      pointerEvents: 'none',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ClockIcon
+                      size={20}
+                      animated={hoveredTimeField === 'end'}
+                    />
+                  </Box>
                 </Box>
               </Box>
-              <Box sx={{ flex: 1, position: 'relative' }}>
-                <TextField
-                  required={editingEmployeeId === null}
-                  fullWidth
-                  label="เวลาออกงาน กะที่ 2"
-                  type="time"
-                  value={defaultSecondEndsAt}
-                  onChange={(event) =>
-                    setDefaultSecondEndsAt(event.target.value)
-                  }
-                  onMouseEnter={() => setHoveredTimeField('secondEnd')}
-                  onMouseLeave={() => setHoveredTimeField(null)}
+              <Box sx={{ gridColumn: '1 / -1', mt: 0.5 }}>
+                <Divider sx={{ borderColor: '#e4dad4', mb: 1.5 }} />
+                <Typography
                   sx={{
-                    '& input::-webkit-calendar-picker-indicator': {
-                      opacity: 0,
-                    },
-                  }}
-                  slotProps={{
-                    inputLabel: { shrink: true },
-                    htmlInput: {
-                      onClick: (event: MouseEvent<HTMLInputElement>) =>
-                        event.currentTarget.showPicker?.(),
-                    },
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: '0 16px 0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
                     color: '#3c2d24',
-                    pointerEvents: 'none',
-                    zIndex: 2,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    mb: 1,
                   }}
                 >
-                  <ClockIcon
-                    size={20}
-                    animated={hoveredTimeField === 'secondEnd'}
+                  กะที่ 2 {editingEmployeeId !== null ? '(ถ้ามี)' : '*'}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  gridColumn: { xs: '1', sm: '1 / -1' },
+                }}
+              >
+                <Box sx={{ flex: 1, position: 'relative' }}>
+                  <TextField
+                    required={editingEmployeeId === null}
+                    fullWidth
+                    label="เวลาเข้างาน กะที่ 2"
+                    type="time"
+                    value={defaultSecondStartsAt}
+                    onChange={(event) =>
+                      setDefaultSecondStartsAt(event.target.value)
+                    }
+                    onMouseEnter={() => setHoveredTimeField('secondStart')}
+                    onMouseLeave={() => setHoveredTimeField(null)}
+                    sx={{
+                      '& input::-webkit-calendar-picker-indicator': {
+                        opacity: 0,
+                      },
+                    }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: {
+                        onClick: (event: MouseEvent<HTMLInputElement>) =>
+                          event.currentTarget.showPicker?.(),
+                      },
+                    }}
                   />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: '0 16px 0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#3c2d24',
+                      pointerEvents: 'none',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ClockIcon
+                      size={20}
+                      animated={hoveredTimeField === 'secondStart'}
+                    />
+                  </Box>
+                </Box>
+                <Box sx={{ flex: 1, position: 'relative' }}>
+                  <TextField
+                    required={editingEmployeeId === null}
+                    fullWidth
+                    label="เวลาออกงาน กะที่ 2"
+                    type="time"
+                    value={defaultSecondEndsAt}
+                    onChange={(event) =>
+                      setDefaultSecondEndsAt(event.target.value)
+                    }
+                    onMouseEnter={() => setHoveredTimeField('secondEnd')}
+                    onMouseLeave={() => setHoveredTimeField(null)}
+                    sx={{
+                      '& input::-webkit-calendar-picker-indicator': {
+                        opacity: 0,
+                      },
+                    }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: {
+                        onClick: (event: MouseEvent<HTMLInputElement>) =>
+                          event.currentTarget.showPicker?.(),
+                      },
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: '0 16px 0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#3c2d24',
+                      pointerEvents: 'none',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ClockIcon
+                      size={20}
+                      animated={hoveredTimeField === 'secondEnd'}
+                    />
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-            {createEmployeeMutation.error ? (
-              <Typography
-                color="error"
-                sx={{ fontSize: 13, gridColumn: '1 / -1' }}
+              {createEmployeeMutation.error ? (
+                <Typography
+                  color="error"
+                  sx={{ fontSize: 13, gridColumn: '1 / -1' }}
+                >
+                  {createEmployeeMutation.error.message}
+                </Typography>
+              ) : null}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 1.25,
+                  gridColumn: '1 / -1',
+                }}
               >
-                {createEmployeeMutation.error.message}
-              </Typography>
-            ) : null}
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 1.25,
-                gridColumn: '1 / -1',
-              }}
-            >
-              <Button
-                variant="outlined"
-                onClick={() => setIsEmployeeDrawerOpen(false)}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={createEmployeeMutation.isPending}
-                sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
-              >
-                {editingEmployeeId !== null
-                  ? 'แก้ไขพนักงาน'
-                  : createEmployeeMutation.isPending
-                    ? 'กำลังเพิ่ม...'
-                    : 'เพิ่มพนักงาน'}
-              </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsEmployeeDrawerOpen(false)}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={createEmployeeMutation.isPending}
+                  sx={{ bgcolor: '#201914', '&:hover': { bgcolor: '#3c2d24' } }}
+                >
+                  {editingEmployeeId !== null
+                    ? 'แก้ไขพนักงาน'
+                    : createEmployeeMutation.isPending
+                      ? 'กำลังเพิ่ม...'
+                      : 'เพิ่มพนักงาน'}
+                </Button>
+              </Box>
             </Box>
           </Box>
         </Box>

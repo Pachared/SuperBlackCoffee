@@ -1,10 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
   Card,
   Chip,
+  Divider,
   InputAdornment,
+  MenuItem,
   TextField,
   Typography,
 } from '@mui/material';
@@ -19,6 +21,7 @@ import {
   useStockRequests,
   useUpdateStockRequestStatus,
 } from '../../hooks/useStockRequests';
+import { listBranches } from '../../api/branches';
 import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
 
 type RequestStatus =
@@ -28,11 +31,13 @@ type SupplyItem = { name: string; quantity: string };
 type SupplyRequest = {
   id: string;
   branch: Exclude<Branch, 'ทุกสาขา'>;
+  source: 'sbc' | 'franchise';
   type: SupplyType;
   items: SupplyItem[];
   requestedAt: string;
   status: RequestStatus;
 };
+type RequestTab = 'sbc' | 'franchise';
 const statuses = [
   'ทั้งหมด',
   'รออนุมัติ',
@@ -66,13 +71,20 @@ const actionLabel: Partial<Record<RequestStatus, string>> = {
   preparing: 'ยืนยันจัดเสร็จ',
 };
 
-export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
+export function AdminOrdersPage({
+  activeBranch,
+  activeTab: controlledTab,
+  onTabChange,
+}: {
+  activeBranch: Branch;
+  activeTab?: RequestTab;
+  onTabChange?: (tab: RequestTab) => void;
+}) {
   const searchRef = useRef<SearchIconHandle>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<(typeof statuses)[number]>('ทั้งหมด');
-  const [supplyType, setSupplyType] = useState<'ทั้งหมด' | SupplyType>(
-    'ทั้งหมด',
-  );
+  const [activeTab, setActiveTab] = useState<RequestTab>('sbc');
+  const selectedTab = controlledTab ?? activeTab;
   const {
     data: apiRequests = [],
     isLoading,
@@ -80,11 +92,39 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
     refetch,
   } = useStockRequests();
   const updateStatus = useUpdateStockRequestStatus();
+  const [branches, setBranches] = useState<
+    Awaited<ReturnType<typeof listBranches>>
+  >([]);
+  useEffect(() => {
+    let active = true;
+    void listBranches()
+      .then((items) => {
+        if (active) setBranches(items);
+      })
+      .catch(() => {
+        if (active) setBranches([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const franchiseBranchIds = useMemo(
+    () =>
+      new Set(
+        branches.flatMap((branch) => (branch.franchiseeId ? [branch.id] : [])),
+      ),
+    [branches],
+  );
   const requestStates = useMemo(
     () =>
       apiRequests.map((request) => ({
         id: `REQ-${request.id}`,
         branch: request.branch.name as Exclude<Branch, 'ทุกสาขา'>,
+        source:
+          request.branch.isFranchise ||
+          franchiseBranchIds.has(request.branch.id)
+            ? 'franchise'
+            : 'sbc',
         type: 'วัตถุดิบ',
         items: request.items.map((item) => ({
           name: item.name,
@@ -93,7 +133,7 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
         requestedAt: formatDate(request.createdAt),
         status: request.status,
       })),
-    [apiRequests],
+    [apiRequests, franchiseBranchIds],
   );
   const filteredRequests = useMemo(
     () =>
@@ -102,18 +142,17 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
           activeBranch === 'ทุกสาขา' || request.branch === activeBranch;
         const matchesStatus =
           filter === 'ทั้งหมด' || statusLabels[request.status] === filter;
-        const matchesType =
-          supplyType === 'ทั้งหมด' || request.type === supplyType;
+        const matchesSource = request.source === selectedTab;
         return (
           matchesBranch &&
           matchesStatus &&
-          matchesType &&
+          matchesSource &&
           `${request.id}${request.branch}${request.items.map((item) => item.name).join(' ')}`
             .toLowerCase()
             .includes(query.toLowerCase())
         );
       }),
-    [activeBranch, filter, query, requestStates, supplyType],
+    [activeBranch, selectedTab, filter, query, requestStates],
   );
   const advanceRequest = async (id: string) => {
     const current = requestStates.find((request) => request.id === id);
@@ -145,8 +184,25 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
   const pendingCount = requestStates.filter(
     (request) =>
       request.status === 'pending' &&
+      request.source === selectedTab &&
       (activeBranch === 'ทุกสาขา' || request.branch === activeBranch),
   ).length;
+  const tabCounts = useMemo(
+    () => ({
+      sbc: requestStates.filter(
+        (request) => request.source === 'sbc' && request.status === 'pending',
+      ).length,
+      franchise: requestStates.filter(
+        (request) =>
+          request.source === 'franchise' && request.status === 'pending',
+      ).length,
+    }),
+    [requestStates],
+  );
+  const changeTab = (tab: RequestTab) => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
 
   return (
     <DashboardMain>
@@ -169,7 +225,9 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
               fontWeight: 600,
             }}
           >
-            คำขอเติมวัตถุดิบและสต๊อก
+            {selectedTab === 'franchise'
+              ? 'คำสั่งซื้อแฟรนไชส์และคำขอจัดส่ง'
+              : 'คำสั่งซื้อและคำขอจัดส่ง'}
           </Typography>
           <Typography
             sx={{
@@ -178,7 +236,7 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
               fontSize: 13,
             }}
           >
-            จัดการรายการที่แต่ละสาขาส่งขอมาเพื่อเติมสินค้า
+            แยกการดำเนินการระหว่างสาขา SBC และแฟรนไชส์ให้ชัดเจน
           </Typography>
         </Box>
         <TextField
@@ -203,91 +261,125 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
           }}
         />
       </Box>
-      <Card
-        variant="outlined"
+      <Box
+        role="tablist"
+        aria-label="ประเภทคำสั่งซื้อ"
         sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 1.5,
           mb: 2,
-          borderRadius: '15px',
-          borderColor: '#e8ddd5',
-          bgcolor: '#fffaf7',
         }}
       >
         <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            justifyContent: 'space-between',
-            alignItems: { sm: 'center' },
-            gap: 1,
-            p: 1.75,
-          }}
+          sx={{ display: 'flex', gap: 2.25, overflowX: 'auto', py: 1, pr: 2 }}
         >
-          <Box>
-            <Typography
+          {(
+            [
+              ['sbc', 'คำสั่งซื้อสาขา SBC'],
+              ['franchise', 'คำขอวัตถุดิบจากแฟรนไชส์'],
+            ] as const
+          ).map(([tab, label]) => (
+            <Button
+              key={tab}
+              role="tab"
+              aria-label={`${label} · ${tabCounts[tab]}`}
+              aria-selected={selectedTab === tab}
+              onClick={() => {
+                changeTab(tab);
+                setFilter('ทั้งหมด');
+              }}
+              variant={selectedTab === tab ? 'contained' : 'outlined'}
               sx={{
+                flexShrink: 0,
+                position: 'relative',
+                zIndex: selectedTab === tab ? 2 : 1,
+                overflow: 'visible',
+                minHeight: 40,
+                px: 1.75,
+                borderRadius: '12px',
+                border: '1px solid',
+                borderColor: selectedTab === tab ? '#201914' : '#d8c8bd',
+                bgcolor: selectedTab === tab ? '#201914' : '#fff',
+                color: selectedTab === tab ? '#fff' : '#5f4b3d',
                 fontFamily: 'Kanit, sans-serif',
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: 13,
+                boxShadow: 'none',
               }}
             >
-              {activeBranch === 'ทุกสาขา' ? 'ทุกสาขา' : `สาขา ${activeBranch}`}
-            </Typography>
-            <Typography
-              sx={{
-                color: 'text.secondary',
-                fontFamily: 'Kanit, sans-serif',
-                fontSize: 12,
-              }}
-            >
-              มีคำขอรอการอนุมัติ {pendingCount} รายการ
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 0.75 }}>
-            {(['ทั้งหมด', 'วัตถุดิบ', 'สต๊อก'] as const).map((item) => (
-              <Button
-                key={item}
-                onClick={() => setSupplyType(item)}
-                size="small"
-                variant={supplyType === item ? 'contained' : 'outlined'}
+              {label}
+              <Box
+                component="span"
+                aria-hidden="true"
                 sx={{
-                  minHeight: 32,
-                  borderRadius: '10px',
-                  borderColor: '#d8c8bd',
-                  bgcolor: supplyType === item ? '#201914' : '#fff',
-                  color: supplyType === item ? '#fff' : '#5f4b3d',
+                  position: 'absolute',
+                  top: -8,
+                  right: -8,
+                  display: 'grid',
+                  placeItems: 'center',
+                  minWidth: 23,
+                  height: 23,
+                  px: 0.75,
+                  borderRadius: 99,
+                  bgcolor: '#d92d28',
+                  color: '#fff',
                   fontFamily: 'Kanit, sans-serif',
-                  fontSize: 12,
-                  boxShadow: 'none',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  lineHeight: 1,
                 }}
               >
-                {item}
-              </Button>
-            ))}
-          </Box>
+                {tabCounts[tab]}
+              </Box>
+            </Button>
+          ))}
         </Box>
-      </Card>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-        {statuses.map((item) => (
-          <Button
-            key={item}
-            onClick={() => setFilter(item)}
-            size="small"
-            variant={filter === item ? 'contained' : 'outlined'}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Divider
+            orientation="vertical"
+            flexItem
             sx={{
-              minHeight: 34,
-              borderRadius: '12px',
-              borderColor: '#d8c8bd',
-              bgcolor: filter === item ? '#201914' : '#fff',
-              color: filter === item ? '#fff' : '#5f4b3d',
-              fontFamily: 'Kanit, sans-serif',
-              fontSize: 12,
-              boxShadow: 'none',
+              display: { xs: 'none', sm: 'block' },
+              borderColor: '#dfd2c8',
+            }}
+          />
+          <TextField
+            select
+            label="สถานะ"
+            value={filter}
+            onChange={(event) =>
+              setFilter(event.target.value as (typeof statuses)[number])
+            }
+            size="small"
+            sx={{
+              width: { xs: '100%', sm: 220 },
+              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              '& .MuiInputLabel-root, & .MuiSelect-select': {
+                fontFamily: 'Kanit, sans-serif',
+              },
             }}
           >
-            {item}
-          </Button>
-        ))}
+            {statuses.map((item) => (
+              <MenuItem
+                key={item}
+                value={item}
+                sx={{ fontFamily: 'Kanit, sans-serif' }}
+              >
+                {item}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
       </Box>
+      <Divider
+        sx={{
+          mb: 2,
+          mx: { xs: -2, md: -5 },
+          borderColor: '#e8ddd5',
+        }}
+      />
       {error && (
         <Box
           sx={{
@@ -310,8 +402,7 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            md: 'repeat(2, minmax(0, 1fr))',
-            xl: 'repeat(3, minmax(0, 1fr))',
+            md: 'repeat(3, minmax(0, 1fr))',
           },
           gap: '16px',
         }}
@@ -344,7 +435,8 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
                           fontWeight: 600,
                         }}
                       >
-                        สาขา {request.branch}
+                        {request.source === 'sbc' ? 'สาขา SBC' : 'แฟรนไชส์'} ·{' '}
+                        {request.branch}
                       </Typography>
                       <Typography
                         sx={{
@@ -404,7 +496,9 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
                         fontWeight: 600,
                       }}
                     >
-                      รายการที่ขอ{' '}
+                      {request.source === 'sbc'
+                        ? 'รายการสั่งซื้อ'
+                        : 'รายการที่ขอ'}{' '}
                       <Box
                         component="span"
                         sx={{ color: '#8a6b58', fontWeight: 500 }}
@@ -519,7 +613,9 @@ export function AdminOrdersPage({ activeBranch }: { activeBranch: Branch }) {
             fontFamily: 'Kanit, sans-serif',
           }}
         >
-          ไม่พบคำขอที่ค้นหา
+          {selectedTab === 'sbc'
+            ? 'ไม่พบคำสั่งซื้อจากสาขา SBC ที่ค้นหา'
+            : 'ไม่พบคำขอวัตถุดิบจากแฟรนไชส์ที่ค้นหา'}
         </Typography>
       )}
     </DashboardMain>

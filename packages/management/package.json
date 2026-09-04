@@ -3,7 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pages/employees": "./src/pages/EmployeesManagementPage.tsx",
+    "./pages/ingredients": "./src/pages/IngredientsManagementPage.tsx",
+    "./pages/products": "./src/pages/ProductsManagementPage.tsx",
+    "./pages/stock": "./src/pages/StockManagementPage.tsx",
+    "./skeletons/employees": "./src/components/skeletons/EmployeesSkeleton.tsx",
+    "./skeletons/ingredients": "./src/components/skeletons/IngredientsSkeleton.tsx",
+    "./skeletons/products": "./src/components/skeletons/ProductsSkeleton.tsx",
+    "./skeletons/stock": "./src/components/skeletons/StockSkeleton.tsx"
+  },
   "dependencies": {
     "@emotion/react": "latest",
     "@emotion/styled": "latest",

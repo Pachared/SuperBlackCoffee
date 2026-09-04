@@ -14,7 +14,8 @@ import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewS
 import { AdminAuditSkeleton } from '../../components/skeletons/AdminAuditSkeleton';
 import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
 import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { listBranches, type Branch as ApiBranch } from '../../api/branches';
 import {
   adminPageFromPath,
   adminPagePaths,
@@ -93,13 +94,23 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
 export function AdminDashboard({ logout }: { logout: () => void }) {
   const location = useLocation();
   const routerNavigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const activePage = adminPageFromPath(location.pathname);
-  const [activeBranch, setActiveBranch] = useState<Branch>('ทุกสาขา');
+  const branchParam = searchParams.get('branch');
+  const activeBranch = (branchParam || 'ทุกสาขา') as Branch;
+  const activeOrderTab =
+    searchParams.get('tab') === 'franchise' ? 'franchise' : 'sbc';
+  const [branchDirectory, setBranchDirectory] = useState<ApiBranch[]>([]);
   const scrollbarTimeoutRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const ingredientImage = new Image();
     ingredientImage.src = coffeeIngredientsImage;
     void ingredientImage.decode().catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    void listBranches()
+      .then(setBranchDirectory)
+      .catch(() => setBranchDirectory([]));
   }, []);
   useEffect(() => {
     const revealScrollbars = () => {
@@ -135,7 +146,20 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
   ) : activePage === 'ภาพรวม' ? (
     <AdminOverviewPage onNavigate={navigate} />
   ) : activePage === 'คำสั่งซื้อ' ? (
-    <AdminOrdersPage activeBranch={activeBranch} />
+    <AdminOrdersPage
+      activeBranch={activeBranch}
+      activeTab={activeOrderTab}
+      onTabChange={(tab) => {
+        setSearchParams(
+          (current) => {
+            current.set('tab', tab);
+            current.delete('branch');
+            return current;
+          },
+          { replace: true },
+        );
+      }}
+    />
   ) : activePage === 'ประวัติการทำรายการ' ? (
     <AdminAuditPage />
   ) : isStockPage ? (
@@ -145,7 +169,7 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
   ) : activePage === 'สาขาแฟรนไชส์' ? (
     <AdminFranchiseBranchesPage />
   ) : activePage === 'ตารางพนักงาน' ? (
-    <AdminEmployeesPage />
+    <AdminEmployeesPage suppressLoadingHeader />
   ) : (
     <AdminBranchesPage />
   );
@@ -163,8 +187,12 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
           : `เมนูและสินค้า สาขา${activeBranch}`
         : activePage === 'คำสั่งซื้อ'
           ? activeBranch === 'ทุกสาขา'
-            ? 'คำสั่งซื้อ ทุกสาขา'
-            : `คำสั่งซื้อ สาขา${activeBranch}`
+            ? activeOrderTab === 'franchise'
+              ? 'คำสั่งซื้อ แฟรนไชส์ทั้งหมด'
+              : 'คำสั่งซื้อ ทุกสาขา'
+            : activeOrderTab === 'franchise'
+              ? `คำสั่งซื้อ แฟรนไชส์ ${activeBranch}`
+              : `คำสั่งซื้อ สาขา${activeBranch}`
           : activePage === 'สาขา SBC'
             ? 'สาขา Super Black Coffee'
             : activePage;
@@ -180,7 +208,35 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
       secondarySidebar={
         <BranchesSidebar
           activeBranch={activeBranch}
-          onBranchChange={setActiveBranch}
+          onBranchChange={(branch) => {
+            setSearchParams(
+              (current) => {
+                if (branch === 'ทุกสาขา') current.delete('branch');
+                else current.set('branch', branch);
+                return current;
+              },
+              { replace: true },
+            );
+          }}
+          branchOptions={
+            activePage === 'คำสั่งซื้อ'
+              ? [
+                  'ทุกสาขา',
+                  ...branchDirectory
+                    .filter((branch) =>
+                      activeOrderTab === 'franchise'
+                        ? Boolean(branch.franchiseeId)
+                        : !branch.franchiseeId,
+                    )
+                    .map((branch) => branch.name),
+                ]
+              : undefined
+          }
+          allBranchLabel={
+            activePage === 'คำสั่งซื้อ' && activeOrderTab === 'franchise'
+              ? 'ทุกแฟรนไชส์'
+              : 'ทุกสาขา'
+          }
           visible={hasBranchSidebar}
         />
       }

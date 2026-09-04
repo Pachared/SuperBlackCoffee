@@ -13,9 +13,45 @@ export default defineConfig({
         dirname,
         '../../packages/ui/src/index.tsx',
       ),
+      '@stackbuild/management/pages/employees': path.resolve(
+        dirname,
+        '../../packages/management/src/pages/EmployeesManagementPage.tsx',
+      ),
+      '@stackbuild/management/pages/ingredients': path.resolve(
+        dirname,
+        '../../packages/management/src/pages/IngredientsManagementPage.tsx',
+      ),
+      '@stackbuild/management/pages/products': path.resolve(
+        dirname,
+        '../../packages/management/src/pages/ProductsManagementPage.tsx',
+      ),
+      '@stackbuild/management/pages/stock': path.resolve(
+        dirname,
+        '../../packages/management/src/pages/StockManagementPage.tsx',
+      ),
+      '@stackbuild/management/skeletons/employees': path.resolve(
+        dirname,
+        '../../packages/management/src/components/skeletons/EmployeesSkeleton.tsx',
+      ),
+      '@stackbuild/management/skeletons/ingredients': path.resolve(
+        dirname,
+        '../../packages/management/src/components/skeletons/IngredientsSkeleton.tsx',
+      ),
+      '@stackbuild/management/skeletons/products': path.resolve(
+        dirname,
+        '../../packages/management/src/components/skeletons/ProductsSkeleton.tsx',
+      ),
+      '@stackbuild/management/skeletons/stock': path.resolve(
+        dirname,
+        '../../packages/management/src/components/skeletons/StockSkeleton.tsx',
+      ),
       '@stackbuild/management': path.resolve(
         dirname,
         '../../packages/management/src/index.ts',
+      ),
+      '@stackbuild/types': path.resolve(
+        dirname,
+        '../../packages/types/src/index.ts',
       ),
     },
   },

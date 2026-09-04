@@ -9,6 +9,7 @@ import {
   Divider,
   InputAdornment,
   MenuItem,
+  Snackbar,
   TextField,
   Typography,
 } from '@mui/material';
@@ -72,6 +73,7 @@ export function IngredientsManagementPage({
   const plusIconRef = useRef<PlusIconHandle>(null);
   const searchIconRef = useRef<SearchIconHandle>(null);
   const closeIconRef = useRef<XIconHandle>(null);
+  const cartCloseIconRef = useRef<XIconHandle>(null);
   const cartIconRef = useRef<CartIconHandle>(null);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -89,6 +91,7 @@ export function IngredientsManagementPage({
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<IngredientCartItem[]>([]);
   const [cartError, setCartError] = useState<string | null>(null);
+  const [isCartSuccessVisible, setIsCartSuccessVisible] = useState(false);
   const queryClient = useQueryClient();
   const createRequest = useMutation({
     mutationFn: createStockRequest,
@@ -96,10 +99,10 @@ export function IngredientsManagementPage({
       setCartItems([]);
       setCartError(null);
       setCartOpen(false);
+      setIsCartSuccessVisible(true);
       void queryClient.invalidateQueries({
         queryKey: ['franchise-stock-requests'],
       });
-      onRequestCreated?.();
     },
     onError: (error) =>
       setCartError(
@@ -407,7 +410,8 @@ export function IngredientsManagementPage({
             sx={{
               minHeight: 34,
               borderRadius: '12px',
-              borderColor: '#d8c8bd',
+              border: '1px solid',
+              borderColor: filter === item ? '#201914' : '#d8c8bd',
               bgcolor: filter === item ? '#201914' : '#fff',
               color: filter === item ? '#fff' : '#5f4b3d',
               fontFamily: 'Kanit, sans-serif',
@@ -812,9 +816,8 @@ export function IngredientsManagementPage({
             sx: {
               left: { md: '280px' },
               width: { md: 'calc(100% - 304px)' },
-              minHeight: { sm: 520 },
-              maxHeight: '82vh',
-              overflowY: 'auto',
+              height: { xs: '82vh', sm: 'min(82vh, 720px)' },
+              overflow: 'hidden',
               borderRadius: '24px 24px 0 0',
               bgcolor: '#fffaf7',
               boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
@@ -822,7 +825,18 @@ export function IngredientsManagementPage({
           },
         }}
       >
-        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 2.5, sm: 4 },
+            pt: 1.5,
+            pb: 3.5,
+          }}
+        >
           <Box
             sx={{
               width: 44,
@@ -893,206 +907,219 @@ export function IngredientsManagementPage({
               ? 'แก้ไขข้อมูลวัตถุดิบในสต๊อก'
               : 'กรอกข้อมูลวัตถุดิบเพื่อเพิ่มเข้าสต๊อก'}
           </Typography>
-          <Box
-            component="form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setIsAddDrawerOpen(false);
-            }}
+          <Divider
             sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                md: 'minmax(0, 1fr) minmax(0, 2fr)',
-              },
-              gap: 2.5,
-              mt: 3,
-              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
             }}
+          />
+          <Box
+            sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 2.25, pr: 0.5 }}
           >
             <Box
-              component="label"
-              sx={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                aspectRatio: '1 / 1',
-                p: 2,
-                overflow: 'hidden',
-                border: '1.5px dashed #c9b6a9',
-                borderRadius: '16px',
-                bgcolor: '#f7eee8',
-                color: '#5f4b3d',
-                cursor: 'pointer',
-                transition: 'background-color .2s ease, border-color .2s ease',
-                '&:hover': { bgcolor: '#f1e4da', borderColor: '#805637' },
+              component="form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setIsAddDrawerOpen(false);
               }}
-            >
-              {imageSource ? (
-                <Box
-                  component="img"
-                  src={imageSource}
-                  alt="ตัวอย่างรูปวัตถุดิบ"
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      placeItems: 'center',
-                      width: 44,
-                      height: 44,
-                      mb: 1,
-                      borderRadius: '50%',
-                      bgcolor: '#ead9cd',
-                      color: '#5f4030',
-                      fontSize: 28,
-                      lineHeight: 1,
-                    }}
-                  >
-                    +
-                  </Box>
-                  <Typography
-                    sx={{
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textAlign: 'center',
-                    }}
-                  >
-                    เพิ่มรูปวัตถุดิบ
-                  </Typography>
-                  <Typography
-                    sx={{
-                      mt: 0.25,
-                      color: 'text.secondary',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 11,
-                      textAlign: 'center',
-                    }}
-                  >
-                    JPG, PNG ไม่เกิน 5 MB
-                  </Typography>
-                </>
-              )}
-              <input
-                hidden
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) setImagePreviewUrl(URL.createObjectURL(file));
-                }}
-              />
-            </Box>
-            <Box
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
+                  md: 'minmax(0, 1fr) minmax(0, 2fr)',
                 },
-                gap: 2,
+                gap: 2.5,
+                mt: 0,
+                '& .MuiOutlinedInput-root': { borderRadius: '12px' },
               }}
             >
-              <TextField
-                required
-                fullWidth
-                label="ชื่อวัตถุดิบ"
-                placeholder="เช่น เมล็ดกาแฟคั่วกลาง"
-                defaultValue={editingIngredient?.name}
-                sx={{ gridColumn: { sm: '1 / -1' } }}
-              />
-              <TextField
-                required
-                select
-                fullWidth
-                label="หมวดหมู่"
-                defaultValue=""
-              >
-                <MenuItem value="" disabled>
-                  เลือกหมวดหมู่
-                </MenuItem>
-                <MenuItem value="coffee">เมล็ดกาแฟ</MenuItem>
-                <MenuItem value="milk">นมและครีม</MenuItem>
-                <MenuItem value="syrup">ไซรัปและผงชง</MenuItem>
-                <MenuItem value="other">อื่น ๆ</MenuItem>
-              </TextField>
-              <TextField
-                fullWidth
-                label="จำนวนคงเหลือ"
-                type="number"
-                defaultValue={editingIngredient?.quantity}
-                slotProps={{ htmlInput: { min: 0 } }}
-              />
-              <TextField
-                required
-                select
-                fullWidth
-                label="หน่วย"
-                defaultValue="kg"
-              >
-                <MenuItem value="kg">กิโลกรัม</MenuItem>
-                <MenuItem value="liter">ลิตร</MenuItem>
-                <MenuItem value="bottle">ขวด</MenuItem>
-                <MenuItem value="piece">ชิ้น</MenuItem>
-              </TextField>
-              <TextField
-                fullWidth
-                label="แจ้งเตือนเมื่อคงเหลือ"
-                type="number"
-                slotProps={{ htmlInput: { min: 0 } }}
-              />
-              <TextField
-                fullWidth
-                label="หมายเหตุ"
-                placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
-                sx={{ gridColumn: { sm: '1 / -1' } }}
-              />
               <Box
+                component="label"
                 sx={{
+                  position: 'relative',
                   display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 1.25,
-                  mt: 1,
-                  gridColumn: { sm: '1 / -1' },
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  aspectRatio: '1 / 1',
+                  p: 2,
+                  overflow: 'hidden',
+                  border: '1.5px dashed #c9b6a9',
+                  borderRadius: '16px',
+                  bgcolor: '#f7eee8',
+                  color: '#5f4b3d',
+                  cursor: 'pointer',
+                  transition:
+                    'background-color .2s ease, border-color .2s ease',
+                  '&:hover': { bgcolor: '#f1e4da', borderColor: '#805637' },
                 }}
               >
-                <Button
-                  variant="outlined"
-                  onClick={() => setIsAddDrawerOpen(false)}
+                {imageSource ? (
+                  <Box
+                    component="img"
+                    src={imageSource}
+                    alt="ตัวอย่างรูปวัตถุดิบ"
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        placeItems: 'center',
+                        width: 44,
+                        height: 44,
+                        mb: 1,
+                        borderRadius: '50%',
+                        bgcolor: '#ead9cd',
+                        color: '#5f4030',
+                        fontSize: 28,
+                        lineHeight: 1,
+                      }}
+                    >
+                      +
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        textAlign: 'center',
+                      }}
+                    >
+                      เพิ่มรูปวัตถุดิบ
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mt: 0.25,
+                        color: 'text.secondary',
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 11,
+                        textAlign: 'center',
+                      }}
+                    >
+                      JPG, PNG ไม่เกิน 5 MB
+                    </Typography>
+                  </>
+                )}
+                <input
+                  hidden
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) setImagePreviewUrl(URL.createObjectURL(file));
+                  }}
+                />
+              </Box>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                  },
+                  gap: 2,
+                }}
+              >
+                <TextField
+                  required
+                  fullWidth
+                  label="ชื่อวัตถุดิบ"
+                  placeholder="เช่น เมล็ดกาแฟคั่วกลาง"
+                  defaultValue={editingIngredient?.name}
+                  sx={{ gridColumn: { sm: '1 / -1' } }}
+                />
+                <TextField
+                  required
+                  select
+                  fullWidth
+                  label="หมวดหมู่"
+                  defaultValue=""
+                >
+                  <MenuItem value="" disabled>
+                    เลือกหมวดหมู่
+                  </MenuItem>
+                  <MenuItem value="coffee">เมล็ดกาแฟ</MenuItem>
+                  <MenuItem value="milk">นมและครีม</MenuItem>
+                  <MenuItem value="syrup">ไซรัปและผงชง</MenuItem>
+                  <MenuItem value="other">อื่น ๆ</MenuItem>
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="จำนวนคงเหลือ"
+                  type="number"
+                  defaultValue={editingIngredient?.quantity}
+                  slotProps={{ htmlInput: { min: 0 } }}
+                />
+                <TextField
+                  required
+                  select
+                  fullWidth
+                  label="หน่วย"
+                  defaultValue="kg"
+                >
+                  <MenuItem value="kg">กิโลกรัม</MenuItem>
+                  <MenuItem value="liter">ลิตร</MenuItem>
+                  <MenuItem value="bottle">ขวด</MenuItem>
+                  <MenuItem value="piece">ชิ้น</MenuItem>
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="แจ้งเตือนเมื่อคงเหลือ"
+                  type="number"
+                  slotProps={{ htmlInput: { min: 0 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="หมายเหตุ"
+                  placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+                  sx={{ gridColumn: { sm: '1 / -1' } }}
+                />
+                <Box
                   sx={{
-                    minHeight: 40,
-                    borderRadius: '12px',
-                    color: '#5f4b3d',
-                    fontFamily: 'Kanit, sans-serif',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 1.25,
+                    mt: 1,
+                    gridColumn: { sm: '1 / -1' },
                   }}
                 >
-                  {editingIngredient ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  sx={{
-                    minHeight: 40,
-                    borderRadius: '12px',
-                    bgcolor: '#201914',
-                    fontFamily: 'Kanit, sans-serif',
-                    boxShadow: 'none',
-                    '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
-                  }}
-                >
-                  {editingIngredient ? 'บันทึกการแก้ไข' : 'บันทึกวัตถุดิบ'}
-                </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setIsAddDrawerOpen(false)}
+                    sx={{
+                      minHeight: 40,
+                      borderRadius: '12px',
+                      color: '#5f4b3d',
+                      fontFamily: 'Kanit, sans-serif',
+                    }}
+                  >
+                    {editingIngredient ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                      minHeight: 40,
+                      borderRadius: '12px',
+                      bgcolor: '#201914',
+                      fontFamily: 'Kanit, sans-serif',
+                      boxShadow: 'none',
+                      '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
+                    }}
+                  >
+                    {editingIngredient ? 'บันทึกการแก้ไข' : 'บันทึกวัตถุดิบ'}
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </Box>
@@ -1102,15 +1129,16 @@ export function IngredientsManagementPage({
         anchor="bottom"
         open={cartOpen}
         onClose={() => setCartOpen(false)}
-        transitionDuration={{ enter: 280, exit: 220 }}
+        transitionDuration={{ enter: 360, exit: 280 }}
         sx={{ zIndex: 1300 }}
         slotProps={{
           paper: {
             sx: {
               left: { md: '280px' },
               width: { md: 'calc(100% - 304px)' },
-              minHeight: { xs: '82vh', sm: 740 },
+              height: { xs: '82vh', sm: 740 },
               maxHeight: '88vh',
+              overflow: 'hidden',
               bgcolor: '#fffaf7',
               borderRadius: '24px 24px 0 0',
               boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
@@ -1120,10 +1148,14 @@ export function IngredientsManagementPage({
       >
         <Box
           sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
-            minHeight: { xs: '82vh', sm: 740 },
-            p: { xs: 2.5, sm: 4 },
+            px: { xs: 2.5, sm: 4 },
+            pt: 1.5,
+            pb: 3.5,
           }}
         >
           <Box
@@ -1171,7 +1203,12 @@ export function IngredientsManagementPage({
             <Button
               aria-label="ปิดตะกร้าวัตถุดิบ"
               onClick={() => setCartOpen(false)}
+              onMouseEnter={() => cartCloseIconRef.current?.startAnimation()}
+              onMouseLeave={() => cartCloseIconRef.current?.stopAnimation()}
               sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 minWidth: 40,
                 width: 40,
                 height: 40,
@@ -1182,17 +1219,35 @@ export function IngredientsManagementPage({
                 '&:hover': { bgcolor: '#f1e4da' },
               }}
             >
-              <XIcon size={20} />
+              <XIcon
+                ref={cartCloseIconRef}
+                size={20}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 0,
+                }}
+              />
             </Button>
           </Box>
-          <Divider sx={{ my: 2.25, borderColor: '#e8ddd5' }} />
+          <Divider
+            sx={{
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
+            }}
+          />
           <Box
             sx={{
               display: 'grid',
               alignContent: 'start',
               gap: 1.25,
               flex: 1,
+              minHeight: 0,
               overflowY: 'auto',
+              pt: 2.25,
             }}
           >
             {cartItems.length ? (
@@ -1201,7 +1256,7 @@ export function IngredientsManagementPage({
                   key={item.key}
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    gridTemplateColumns: '56px minmax(0, 1fr) auto',
                     gap: 1.25,
                     alignItems: 'center',
                     p: 1.25,
@@ -1210,17 +1265,80 @@ export function IngredientsManagementPage({
                     bgcolor: '#fff',
                   }}
                 >
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      display: 'grid',
+                      placeItems: 'center',
+                      width: 56,
+                      height: 56,
+                      overflow: 'hidden',
+                      borderRadius: '10px',
+                      bgcolor: '#f4eae3',
+                      color: '#805637',
+                      fontFamily: 'Kanit, sans-serif',
+                      fontSize: 16,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Box component="span">{item.name.slice(0, 1)}</Box>
+                    {item.imageUrl ? (
+                      <Box
+                        component="img"
+                        src={item.imageUrl}
+                        alt=""
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                        sx={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : null}
+                  </Box>
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      noWrap
+                    <Box
                       sx={{
-                        fontFamily: 'Kanit, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        minWidth: 0,
                       }}
                     >
-                      {item.name}
-                    </Typography>
+                      <Typography
+                        noWrap
+                        sx={{
+                          fontFamily: 'Kanit, sans-serif',
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {item.name}
+                      </Typography>
+                      {item.status !== 'พร้อมใช้' ? (
+                        <Chip
+                          label={
+                            item.status === 'วัตถุดิบหมด' ? 'หมด' : 'ใกล้หมด'
+                          }
+                          size="small"
+                          sx={{
+                            flexShrink: 0,
+                            height: 20,
+                            bgcolor: INGREDIENT_STATUS_BADGES[item.status].main,
+                            color:
+                              INGREDIENT_STATUS_BADGES[item.status]
+                                .contrastText,
+                            fontFamily: 'Kanit, sans-serif',
+                            fontSize: 10,
+                            fontWeight: 600,
+                          }}
+                        />
+                      ) : null}
+                    </Box>
                     <Typography
                       sx={{
                         mt: 0.15,
@@ -1241,16 +1359,32 @@ export function IngredientsManagementPage({
                         updateCartQuantity(item.key, item.quantityToOrder - 1)
                       }
                       sx={{
-                        minWidth: 30,
-                        width: 30,
-                        height: 30,
+                        flex: '0 0 40px',
+                        minWidth: 40,
+                        width: 40,
+                        minHeight: 40,
+                        height: 40,
+                        maxHeight: 40,
+                        aspectRatio: '1 / 1',
+                        boxSizing: 'border-box',
                         p: 0,
                         borderRadius: '9px',
                         color: '#5f4b3d',
                         border: '1px solid #d8c8bd',
                       }}
                     >
-                      −
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'block',
+                          fontFamily: 'Arial, sans-serif',
+                          fontSize: 20,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}
+                      >
+                        −
+                      </Box>
                     </Button>
                     <Typography
                       sx={{
@@ -1269,16 +1403,53 @@ export function IngredientsManagementPage({
                         updateCartQuantity(item.key, item.quantityToOrder + 1)
                       }
                       sx={{
-                        minWidth: 30,
-                        width: 30,
-                        height: 30,
+                        flex: '0 0 40px',
+                        minWidth: 40,
+                        width: 40,
+                        minHeight: 40,
+                        height: 40,
+                        maxHeight: 40,
+                        aspectRatio: '1 / 1',
+                        boxSizing: 'border-box',
                         p: 0,
                         borderRadius: '9px',
                         color: '#5f4b3d',
                         border: '1px solid #d8c8bd',
                       }}
                     >
-                      +
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'block',
+                          fontFamily: 'Arial, sans-serif',
+                          fontSize: 20,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}
+                      >
+                        +
+                      </Box>
+                    </Button>
+                    <Button
+                      aria-label={`ลบ ${item.name} ออกจากตะกร้า`}
+                      onClick={() => updateCartQuantity(item.key, 0)}
+                      sx={{
+                        flex: '0 0 40px',
+                        minWidth: 40,
+                        width: 40,
+                        minHeight: 40,
+                        height: 40,
+                        maxHeight: 40,
+                        aspectRatio: '1 / 1',
+                        boxSizing: 'border-box',
+                        ml: 0.5,
+                        p: 0,
+                        borderRadius: '9px',
+                        color: '#b42318',
+                        '&:hover': { bgcolor: '#fff0ee' },
+                      }}
+                    >
+                      <XIcon size={16} />
                     </Button>
                   </Box>
                 </Box>
@@ -1294,10 +1465,38 @@ export function IngredientsManagementPage({
               </Box>
             )}
           </Box>
-          <Box sx={{ pt: 2.25 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              pt: 2.25,
+            }}
+          >
+            {cartItems.length ? (
+              <Typography
+                sx={{
+                  alignSelf: 'stretch',
+                  mb: 1.25,
+                  px: 1.25,
+                  py: 0.75,
+                  border: '1px solid #e4d3c6',
+                  borderRadius: '10px',
+                  bgcolor: '#f7eee8',
+                  color: '#5f4030',
+                  fontFamily: 'Kanit, sans-serif',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textAlign: 'right',
+                }}
+              >
+                สรุป {cartItems.length} รายการ · จำนวนที่เลือก {cartQuantity}
+              </Typography>
+            ) : null}
             {cartError ? (
               <Typography
                 sx={{
+                  alignSelf: 'stretch',
                   mb: 1,
                   color: 'error.main',
                   fontFamily: 'Kanit, sans-serif',
@@ -1308,7 +1507,6 @@ export function IngredientsManagementPage({
               </Typography>
             ) : null}
             <Button
-              fullWidth
               variant="contained"
               disabled={cartItems.length === 0 || createRequest.isPending}
               onClick={() =>
@@ -1323,7 +1521,8 @@ export function IngredientsManagementPage({
                 })
               }
               sx={{
-                minHeight: 42,
+                minHeight: 40,
+                px: 2,
                 borderRadius: '12px',
                 bgcolor: '#805637',
                 fontFamily: 'Kanit, sans-serif',
@@ -1332,13 +1531,32 @@ export function IngredientsManagementPage({
                 '&:hover': { bgcolor: '#60412a', boxShadow: 'none' },
               }}
             >
-              {createRequest.isPending
-                ? 'กำลังส่งคำขอ…'
-                : `ยืนยันสั่งวัตถุดิบ (${cartQuantity})`}
+              {createRequest.isPending ? 'กำลังส่งคำขอ…' : 'ยืนยันสั่งวัตถุดิบ'}
             </Button>
           </Box>
         </Box>
       </Drawer>
+      <Snackbar
+        open={isCartSuccessVisible}
+        autoHideDuration={5000}
+        onClose={() => setIsCartSuccessVisible(false)}
+        message="ส่งคำขอวัตถุดิบแล้ว"
+        action={
+          onRequestCreated ? (
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setIsCartSuccessVisible(false);
+                onRequestCreated();
+              }}
+              sx={{ fontFamily: 'Kanit, sans-serif' }}
+            >
+              ดูคำขอ
+            </Button>
+          ) : undefined
+        }
+      />
     </DashboardMain>
   );
 }

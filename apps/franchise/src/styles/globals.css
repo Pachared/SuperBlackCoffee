@@ -1,33 +1,112 @@
 @font-face {
-  font-family: Kanit;
-  src: url('../assets/fonts/Kanit-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-display: optional;
-}
-@font-face {
-  font-family: Kanit;
-  src: url('../assets/fonts/Kanit-SemiBold.ttf') format('truetype');
-  font-weight: 600;
-  font-display: optional;
-}
-@font-face {
-  font-family: Inter;
+  font-family: 'SBC Sans';
   src: url('../assets/fonts/Inter-VariableFont_opsz,wght.ttf')
     format('truetype');
+  font-style: normal;
   font-weight: 100 900;
   font-display: optional;
+  unicode-range: U+0000-0DFF, U+0E80-10FFFF;
 }
+
 * {
-  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
-html,
-body,
-#root {
-  min-height: 100%;
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-body {
-  margin: 0;
-  background: #fbfaf8;
-  color: #201914;
-  font-family: Kanit, sans-serif;
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.sbc-is-scrolling * {
+  scrollbar-color: #805637 transparent;
+}
+
+.sbc-is-scrolling *::-webkit-scrollbar-thumb {
+  background: #805637;
+}
+
+.MuiDrawer-paper .MuiOutlinedInput-root {
+  background: #fff;
+}
+
+@font-face {
+  font-family: 'Kanit';
+  src: url('../assets/fonts/Kanit-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'Kanit';
+  src: url('../assets/fonts/Kanit-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'Kanit';
+  src: url('../assets/fonts/Kanit-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'Kanit';
+  src: url('../assets/fonts/Kanit-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'SBC Sans';
+  src: url('../assets/fonts/Kanit-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'SBC Sans';
+  src: url('../assets/fonts/Kanit-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'SBC Sans';
+  src: url('../assets/fonts/Kanit-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'SBC Sans';
+  src: url('../assets/fonts/Kanit-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  unicode-range: U+0E00-0E7F;
 }

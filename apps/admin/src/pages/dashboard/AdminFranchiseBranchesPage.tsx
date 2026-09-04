@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Chip,
+  Divider,
   Drawer,
   InputAdornment,
   MenuItem,
@@ -468,9 +469,8 @@ export function AdminFranchiseBranchesPage() {
             sx: {
               left: { md: '254px' },
               width: { md: 'calc(100% - 278px)' },
-              minHeight: { sm: 460 },
-              maxHeight: '82vh',
-              overflowY: 'auto',
+              height: { xs: '82vh', sm: 'min(82vh, 680px)' },
+              overflow: 'hidden',
               borderRadius: '24px 24px 0 0',
               bgcolor: '#fffaf7',
               boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
@@ -486,6 +486,10 @@ export function AdminFranchiseBranchesPage() {
           }}
           sx={{
             width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
             px: { xs: 2.5, sm: 4 },
             pt: 1.5,
             pb: 3.5,
@@ -552,15 +556,28 @@ export function AdminFranchiseBranchesPage() {
               <XIcon size={20} />
             </Button>
           </Box>
+          <Divider
+            sx={{
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
+            }}
+          />
           <Box
             sx={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              pt: 2.25,
+              pr: 0.5,
               display: 'grid',
               gridTemplateColumns: {
                 xs: '1fr',
                 sm: 'repeat(2, minmax(0, 1fr))',
               },
               gap: 2,
-              mt: 3,
+              mt: 0,
             }}
           >
             <TextField

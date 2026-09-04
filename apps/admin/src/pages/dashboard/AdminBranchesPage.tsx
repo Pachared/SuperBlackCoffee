@@ -147,7 +147,8 @@ export function AdminBranchesPage() {
               sx={{
                 minHeight: 34,
                 borderRadius: '12px',
-                borderColor: '#d8c8bd',
+                border: '1px solid',
+                borderColor: period === item ? '#201914' : '#d8c8bd',
                 bgcolor: period === item ? '#201914' : '#fff',
                 color: period === item ? '#fff' : '#5f4b3d',
                 fontFamily: 'Kanit, sans-serif',

@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Chip,
+  Divider,
   Drawer,
   InputAdornment,
   MenuItem,
@@ -202,7 +203,8 @@ export function StockManagementPage({
             sx={{
               minHeight: 34,
               borderRadius: '12px',
-              borderColor: '#d8c8bd',
+              border: '1px solid',
+              borderColor: filter === item ? '#201914' : '#d8c8bd',
               bgcolor: filter === item ? '#201914' : '#fff',
               color: filter === item ? '#fff' : '#5f4b3d',
               fontFamily: 'Kanit, sans-serif',
@@ -496,9 +498,8 @@ export function StockManagementPage({
             sx: {
               left: { md: '280px' },
               width: { md: 'calc(100% - 304px)' },
-              minHeight: { sm: 520 },
-              maxHeight: '82vh',
-              overflowY: 'auto',
+              height: { xs: '82vh', sm: 'min(82vh, 720px)' },
+              overflow: 'hidden',
               borderRadius: '24px 24px 0 0',
               bgcolor: '#fffaf7',
               boxShadow: '0 -12px 32px rgba(50, 35, 25, .18)',
@@ -506,7 +507,18 @@ export function StockManagementPage({
           },
         }}
       >
-        <Box sx={{ width: '100%', px: { xs: 2.5, sm: 4 }, pt: 1.5, pb: 3.5 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 2.5, sm: 4 },
+            pt: 1.5,
+            pb: 3.5,
+          }}
+        >
           <Box
             sx={{
               width: 44,
@@ -575,206 +587,219 @@ export function StockManagementPage({
           >
             {editingItem ? 'แก้ไขข้อมูลสต๊อก' : 'กรอกข้อมูลเพื่อเพิ่มสต๊อกใหม่'}
           </Typography>
-          <Box
-            component="form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setDrawerOpen(false);
-            }}
+          <Divider
             sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                md: 'minmax(0, 1fr) minmax(0, 2fr)',
-              },
-              gap: 2.5,
-              mt: 3,
-              '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+              mt: 2.25,
+              mb: 0,
+              mx: { xs: -2.5, sm: -4 },
+              borderColor: '#e8ddd5',
             }}
+          />
+          <Box
+            sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 2.25, pr: 0.5 }}
           >
             <Box
-              component="label"
-              sx={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                aspectRatio: '1 / 1',
-                p: 2,
-                overflow: 'hidden',
-                border: '1.5px dashed #c9b6a9',
-                borderRadius: '16px',
-                bgcolor: '#f7eee8',
-                color: '#5f4b3d',
-                cursor: 'pointer',
-                transition: 'background-color .2s ease, border-color .2s ease',
-                '&:hover': { bgcolor: '#f1e4da', borderColor: '#805637' },
+              component="form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setDrawerOpen(false);
               }}
-            >
-              {imageSource ? (
-                <Box
-                  component="img"
-                  src={imageSource}
-                  alt="ตัวอย่างรูปสต๊อก"
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      placeItems: 'center',
-                      width: 44,
-                      height: 44,
-                      mb: 1,
-                      borderRadius: '50%',
-                      bgcolor: '#ead9cd',
-                      color: '#5f4030',
-                      fontSize: 28,
-                      lineHeight: 1,
-                    }}
-                  >
-                    +
-                  </Box>
-                  <Typography
-                    sx={{
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 14,
-                      fontWeight: 500,
-                      textAlign: 'center',
-                    }}
-                  >
-                    เพิ่มรูปสต๊อก
-                  </Typography>
-                  <Typography
-                    sx={{
-                      mt: 0.25,
-                      color: 'text.secondary',
-                      fontFamily: 'Kanit, sans-serif',
-                      fontSize: 11,
-                      textAlign: 'center',
-                    }}
-                  >
-                    JPG, PNG ไม่เกิน 5 MB
-                  </Typography>
-                </>
-              )}
-              <input
-                hidden
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) setImagePreviewUrl(URL.createObjectURL(file));
-                }}
-              />
-            </Box>
-            <Box
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
+                  md: 'minmax(0, 1fr) minmax(0, 2fr)',
                 },
-                gap: 2,
+                gap: 2.5,
+                mt: 0,
+                '& .MuiOutlinedInput-root': { borderRadius: '12px' },
               }}
             >
-              <TextField
-                required
-                fullWidth
-                label="ชื่อสต๊อก"
-                placeholder="เช่น แก้วกระดาษ 16 oz"
-                defaultValue={editingItem?.name}
-                sx={{ gridColumn: { sm: '1 / -1' } }}
-              />
-              <TextField
-                required
-                select
-                fullWidth
-                label="หมวดหมู่"
-                defaultValue=""
-              >
-                <MenuItem value="" disabled>
-                  เลือกหมวดหมู่
-                </MenuItem>
-                <MenuItem value="cup">แก้วและบรรจุภัณฑ์</MenuItem>
-                <MenuItem value="delivery">อุปกรณ์จัดส่ง</MenuItem>
-                <MenuItem value="store">อุปกรณ์หน้าร้าน</MenuItem>
-                <MenuItem value="other">อื่น ๆ</MenuItem>
-              </TextField>
-              <TextField
-                fullWidth
-                label="จำนวนคงเหลือ"
-                type="number"
-                defaultValue={editingItem?.amount.match(/\d+/)?.[0]}
-                slotProps={{ htmlInput: { min: 0 } }}
-              />
-              <TextField
-                required
-                select
-                fullWidth
-                label="หน่วย"
-                defaultValue="piece"
-              >
-                <MenuItem value="piece">ชิ้น</MenuItem>
-                <MenuItem value="cup">ใบ</MenuItem>
-                <MenuItem value="box">กล่อง</MenuItem>
-                <MenuItem value="pack">ห่อ</MenuItem>
-              </TextField>
-              <TextField
-                fullWidth
-                label="แจ้งเตือนเมื่อคงเหลือ"
-                type="number"
-                slotProps={{ htmlInput: { min: 0 } }}
-              />
-              <TextField
-                fullWidth
-                label="หมายเหตุ"
-                placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
-                sx={{ gridColumn: { sm: '1 / -1' } }}
-              />
               <Box
+                component="label"
                 sx={{
+                  position: 'relative',
                   display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: 1.25,
-                  mt: 1,
-                  gridColumn: { sm: '1 / -1' },
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  aspectRatio: '1 / 1',
+                  p: 2,
+                  overflow: 'hidden',
+                  border: '1.5px dashed #c9b6a9',
+                  borderRadius: '16px',
+                  bgcolor: '#f7eee8',
+                  color: '#5f4b3d',
+                  cursor: 'pointer',
+                  transition:
+                    'background-color .2s ease, border-color .2s ease',
+                  '&:hover': { bgcolor: '#f1e4da', borderColor: '#805637' },
                 }}
               >
-                <Button
-                  variant="outlined"
-                  onClick={() => setDrawerOpen(false)}
+                {imageSource ? (
+                  <Box
+                    component="img"
+                    src={imageSource}
+                    alt="ตัวอย่างรูปสต๊อก"
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        placeItems: 'center',
+                        width: 44,
+                        height: 44,
+                        mb: 1,
+                        borderRadius: '50%',
+                        bgcolor: '#ead9cd',
+                        color: '#5f4030',
+                        fontSize: 28,
+                        lineHeight: 1,
+                      }}
+                    >
+                      +
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        textAlign: 'center',
+                      }}
+                    >
+                      เพิ่มรูปสต๊อก
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mt: 0.25,
+                        color: 'text.secondary',
+                        fontFamily: 'Kanit, sans-serif',
+                        fontSize: 11,
+                        textAlign: 'center',
+                      }}
+                    >
+                      JPG, PNG ไม่เกิน 5 MB
+                    </Typography>
+                  </>
+                )}
+                <input
+                  hidden
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) setImagePreviewUrl(URL.createObjectURL(file));
+                  }}
+                />
+              </Box>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                  },
+                  gap: 2,
+                }}
+              >
+                <TextField
+                  required
+                  fullWidth
+                  label="ชื่อสต๊อก"
+                  placeholder="เช่น แก้วกระดาษ 16 oz"
+                  defaultValue={editingItem?.name}
+                  sx={{ gridColumn: { sm: '1 / -1' } }}
+                />
+                <TextField
+                  required
+                  select
+                  fullWidth
+                  label="หมวดหมู่"
+                  defaultValue=""
+                >
+                  <MenuItem value="" disabled>
+                    เลือกหมวดหมู่
+                  </MenuItem>
+                  <MenuItem value="cup">แก้วและบรรจุภัณฑ์</MenuItem>
+                  <MenuItem value="delivery">อุปกรณ์จัดส่ง</MenuItem>
+                  <MenuItem value="store">อุปกรณ์หน้าร้าน</MenuItem>
+                  <MenuItem value="other">อื่น ๆ</MenuItem>
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="จำนวนคงเหลือ"
+                  type="number"
+                  defaultValue={editingItem?.amount.match(/\d+/)?.[0]}
+                  slotProps={{ htmlInput: { min: 0 } }}
+                />
+                <TextField
+                  required
+                  select
+                  fullWidth
+                  label="หน่วย"
+                  defaultValue="piece"
+                >
+                  <MenuItem value="piece">ชิ้น</MenuItem>
+                  <MenuItem value="cup">ใบ</MenuItem>
+                  <MenuItem value="box">กล่อง</MenuItem>
+                  <MenuItem value="pack">ห่อ</MenuItem>
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="แจ้งเตือนเมื่อคงเหลือ"
+                  type="number"
+                  slotProps={{ htmlInput: { min: 0 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="หมายเหตุ"
+                  placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+                  sx={{ gridColumn: { sm: '1 / -1' } }}
+                />
+                <Box
                   sx={{
-                    minHeight: 40,
-                    borderRadius: '12px',
-                    color: '#5f4b3d',
-                    fontFamily: 'Kanit, sans-serif',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 1.25,
+                    mt: 1,
+                    gridColumn: { sm: '1 / -1' },
                   }}
                 >
-                  {editingItem ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  sx={{
-                    minHeight: 40,
-                    borderRadius: '12px',
-                    bgcolor: '#201914',
-                    fontFamily: 'Kanit, sans-serif',
-                    boxShadow: 'none',
-                    '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
-                  }}
-                >
-                  {editingItem ? 'บันทึกการแก้ไข' : 'บันทึกสต๊อก'}
-                </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setDrawerOpen(false)}
+                    sx={{
+                      minHeight: 40,
+                      borderRadius: '12px',
+                      color: '#5f4b3d',
+                      fontFamily: 'Kanit, sans-serif',
+                    }}
+                  >
+                    {editingItem ? 'ยกเลิกแก้ไข' : 'ยกเลิกเพิ่ม'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                      minHeight: 40,
+                      borderRadius: '12px',
+                      bgcolor: '#201914',
+                      fontFamily: 'Kanit, sans-serif',
+                      boxShadow: 'none',
+                      '&:hover': { bgcolor: '#3c2d24', boxShadow: 'none' },
+                    }}
+                  >
+                    {editingItem ? 'บันทึกการแก้ไข' : 'บันทึกสต๊อก'}
+                  </Button>
+                </Box>
               </Box>
             </Box>
           </Box>

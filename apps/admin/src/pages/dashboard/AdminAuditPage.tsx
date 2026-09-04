@@ -17,7 +17,7 @@ const actionLabels: Record<string, string> = {
 
 function eventDescription(event: AuditEvent) {
   const itemName =
-    typeof event.metadata.name === 'string' ? event.metadata.name : null;
+    typeof event.metadata?.name === 'string' ? event.metadata.name : null;
   const entity =
     event.entityType === 'stock_request'
       ? `คำขอ #${event.entityId ?? '-'}`

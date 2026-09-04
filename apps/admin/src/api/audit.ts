@@ -9,7 +9,7 @@ export type AuditEvent = {
   entityType: 'inventory_item' | 'stock_request';
   entityId: number | null;
   action: string;
-  metadata: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
 };
 export const listAuditEvents = () =>

@@ -95,7 +95,7 @@ func (h *PlatformHandler) ListStockRequests(c *gin.Context) {
 	if offset < 0 {
 		offset = 0
 	}
-	query := `SELECT r.id,r.status,r.note,r.created_at,b.id,b.name,
+	query := `SELECT r.id,r.status,r.note,r.created_at,b.id,b.name,b.franchisee_id IS NOT NULL,
 		COALESCE(json_agg(json_build_object('name',i.item_name,'quantity',i.quantity,'unit',i.unit) ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL),'[]')
 		FROM stock_requests r JOIN branches b ON b.id=r.branch_id LEFT JOIN stock_request_items i ON i.stock_request_id=r.id`
 	args := []any{}
@@ -120,13 +120,14 @@ func (h *PlatformHandler) ListStockRequests(c *gin.Context) {
 	for rows.Next() {
 		var id, branchID int64
 		var status, note, branchName string
+		var isFranchise bool
 		var created time.Time
 		var items []byte
-		if err := rows.Scan(&id, &status, &note, &created, &branchID, &branchName, &items); err != nil {
+		if err := rows.Scan(&id, &status, &note, &created, &branchID, &branchName, &isFranchise, &items); err != nil {
 			c.JSON(500, gin.H{"success": false, "message": "ไม่สามารถอ่านรายการคำขอได้"})
 			return
 		}
-		result = append(result, gin.H{"id": id, "status": status, "note": note, "createdAt": created, "branch": gin.H{"id": branchID, "name": branchName}, "items": json.RawMessage(items)})
+		result = append(result, gin.H{"id": id, "status": status, "note": note, "createdAt": created, "branch": gin.H{"id": branchID, "name": branchName, "isFranchise": isFranchise}, "items": json.RawMessage(items)})
 	}
 	c.JSON(200, gin.H{"success": true, "data": result, "pagination": gin.H{"limit": limit, "offset": offset}})
 }

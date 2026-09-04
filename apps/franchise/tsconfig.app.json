@@ -14,7 +14,31 @@
     "paths": {
       "@/*": ["./src/*"],
       "@stackbuild/ui": ["../../packages/ui/src/index.tsx"],
-      "@stackbuild/management": ["../../packages/management/src/index.ts"]
+      "@stackbuild/management": ["../../packages/management/src/index.ts"],
+      "@stackbuild/management/pages/employees": [
+        "../../packages/management/src/pages/EmployeesManagementPage.tsx"
+      ],
+      "@stackbuild/management/pages/ingredients": [
+        "../../packages/management/src/pages/IngredientsManagementPage.tsx"
+      ],
+      "@stackbuild/management/pages/products": [
+        "../../packages/management/src/pages/ProductsManagementPage.tsx"
+      ],
+      "@stackbuild/management/pages/stock": [
+        "../../packages/management/src/pages/StockManagementPage.tsx"
+      ],
+      "@stackbuild/management/skeletons/employees": [
+        "../../packages/management/src/components/skeletons/EmployeesSkeleton.tsx"
+      ],
+      "@stackbuild/management/skeletons/ingredients": [
+        "../../packages/management/src/components/skeletons/IngredientsSkeleton.tsx"
+      ],
+      "@stackbuild/management/skeletons/products": [
+        "../../packages/management/src/components/skeletons/ProductsSkeleton.tsx"
+      ],
+      "@stackbuild/management/skeletons/stock": [
+        "../../packages/management/src/components/skeletons/StockSkeleton.tsx"
+      ]
     }
   },
   "include": [

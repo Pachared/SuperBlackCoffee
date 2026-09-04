@@ -1,10 +1,10 @@
 import { lazy, Suspense, useState } from 'react';
 import { DashboardMain } from '@stackbuild/ui';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { EmployeesSkeleton } from '../../../../../packages/management/src/components/skeletons/EmployeesSkeleton';
-import { IngredientsSkeleton } from '../../../../../packages/management/src/components/skeletons/IngredientsSkeleton';
-import { ProductsSkeleton } from '../../../../../packages/management/src/components/skeletons/ProductsSkeleton';
-import { StockSkeleton } from '../../../../../packages/management/src/components/skeletons/StockSkeleton';
+import { EmployeesSkeleton } from '@stackbuild/management/skeletons/employees';
+import { IngredientsSkeleton } from '@stackbuild/management/skeletons/ingredients';
+import { ProductsSkeleton } from '@stackbuild/management/skeletons/products';
+import { StockSkeleton } from '@stackbuild/management/skeletons/stock';
 import {
   franchiseBranch,
   type FranchisePlan,
@@ -17,32 +17,24 @@ import {
 } from '../../routes/franchiseRoutes';
 
 const ProductsManagementPage = lazy(() =>
-  import('../../../../../packages/management/src/pages/ProductsManagementPage').then(
-    (module) => ({
-      default: module.ProductsManagementPage,
-    }),
-  ),
+  import('@stackbuild/management/pages/products').then((module) => ({
+    default: module.ProductsManagementPage,
+  })),
 );
 const IngredientsManagementPage = lazy(() =>
-  import('../../../../../packages/management/src/pages/IngredientsManagementPage').then(
-    (module) => ({
-      default: module.IngredientsManagementPage,
-    }),
-  ),
+  import('@stackbuild/management/pages/ingredients').then((module) => ({
+    default: module.IngredientsManagementPage,
+  })),
 );
 const StockManagementPage = lazy(() =>
-  import('../../../../../packages/management/src/pages/StockManagementPage').then(
-    (module) => ({
-      default: module.StockManagementPage,
-    }),
-  ),
+  import('@stackbuild/management/pages/stock').then((module) => ({
+    default: module.StockManagementPage,
+  })),
 );
 const EmployeesManagementPage = lazy(() =>
-  import('../../../../../packages/management/src/pages/EmployeesManagementPage').then(
-    (module) => ({
-      default: module.EmployeesManagementPage,
-    }),
-  ),
+  import('@stackbuild/management/pages/employees').then((module) => ({
+    default: module.EmployeesManagementPage,
+  })),
 );
 const FranchiseIngredientRequestsPage = lazy(() =>
   import('../../pages/dashboard/FranchiseIngredientRequestsPage').then(
@@ -65,7 +57,7 @@ const readPlan = (): FranchisePlan => {
 function FranchisePageSkeleton({ page }: { page: string }) {
   const skeleton =
     page === 'ตารางพนักงาน' ? (
-      <EmployeesSkeleton franchiseMode />
+      <EmployeesSkeleton franchiseMode showHeader />
     ) : page === 'วัตถุดิบ' ? (
       <IngredientsSkeleton />
     ) : page === 'เมนูและสินค้า' ? (
@@ -131,7 +123,7 @@ export function FranchiseDashboard({ logout }: { logout: () => void }) {
         ) : activePage === 'สต๊อก' ? (
           <StockManagementPage activeBranch={franchiseBranch} readOnly />
         ) : activePage === 'ตารางพนักงาน' ? (
-          <EmployeesManagementPage franchiseMode />
+          <EmployeesManagementPage franchiseMode suppressLoadingHeader />
         ) : (
           <DashboardMain>
             <FranchiseOverviewPage plan={plan} onNavigate={navigate} />

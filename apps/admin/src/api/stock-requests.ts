@@ -4,7 +4,7 @@ export type StockRequest = {
   id: number;
   status: 'pending' | 'approved' | 'preparing' | 'completed' | 'rejected';
   createdAt: string;
-  branch: { id: number; name: string };
+  branch: { id: number; name: string; isFranchise?: boolean };
   items: { name: string; quantity: number; unit: string }[];
 };
 export const listStockRequests = () =>

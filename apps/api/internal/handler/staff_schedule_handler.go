@@ -409,7 +409,7 @@ SELECT u.id,u.branch_id,d::date,
   CASE WHEN ((EXTRACT(DAY FROM d)::int + u.id) % 2) = 0 THEN u.default_starts_at ELSE COALESCE(u.default_second_starts_at,u.default_starts_at) END,
   CASE WHEN ((EXTRACT(DAY FROM d)::int + u.id) % 2) = 0 THEN u.default_ends_at ELSE COALESCE(u.default_second_ends_at,u.default_ends_at) END,
   CASE WHEN h.holiday_date IS NOT NULL OR EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'day_off' ELSE 'scheduled' END,
-  CASE WHEN h.holiday_date IS NOT NULL THEN h.name WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'วันหยุดประจำสัปดาห์' ELSE NULL END
+	  CASE WHEN h.holiday_date IS NOT NULL THEN 'วันหยุดนักขัตฤกษ์' WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'วันหยุดประจำสัปดาห์' ELSE NULL END
 FROM users u
 JOIN branches b ON b.id=u.branch_id
 CROSS JOIN generate_series($1::date,$2::date - INTERVAL '1 day',INTERVAL '1 day') d
