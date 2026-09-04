@@ -19,7 +19,6 @@ export const adminSidebarNavigation = [
   },
   { label: 'สต๊อก', icon: <BoxIcon />, group: 'สินค้าและคลัง' },
   { label: 'วัตถุดิบ', icon: <BoxesIcon />, group: 'สินค้าและคลัง' },
-  { label: 'จัดซื้อ', icon: <ReceiptTextIcon />, group: 'สินค้าและคลัง' },
   {
     label: 'สาขา SBC',
     icon: <MapPinHouseIcon />,

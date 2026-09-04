@@ -16,6 +16,7 @@
     "@mui/material": "latest",
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
+    "react-router-dom": "latest",
     "@stackbuild/ui": "workspace:*",
     "@stackbuild/management": "workspace:*"
   },

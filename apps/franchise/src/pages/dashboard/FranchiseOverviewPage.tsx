@@ -5,8 +5,8 @@ import {
   Button,
   Card,
   Chip,
-  CircularProgress,
   Divider,
+  Skeleton,
   Typography,
 } from '@mui/material';
 import {
@@ -72,6 +72,51 @@ function State({ value }: { value: number }) {
         fontSize: 11.5,
       }}
     />
+  );
+}
+
+function FranchiseOverviewLoading() {
+  return (
+    <Box sx={{ display: 'grid', gap: 1.75 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            xl: 'repeat(4, minmax(0, 1fr))',
+          },
+          gap: 1.75,
+        }}
+      >
+        {[1, 2, 3, 4].map((item) => (
+          <Skeleton
+            key={item}
+            variant="rounded"
+            height={126}
+            sx={{ borderRadius: '16px' }}
+          />
+        ))}
+      </Box>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.4fr) 1fr' },
+          gap: 1.75,
+        }}
+      >
+        <Skeleton
+          variant="rounded"
+          height={250}
+          sx={{ borderRadius: '16px' }}
+        />
+        <Skeleton
+          variant="rounded"
+          height={250}
+          sx={{ borderRadius: '16px' }}
+        />
+      </Box>
+    </Box>
   );
 }
 
@@ -198,9 +243,7 @@ export function FranchiseOverviewPage({
       </Box>
 
       {loading ? (
-        <Box sx={{ minHeight: 360, display: 'grid', placeItems: 'center' }}>
-          <CircularProgress size={28} sx={{ color: '#805637' }} />
-        </Box>
+        <FranchiseOverviewLoading />
       ) : (
         <>
           <Box

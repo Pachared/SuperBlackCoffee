@@ -14,7 +14,6 @@ import { AdminOverviewSkeleton } from '../../components/skeletons/AdminOverviewS
 import { AdminAuditSkeleton } from '../../components/skeletons/AdminAuditSkeleton';
 import { AdminBranchesSkeleton } from '../../components/skeletons/AdminBranchesSkeleton';
 import { AdminOrdersSkeleton } from '../../components/skeletons/AdminOrdersSkeleton';
-import { AdminProcurementSkeleton } from '../../components/skeletons/AdminProcurementSkeleton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   adminPageFromPath,
@@ -66,11 +65,6 @@ const AdminStockPage = lazy(() =>
     default: module.StockManagementPage,
   })),
 );
-const AdminProcurementPage = lazy(() =>
-  import('../../pages/dashboard/AdminProcurementPage').then((module) => ({
-    default: module.AdminProcurementPage,
-  })),
-);
 
 function DashboardPageSkeleton({ page }: { page: AdminPage }) {
   const skeleton =
@@ -84,8 +78,6 @@ function DashboardPageSkeleton({ page }: { page: AdminPage }) {
       <AdminAuditSkeleton />
     ) : page === 'สต๊อก' ? (
       <StockSkeleton />
-    ) : page === 'จัดซื้อ' ? (
-      <AdminProcurementSkeleton />
     ) : page === 'เมนูและสินค้า' ? (
       <ProductsSkeleton />
     ) : page === 'วัตถุดิบ' ? (
@@ -148,8 +140,6 @@ export function AdminDashboard({ logout }: { logout: () => void }) {
     <AdminAuditPage />
   ) : isStockPage ? (
     <AdminStockPage activeBranch={activeBranch} />
-  ) : activePage === 'จัดซื้อ' ? (
-    <AdminProcurementPage />
   ) : activePage === 'เมนูและสินค้า' ? (
     <AdminProductsPage activeBranch={activeBranch} />
   ) : activePage === 'สาขาแฟรนไชส์' ? (

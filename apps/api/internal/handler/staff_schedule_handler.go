@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"bufio"
+	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,15 +13,104 @@ import (
 	"y/internal/middleware"
 )
 
+var syncedThaiHolidayYears sync.Map
+
+func (h *PlatformHandler) syncThaiPublicHolidays(c *gin.Context, year int) error {
+	if _, synced := syncedThaiHolidayYears.Load(year); synced {
+		return nil
+	}
+	start := fmt.Sprintf("%04d-01-01", year)
+	end := fmt.Sprintf("%04d-01-01", year+1)
+	var found bool
+	if err := h.db.QueryRowContext(c, `SELECT EXISTS(SELECT 1 FROM public_holidays WHERE holiday_date >= $1::date AND holiday_date < $2::date)`, start, end).Scan(&found); err != nil {
+		return err
+	}
+
+	request, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, "https://calendar.google.com/calendar/ical/th.th%23holiday%40group.v.calendar.google.com/public/basic.ics", nil)
+	if err != nil {
+		return err
+	}
+	response, err := (&http.Client{Timeout: 8 * time.Second}).Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		if found {
+			return nil
+		}
+		return fmt.Errorf("thai holiday calendar returned %s", response.Status)
+	}
+	date, name, count := "", "", 0
+	scanner := bufio.NewScanner(response.Body)
+	for scanner.Scan() {
+		line := scanner.Text()
+		switch {
+		case line == "BEGIN:VEVENT":
+			date, name = "", ""
+		case strings.HasPrefix(line, "DTSTART;VALUE=DATE:"):
+			value := strings.TrimPrefix(line, "DTSTART;VALUE=DATE:")
+			if len(value) == 8 && value[:4] == fmt.Sprintf("%04d", year) {
+				date = value[:4] + "-" + value[4:6] + "-" + value[6:]
+			}
+		case strings.HasPrefix(line, "SUMMARY:"):
+			name = strings.ReplaceAll(strings.TrimPrefix(line, "SUMMARY:"), `\,`, ",")
+		case line == "END:VEVENT" && date != "" && name != "":
+			if _, err := h.db.ExecContext(c, `INSERT INTO public_holidays(holiday_date,name) VALUES($1,$2) ON CONFLICT (holiday_date) DO UPDATE SET name=EXCLUDED.name`, date, name); err != nil {
+				return err
+			}
+			count++
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	if count == 0 && !found {
+		return fmt.Errorf("thai holiday calendar returned no holidays for %d", year)
+	}
+	syncedThaiHolidayYears.Store(year, struct{}{})
+	return nil
+}
+
+func (h *PlatformHandler) ListPublicHolidays(c *gin.Context) {
+	month, err := time.Parse("2006-01", c.DefaultQuery("month", time.Now().Format("2006-01")))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "month ต้องอยู่ในรูปแบบ YYYY-MM"})
+		return
+	}
+	if err := h.syncThaiPublicHolidays(c, month.Year()); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"success": false, "message": "ไม่สามารถซิงก์วันนักขัตฤกษ์ได้"})
+		return
+	}
+	rows, err := h.db.QueryContext(c, `SELECT holiday_date::text,name FROM public_holidays WHERE holiday_date >= $1 AND holiday_date < $2 ORDER BY holiday_date`, month, month.AddDate(0, 1, 0))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "ไม่สามารถอ่านวันนักขัตฤกษ์ได้"})
+		return
+	}
+	defer rows.Close()
+	holidayItems := []gin.H{}
+	for rows.Next() {
+		var date, name string
+		if err := rows.Scan(&date, &name); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "ไม่สามารถอ่านวันนักขัตฤกษ์ได้"})
+			return
+		}
+		holidayItems = append(holidayItems, gin.H{"date": date, "name": name})
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": holidayItems})
+}
+
 func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 	var input struct {
-		Name            string `json:"name" binding:"required"`
-		Username        string `json:"username" binding:"required"`
-		Password        string `json:"password" binding:"required,min=8"`
-		Role            string `json:"role" binding:"required"`
-		BranchID        int64  `json:"branchId" binding:"required"`
-		DefaultStartsAt string `json:"defaultStartsAt"`
-		DefaultEndsAt   string `json:"defaultEndsAt"`
+		Name                  string `json:"name" binding:"required"`
+		Username              string `json:"username" binding:"required"`
+		Password              string `json:"password" binding:"required,min=8"`
+		Role                  string `json:"role" binding:"required"`
+		BranchID              int64  `json:"branchId" binding:"required"`
+		DefaultStartsAt       string `json:"defaultStartsAt"`
+		DefaultEndsAt         string `json:"defaultEndsAt"`
+		DefaultSecondStartsAt string `json:"defaultSecondStartsAt"`
+		DefaultSecondEndsAt   string `json:"defaultSecondEndsAt"`
 	}
 	if c.ShouldBindJSON(&input) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "กรอกข้อมูลพนักงานให้ครบ และรหัสผ่านอย่างน้อย 8 ตัวอักษร"})
@@ -58,7 +150,11 @@ func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 	if input.DefaultEndsAt == "" {
 		input.DefaultEndsAt = "17:00"
 	}
-	err = h.db.QueryRowContext(c, `INSERT INTO users(name,username,email,password_hash,role,franchisee_id,branch_id,default_starts_at,default_ends_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, strings.TrimSpace(input.Name), username, username+"@superblackcoffee.local", string(passwordHash), input.Role, franchiseeID, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt).Scan(&id)
+	if input.DefaultSecondStartsAt == "" || input.DefaultSecondEndsAt == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "กรุณาระบุเวลาเข้างานและเวลาออกงานของกะที่ 2"})
+		return
+	}
+	err = h.db.QueryRowContext(c, `INSERT INTO users(name,username,email,password_hash,role,franchisee_id,branch_id,default_starts_at,default_ends_at,default_second_starts_at,default_second_ends_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, strings.TrimSpace(input.Name), username, username+"@superblackcoffee.local", string(passwordHash), input.Role, franchiseeID, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt, input.DefaultSecondStartsAt, input.DefaultSecondEndsAt).Scan(&id)
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"success": false, "message": "username นี้ถูกใช้งานแล้ว หรือไม่พบสาขาที่เลือก"})
 		return
@@ -69,11 +165,13 @@ func (h *PlatformHandler) CreateStaffMember(c *gin.Context) {
 
 func (h *PlatformHandler) UpdateStaffMember(c *gin.Context) {
 	var input struct {
-		Name            string `json:"name" binding:"required"`
-		Role            string `json:"role" binding:"required"`
-		BranchID        int64  `json:"branchId" binding:"required"`
-		DefaultStartsAt string `json:"defaultStartsAt"`
-		DefaultEndsAt   string `json:"defaultEndsAt"`
+		Name                  string `json:"name" binding:"required"`
+		Role                  string `json:"role" binding:"required"`
+		BranchID              int64  `json:"branchId" binding:"required"`
+		DefaultStartsAt       string `json:"defaultStartsAt"`
+		DefaultEndsAt         string `json:"defaultEndsAt"`
+		DefaultSecondStartsAt string `json:"defaultSecondStartsAt"`
+		DefaultSecondEndsAt   string `json:"defaultSecondEndsAt"`
 	}
 	if c.ShouldBindJSON(&input) != nil || (input.Role != "cashier" && input.Role != "branch_manager") {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลพนักงานไม่ถูกต้อง"})
@@ -86,15 +184,15 @@ func (h *PlatformHandler) UpdateStaffMember(c *gin.Context) {
 	if input.DefaultEndsAt == "" {
 		input.DefaultEndsAt = "17:00"
 	}
-	query := `UPDATE users SET name=$1,role=$2,branch_id=$3,default_starts_at=$4,default_ends_at=$5 WHERE id=$6 AND role IN ('cashier','branch_manager') AND franchisee_id IS NULL`
-	args := []any{strings.TrimSpace(input.Name), input.Role, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt, c.Param("id")}
+	query := `UPDATE users SET name=$1,role=$2,branch_id=$3,default_starts_at=$4,default_ends_at=$5,default_second_starts_at=NULLIF($6,''),default_second_ends_at=NULLIF($7,'') WHERE id=$8 AND role IN ('cashier','branch_manager') AND franchisee_id IS NULL`
+	args := []any{strings.TrimSpace(input.Name), input.Role, input.BranchID, input.DefaultStartsAt, input.DefaultEndsAt, input.DefaultSecondStartsAt, input.DefaultSecondEndsAt, c.Param("id")}
 	if claims.Role == "franchise_owner" {
 		branchID, ok := h.branchScope(c)
 		if !ok || branchID != input.BranchID {
 			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "ไม่มีสิทธิ์แก้ไขพนักงานนี้"})
 			return
 		}
-		query = `UPDATE users SET name=$1,role=$2,default_starts_at=$4,default_ends_at=$5 WHERE id=$6 AND role IN ('cashier','branch_manager') AND branch_id=$3 AND franchisee_id=$7`
+		query = `UPDATE users SET name=$1,role=$2,default_starts_at=$4,default_ends_at=$5,default_second_starts_at=NULLIF($6,''),default_second_ends_at=NULLIF($7,'') WHERE id=$8 AND role IN ('cashier','branch_manager') AND branch_id=$3 AND franchisee_id=$9`
 		args = append(args, *claims.FranchiseeID)
 	}
 	result, err := h.db.ExecContext(c, query, args...)
@@ -187,7 +285,7 @@ func (h *PlatformHandler) UpdateStaffShift(c *gin.Context) {
 		}
 	}
 	if input.Status != nil {
-		valid := map[string]bool{"scheduled": true, "leave": true, "sick_leave": true, "personal_leave": true, "day_off": true}
+		valid := map[string]bool{"scheduled": true, "compensatory_work": true, "leave": true, "sick_leave": true, "personal_leave": true, "day_off": true}
 		if !valid[*input.Status] {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "สถานะกะงานไม่ถูกต้อง"})
 			return
@@ -302,11 +400,20 @@ func (h *PlatformHandler) GenerateStaffSchedules(c *gin.Context) {
 		}
 	}
 	monthEnd := month.AddDate(0, 1, 0)
+	if err := h.syncThaiPublicHolidays(c, month.Year()); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"success": false, "message": "ไม่สามารถซิงก์วันนักขัตฤกษ์ได้"})
+		return
+	}
 	query := `INSERT INTO staff_shifts(user_id,branch_id,shift_date,starts_at,ends_at,status,leave_type)
-SELECT u.id,u.branch_id,d::date,'08:00','17:00',
-  CASE WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'day_off' ELSE 'scheduled' END,
-  CASE WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'วันหยุดประจำสัปดาห์' ELSE NULL END
-FROM users u JOIN branches b ON b.id=u.branch_id CROSS JOIN generate_series($1::date,$2::date - INTERVAL '1 day',INTERVAL '1 day') d
+SELECT u.id,u.branch_id,d::date,
+  CASE WHEN ((EXTRACT(DAY FROM d)::int + u.id) % 2) = 0 THEN u.default_starts_at ELSE COALESCE(u.default_second_starts_at,u.default_starts_at) END,
+  CASE WHEN ((EXTRACT(DAY FROM d)::int + u.id) % 2) = 0 THEN u.default_ends_at ELSE COALESCE(u.default_second_ends_at,u.default_ends_at) END,
+  CASE WHEN h.holiday_date IS NOT NULL OR EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'day_off' ELSE 'scheduled' END,
+  CASE WHEN h.holiday_date IS NOT NULL THEN h.name WHEN EXTRACT(ISODOW FROM d) = ((u.id % 7) + 1) THEN 'วันหยุดประจำสัปดาห์' ELSE NULL END
+FROM users u
+JOIN branches b ON b.id=u.branch_id
+CROSS JOIN generate_series($1::date,$2::date - INTERVAL '1 day',INTERVAL '1 day') d
+LEFT JOIN public_holidays h ON h.holiday_date=d::date
 WHERE u.role IN ('cashier','branch_manager') AND u.branch_id=$3`
 	if claims.Role == "franchise_owner" {
 		query += ` AND u.franchisee_id=$4 AND b.franchisee_id=$4`

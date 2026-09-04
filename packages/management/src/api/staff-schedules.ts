@@ -8,7 +8,13 @@ export type StaffShift = {
   date: string;
   startsAt: string;
   endsAt: string;
-  status: 'scheduled' | 'day_off' | 'leave' | 'sick_leave' | 'personal_leave';
+  status:
+    | 'scheduled'
+    | 'compensatory_work'
+    | 'day_off'
+    | 'leave'
+    | 'sick_leave'
+    | 'personal_leave';
   leaveType?: string;
 };
 

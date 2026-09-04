@@ -22,6 +22,7 @@ import {
   updateStaffShift,
   type StaffShift,
 } from '../api/staff-schedules';
+import { listPublicHolidays } from '../api/public-holidays';
 import {
   createEmployee,
   deleteEmployee,
@@ -56,11 +57,16 @@ const shiftColors = [
 ];
 const leaveLabels: Record<StaffShift['status'], string> = {
   scheduled: 'ทำงานตามกะ',
+  compensatory_work: 'ทำงานชดเชย',
   day_off: 'วันหยุด',
   leave: 'ลางาน',
   sick_leave: 'ลาป่วย',
   personal_leave: 'ลาอื่น ๆ',
 };
+
+function isWorkingShift(status: StaffShift['status']) {
+  return status === 'scheduled' || status === 'compensatory_work';
+}
 
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -96,6 +102,10 @@ function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function usesFirstShift(date: string, employeeId: number) {
+  return (Number(date.slice(-2)) + employeeId) % 2 === 0;
+}
+
 export function EmployeesManagementPage({
   franchiseMode = false,
 }: {
@@ -117,8 +127,10 @@ export function EmployeesManagementPage({
   const [newEmployeeBranchId, setNewEmployeeBranchId] = useState('');
   const [defaultStartsAt, setDefaultStartsAt] = useState('08:00');
   const [defaultEndsAt, setDefaultEndsAt] = useState('17:00');
+  const [defaultSecondStartsAt, setDefaultSecondStartsAt] = useState('');
+  const [defaultSecondEndsAt, setDefaultSecondEndsAt] = useState('');
   const [hoveredTimeField, setHoveredTimeField] = useState<
-    'start' | 'end' | null
+    'start' | 'end' | 'secondStart' | 'secondEnd' | null
   >(null);
   const [confirmAutoSchedule, setConfirmAutoSchedule] = useState(false);
   const [showInitialSkeleton, setShowInitialSkeleton] = useState(true);
@@ -142,6 +154,10 @@ export function EmployeesManagementPage({
     queryKey: ['staff-schedules', monthKey],
     queryFn: () => listStaffSchedules(monthKey),
   });
+  const holidays = useQuery({
+    queryKey: ['public-holidays', monthKey],
+    queryFn: () => listPublicHolidays(monthKey),
+  });
   const branches = useQuery({ queryKey: ['branches'], queryFn: listBranches });
   const pageLoading =
     showInitialSkeleton ||
@@ -149,13 +165,26 @@ export function EmployeesManagementPage({
     isFetching ||
     schedules.isLoading ||
     schedules.isFetching ||
+    holidays.isLoading ||
+    holidays.isFetching ||
     branches.isLoading ||
     branches.isFetching;
   useEffect(() => {
-    if (isFetching || schedules.isFetching || branches.isFetching) return;
+    if (
+      isFetching ||
+      schedules.isFetching ||
+      holidays.isFetching ||
+      branches.isFetching
+    )
+      return;
     const timer = window.setTimeout(() => setShowInitialSkeleton(false), 800);
     return () => window.clearTimeout(timer);
-  }, [branches.isFetching, isFetching, schedules.isFetching]);
+  }, [
+    branches.isFetching,
+    holidays.isFetching,
+    isFetching,
+    schedules.isFetching,
+  ]);
   const workspaceBranches = franchiseMode
     ? (branches.data ?? [])
     : (branches.data ?? []).filter((branch) => !branch.franchiseeId);
@@ -212,6 +241,8 @@ export function EmployeesManagementPage({
         branchId: Number(newEmployeeBranchId),
         defaultStartsAt,
         defaultEndsAt,
+        defaultSecondStartsAt,
+        defaultSecondEndsAt,
       }),
     onSuccess: () => {
       setIsEmployeeDrawerOpen(false);
@@ -227,6 +258,11 @@ export function EmployeesManagementPage({
     }
     return result;
   }, [activeBranchId, schedules.data]);
+  const holidaysByDate = useMemo(
+    () =>
+      new Map((holidays.data ?? []).map((holiday) => [holiday.date, holiday])),
+    [holidays.data],
+  );
   const shiftColorsByUser = useMemo(() => {
     const userIds = [
       ...new Set(
@@ -273,6 +309,8 @@ export function EmployeesManagementPage({
     setNewEmployeeBranchId(String(employee.branchId ?? activeBranchId ?? ''));
     setDefaultStartsAt(employee.defaultStartsAt?.slice(0, 5) || '08:00');
     setDefaultEndsAt(employee.defaultEndsAt?.slice(0, 5) || '17:00');
+    setDefaultSecondStartsAt(employee.defaultSecondStartsAt?.slice(0, 5) || '');
+    setDefaultSecondEndsAt(employee.defaultSecondEndsAt?.slice(0, 5) || '');
     setIsEmployeeDrawerOpen(true);
   };
   const removeEmployee = async (employee: (typeof employees)[number]) => {
@@ -419,6 +457,8 @@ export function EmployeesManagementPage({
                 setNewEmployeeBranchId(String(activeBranchId ?? ''));
                 setDefaultStartsAt('');
                 setDefaultEndsAt('');
+                setDefaultSecondStartsAt('');
+                setDefaultSecondEndsAt('');
                 setIsEmployeeDrawerOpen(true);
               }}
               sx={{ bgcolor: '#805637', '&:hover': { bgcolor: '#60412a' } }}
@@ -860,6 +900,7 @@ export function EmployeesManagementPage({
                     const isCurrentMonth = day.getMonth() === month.getMonth();
                     const isToday = isSameDay(day, today);
                     const shifts = shiftsByDate.get(dateKey(day)) ?? [];
+                    const holiday = holidaysByDate.get(dateKey(day));
                     return (
                       <Box
                         key={day.toISOString()}
@@ -868,7 +909,11 @@ export function EmployeesManagementPage({
                           p: 1.25,
                           borderRight: '1px solid #eee4dd',
                           borderBottom: '1px solid #eee4dd',
-                          bgcolor: isCurrentMonth ? '#fff' : '#fbf8f6',
+                          bgcolor: !isCurrentMonth
+                            ? '#fbf8f6'
+                            : holiday
+                              ? '#fff8eb'
+                              : '#fff',
                           opacity: isCurrentMonth ? 1 : 0.5,
                           '&:nth-of-type(7n)': { borderRight: 0 },
                           '&:nth-last-child(-n + 7)': { borderBottom: 0 },
@@ -889,7 +934,21 @@ export function EmployeesManagementPage({
                         >
                           {day.getDate()}
                         </Box>
-                        {isCurrentMonth && shifts.length === 0 ? (
+                        {holiday ? (
+                          <Typography
+                            title={holiday.name}
+                            sx={{
+                              mt: 0.35,
+                              color: '#b94136',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              lineHeight: 1.25,
+                            }}
+                          >
+                            {holiday.name}
+                          </Typography>
+                        ) : null}
+                        {isCurrentMonth && shifts.length === 0 && !holiday ? (
                           <Typography
                             sx={{
                               mt: 2.5,
@@ -906,19 +965,19 @@ export function EmployeesManagementPage({
                             key={shift.id}
                             component="button"
                             type="button"
-                            draggable={shift.status === 'scheduled'}
+                            draggable={isWorkingShift(shift.status)}
                             onClick={() => openShiftEditor(shift)}
                             onDragStart={() => setDraggedShiftId(shift.id)}
                             onDragEnd={() => setDraggedShiftId(null)}
                             onDragOver={(event) => {
-                              if (shift.status !== 'scheduled')
+                              if (!isWorkingShift(shift.status))
                                 event.preventDefault();
                             }}
                             onDrop={() => {
                               if (
                                 draggedShiftId !== null &&
                                 draggedShiftId !== shift.id &&
-                                shift.status !== 'scheduled'
+                                !isWorkingShift(shift.status)
                               )
                                 replaceShift.mutate({
                                   targetShiftId: shift.id,
@@ -933,7 +992,7 @@ export function EmployeesManagementPage({
                                 draggedShiftId === shift.id ? 0.55 : undefined,
                               outline:
                                 draggedShiftId !== null &&
-                                shift.status !== 'scheduled'
+                                !isWorkingShift(shift.status)
                                   ? '2px dashed #b94136'
                                   : 'none',
                               outlineOffset: 2,
@@ -945,9 +1004,11 @@ export function EmployeesManagementPage({
                               bgcolor:
                                 shift.status === 'scheduled'
                                   ? shiftColorsByUser.get(shift.userId)
-                                  : shift.status === 'day_off'
-                                    ? '#ebe8e5'
-                                    : '#ffe4e4',
+                                  : shift.status === 'compensatory_work'
+                                    ? '#dff4e7'
+                                    : shift.status === 'day_off'
+                                      ? '#ebe8e5'
+                                      : '#ffe4e4',
                               color: '#60493b',
                               fontSize: 12,
                               lineHeight: 1.25,
@@ -959,7 +1020,7 @@ export function EmployeesManagementPage({
                             >
                               {shift.name}
                             </Box>
-                            {shift.status === 'scheduled'
+                            {isWorkingShift(shift.status)
                               ? `${shift.startsAt.slice(0, 5)} น. - ${shift.endsAt.slice(0, 5)} น.`
                               : leaveLabels[shift.status]}
                           </Box>
@@ -1210,9 +1271,16 @@ export function EmployeesManagementPage({
                 !defaultStartsAt ||
                 !defaultEndsAt ||
                 defaultStartsAt === '00:00' ||
-                defaultEndsAt === '00:00'
+                defaultEndsAt === '00:00' ||
+                (editingEmployeeId === null &&
+                  (!defaultSecondStartsAt ||
+                    !defaultSecondEndsAt ||
+                    defaultSecondStartsAt === '00:00' ||
+                    defaultSecondEndsAt === '00:00'))
               ) {
-                window.alert('กรุณาระบุเวลาเข้างานและเวลาออกงานก่อนบันทึก');
+                window.alert(
+                  'กรุณาระบุเวลาเข้างานและเวลาออกงานให้ครบทั้ง 2 กะก่อนบันทึก',
+                );
                 return;
               }
               if (editingEmployeeId !== null) {
@@ -1220,12 +1288,16 @@ export function EmployeesManagementPage({
                 const updatedName = newEmployeeName.trim();
                 const updatedStartsAt = defaultStartsAt;
                 const updatedEndsAt = defaultEndsAt;
+                const updatedSecondStartsAt = defaultSecondStartsAt;
+                const updatedSecondEndsAt = defaultSecondEndsAt;
                 void updateEmployee(editingEmployeeId, {
                   name: updatedName,
                   role: newEmployeeRole,
                   branchId: Number(newEmployeeBranchId),
                   defaultStartsAt: updatedStartsAt,
                   defaultEndsAt: updatedEndsAt,
+                  defaultSecondStartsAt: updatedSecondStartsAt,
+                  defaultSecondEndsAt: updatedSecondEndsAt,
                 }).then(() => {
                   queryClient.setQueryData<Employee[]>(
                     ['employees'],
@@ -1239,6 +1311,8 @@ export function EmployeesManagementPage({
                               branchId: Number(newEmployeeBranchId),
                               defaultStartsAt: updatedStartsAt,
                               defaultEndsAt: updatedEndsAt,
+                              defaultSecondStartsAt: updatedSecondStartsAt,
+                              defaultSecondEndsAt: updatedSecondEndsAt,
                             }
                           : employee,
                       ),
@@ -1247,14 +1321,18 @@ export function EmployeesManagementPage({
                     ['staff-schedules', monthKey],
                     (current) =>
                       current?.map((shift) =>
-                        shift.userId === updatedEmployeeId
-                          ? {
+                        shift.userId !== updatedEmployeeId
+                          ? shift
+                          : {
                               ...shift,
                               name: updatedName,
-                              startsAt: updatedStartsAt,
-                              endsAt: updatedEndsAt,
-                            }
-                          : shift,
+                              startsAt: usesFirstShift(shift.date, shift.userId)
+                                ? updatedStartsAt
+                                : updatedSecondStartsAt || updatedStartsAt,
+                              endsAt: usesFirstShift(shift.date, shift.userId)
+                                ? updatedEndsAt
+                                : updatedSecondEndsAt || updatedEndsAt,
+                            },
                       ),
                   );
                   setEditingEmployeeId(null);
@@ -1322,7 +1400,7 @@ export function EmployeesManagementPage({
               <Typography
                 sx={{ color: '#3c2d24', fontSize: 14, fontWeight: 600, mb: 1 }}
               >
-                เวลาทำงานประจำ
+                เวลาทำงานประจำ · กะที่ 1
               </Typography>
             </Box>
             <Box
@@ -1408,6 +1486,107 @@ export function EmployeesManagementPage({
                   }}
                 >
                   <ClockIcon size={20} animated={hoveredTimeField === 'end'} />
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ gridColumn: '1 / -1', mt: 0.5 }}>
+              <Divider sx={{ borderColor: '#e4dad4', mb: 1.5 }} />
+              <Typography
+                sx={{ color: '#3c2d24', fontSize: 13, fontWeight: 600, mb: 1 }}
+              >
+                กะที่ 2 {editingEmployeeId !== null ? '(ถ้ามี)' : '*'}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                gridColumn: { xs: '1', sm: '1 / -1' },
+              }}
+            >
+              <Box sx={{ flex: 1, position: 'relative' }}>
+                <TextField
+                  required={editingEmployeeId === null}
+                  fullWidth
+                  label="เวลาเข้างาน กะที่ 2"
+                  type="time"
+                  value={defaultSecondStartsAt}
+                  onChange={(event) =>
+                    setDefaultSecondStartsAt(event.target.value)
+                  }
+                  onMouseEnter={() => setHoveredTimeField('secondStart')}
+                  onMouseLeave={() => setHoveredTimeField(null)}
+                  sx={{
+                    '& input::-webkit-calendar-picker-indicator': {
+                      opacity: 0,
+                    },
+                  }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      onClick: (event: MouseEvent<HTMLInputElement>) =>
+                        event.currentTarget.showPicker?.(),
+                    },
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: '0 16px 0 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#3c2d24',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                >
+                  <ClockIcon
+                    size={20}
+                    animated={hoveredTimeField === 'secondStart'}
+                  />
+                </Box>
+              </Box>
+              <Box sx={{ flex: 1, position: 'relative' }}>
+                <TextField
+                  required={editingEmployeeId === null}
+                  fullWidth
+                  label="เวลาออกงาน กะที่ 2"
+                  type="time"
+                  value={defaultSecondEndsAt}
+                  onChange={(event) =>
+                    setDefaultSecondEndsAt(event.target.value)
+                  }
+                  onMouseEnter={() => setHoveredTimeField('secondEnd')}
+                  onMouseLeave={() => setHoveredTimeField(null)}
+                  sx={{
+                    '& input::-webkit-calendar-picker-indicator': {
+                      opacity: 0,
+                    },
+                  }}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      onClick: (event: MouseEvent<HTMLInputElement>) =>
+                        event.currentTarget.showPicker?.(),
+                    },
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: '0 16px 0 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#3c2d24',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                >
+                  <ClockIcon
+                    size={20}
+                    animated={hoveredTimeField === 'secondEnd'}
+                  />
                 </Box>
               </Box>
             </Box>

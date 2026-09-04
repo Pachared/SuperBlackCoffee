@@ -1,157 +1,30 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Box } from '@mui/material';
-import {
-  DashboardMain,
-  DashboardSidebar,
-  DashboardTopbar,
-  LoginScreen,
-  SbcThemeProvider,
-} from '@stackbuild/ui';
-import {
-  EmployeesManagementPage,
-  IngredientsManagementPage,
-  ProductsManagementPage,
-  StockManagementPage,
-} from '@stackbuild/management';
-import { login } from './api/auth';
-import {
-  franchiseBranch,
-  franchisePageFromPath,
-  franchisePagePaths,
-  navigationForPlan,
-  type FranchisePlan,
-} from './components/sidebar/franchiseSidebarNavigation';
-import { FranchiseIngredientRequestsPage } from './pages/dashboard/FranchiseIngredientRequestsPage';
-import { FranchiseOverviewPage } from './pages/dashboard/FranchiseOverviewPage';
-
-const readPlan = (): FranchisePlan => {
-  const value = sessionStorage.getItem('sbc-franchise-plan');
-  return value === 'M' || value === 'L' ? value : 'S';
-};
+import { useEffect, useState } from 'react';
+import { SbcThemeProvider } from '@stackbuild/ui';
+import { FranchiseLoginPage } from './features/auth/FranchiseLoginPage';
+import { FranchiseDashboard } from './features/dashboard/FranchiseDashboard';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(
     () => sessionStorage.getItem('sbc-franchise-session') === 'true',
   );
-  const [plan, setPlan] = useState<FranchisePlan>(readPlan);
-  const [activePage, setActivePage] = useState(() => {
-    const fromPath = franchisePageFromPath(window.location.pathname);
-    if (window.location.pathname !== '/') return fromPath;
-    const stored = sessionStorage.getItem('sbc-franchise-active-page');
-    return stored === 'พนักงาน' ? 'ตารางพนักงาน' : (stored ?? 'ภาพรวม');
-  });
-  const [collapsed, setCollapsed] = useState(
-    () => sessionStorage.getItem('sbc-franchise-sidebar-collapsed') === 'true',
-  );
-  const logout = useCallback(() => {
-    [
-      'sbc-access-token',
-      'sbc-franchise-session',
-      'sbc-franchise-plan',
-      'sbc-franchise-active-page',
-      'sbc-franchise-sidebar-collapsed',
-    ].forEach((key) => sessionStorage.removeItem(key));
+  const logout = () => {
+    sessionStorage.removeItem('sbc-access-token');
+    sessionStorage.removeItem('sbc-franchise-session');
+    sessionStorage.removeItem('sbc-franchise-plan');
+    sessionStorage.removeItem('sbc-franchise-active-page');
+    sessionStorage.removeItem('sbc-franchise-sidebar-collapsed');
     setLoggedIn(false);
-  }, []);
+  };
   useEffect(() => {
     window.addEventListener('sbc:session-expired', logout);
     return () => window.removeEventListener('sbc:session-expired', logout);
-  }, [logout]);
-  useEffect(() => {
-    const onPopState = () => {
-      const page = franchisePageFromPath(window.location.pathname);
-      sessionStorage.setItem('sbc-franchise-active-page', page);
-      setActivePage(page);
-    };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
   }, []);
-  const navigate = (page: string) => {
-    const path =
-      franchisePagePaths[page as keyof typeof franchisePagePaths] ?? '/';
-    if (window.location.pathname !== path)
-      window.history.pushState({}, '', path);
-    sessionStorage.setItem('sbc-franchise-active-page', page);
-    setActivePage(page);
-  };
-  // Match the Admin layout: the employee schedule uses the compact primary
-  // sidebar so the calendar and employee list have the same workspace width.
-  const primarySidebarCollapsed = collapsed || activePage === 'ตารางพนักงาน';
   return (
     <SbcThemeProvider secondary="#8f6040" background="#fbfaf8">
-      {!loggedIn ? (
-        <LoginScreen
-          headline="Franchise Portal"
-          description="เข้าสู่ระบบเพื่อจัดการแฟรนไชส์ของคุณ"
-          submitLabel="เข้าสู่ระบบแฟรนไชส์"
-          onSubmit={async (username, password) => {
-            const session = await login(username, password);
-            if (session.user.role !== 'franchise_owner')
-              throw new Error('บัญชีนี้ไม่มีสิทธิ์แฟรนไชส์');
-            const accountPlan = session.user.plan ?? 'S';
-            sessionStorage.setItem('sbc-access-token', session.accessToken);
-            sessionStorage.setItem('sbc-franchise-session', 'true');
-            sessionStorage.setItem('sbc-franchise-plan', accountPlan);
-            setPlan(accountPlan);
-            setLoggedIn(true);
-          }}
-        />
+      {loggedIn ? (
+        <FranchiseDashboard logout={logout} />
       ) : (
-        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-          <DashboardSidebar
-            activePage={activePage}
-            navigation={navigationForPlan(plan)}
-            onNavigate={navigate}
-            onLogout={logout}
-            selectedColor="#3c2d24"
-            activeBackground="#fbfaf8"
-            accentColor="#bf9576"
-            collapsed={primarySidebarCollapsed}
-            hideToggle={activePage === 'ตารางพนักงาน'}
-            onToggle={() =>
-              setCollapsed((value) => {
-                const next = !value;
-                sessionStorage.setItem(
-                  'sbc-franchise-sidebar-collapsed',
-                  String(next),
-                );
-                return next;
-              })
-            }
-          />
-          <DashboardTopbar
-            title={activePage}
-            initials="FC"
-            name="Franchise account"
-            role="Franchise partner"
-            sidebarWidth={primarySidebarCollapsed ? 96 : 230}
-          />
-          {activePage === 'เมนูและสินค้า' ? (
-            <ProductsManagementPage
-              activeBranch={franchiseBranch}
-              franchisePlan={plan}
-              readOnly
-            />
-          ) : activePage === 'วัตถุดิบ' ? (
-            <IngredientsManagementPage
-              activeBranch={franchiseBranch}
-              franchisePlan={plan}
-              readOnly
-              allowOrdering
-              onRequestCreated={() => navigate('คำขอวัตถุดิบ')}
-            />
-          ) : activePage === 'คำขอวัตถุดิบ' ? (
-            <FranchiseIngredientRequestsPage />
-          ) : activePage === 'สต๊อก' ? (
-            <StockManagementPage activeBranch={franchiseBranch} readOnly />
-          ) : activePage === 'ตารางพนักงาน' ? (
-            <EmployeesManagementPage franchiseMode />
-          ) : activePage === 'ภาพรวม' ? (
-            <DashboardMain>
-              <FranchiseOverviewPage plan={plan} onNavigate={navigate} />
-            </DashboardMain>
-          ) : null}
-        </Box>
+        <FranchiseLoginPage onLogin={() => setLoggedIn(true)} />
       )}
     </SbcThemeProvider>
   );

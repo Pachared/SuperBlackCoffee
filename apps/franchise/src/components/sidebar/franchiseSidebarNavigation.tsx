@@ -20,22 +20,3 @@ export const navigation = [
 export type FranchisePlan = 'S' | 'M' | 'L';
 export const navigationForPlan = (plan: FranchisePlan) =>
   navigation.filter((item) => plan === 'L' || item.label !== 'สต๊อก');
-
-export const franchisePagePaths = {
-  ภาพรวม: '/',
-  คำขอวัตถุดิบ: '/ingredient-requests',
-  เมนูและสินค้า: '/products',
-  สต๊อก: '/stock',
-  วัตถุดิบ: '/ingredients',
-  ตารางพนักงาน: '/employees',
-} as const;
-
-export type FranchisePage = keyof typeof franchisePagePaths;
-
-export function franchisePageFromPath(pathname: string): FranchisePage {
-  return (
-    (Object.entries(franchisePagePaths).find(
-      ([, path]) => path === pathname,
-    )?.[0] as FranchisePage | undefined) ?? 'ภาพรวม'
-  );
-}

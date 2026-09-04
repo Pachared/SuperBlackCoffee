@@ -1,21 +1,21 @@
 @font-face {
   font-family: Kanit;
-  src: url('../../admin/src/assets/fonts/Kanit-Regular.ttf') format('truetype');
+  src: url('../assets/fonts/Kanit-Regular.ttf') format('truetype');
   font-weight: 400;
-  font-display: swap;
+  font-display: optional;
 }
 @font-face {
   font-family: Kanit;
-  src: url('../../admin/src/assets/fonts/Kanit-SemiBold.ttf') format('truetype');
+  src: url('../assets/fonts/Kanit-SemiBold.ttf') format('truetype');
   font-weight: 600;
-  font-display: swap;
+  font-display: optional;
 }
 @font-face {
   font-family: Inter;
-  src: url('../../admin/src/assets/fonts/Inter-VariableFont_opsz,wght.ttf')
+  src: url('../assets/fonts/Inter-VariableFont_opsz,wght.ttf')
     format('truetype');
   font-weight: 100 900;
-  font-display: swap;
+  font-display: optional;
 }
 * {
   box-sizing: border-box;

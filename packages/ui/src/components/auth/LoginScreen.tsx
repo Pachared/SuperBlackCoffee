@@ -132,7 +132,12 @@ export function LoginScreen({
               disabled={isSubmitting}
               onMouseEnter={() => iconRef.current?.startAnimation()}
               onMouseLeave={() => iconRef.current?.stopAnimation()}
-              sx={{ minHeight: 56, justifyContent: 'center' }}
+              sx={{
+                width: '100%',
+                height: 56,
+                minHeight: 56,
+                justifyContent: 'center',
+              }}
             >
               <Box
                 component="span"
